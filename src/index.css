@@ -1,0 +1,80 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Inter", sans-serif;
+}
+
+:root {
+  --background: #050505;
+  --foreground: #ffffff;
+}
+
+body {
+  @apply bg-[#050505] text-white antialiased font-sans overflow-x-hidden;
+  min-height: 100vh;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+}
+
+.glow-fire {
+  filter: drop-shadow(0 0 15px rgba(249, 115, 22, 0.3));
+}
+
+.glow-ice {
+  filter: drop-shadow(0 0 15px rgba(6, 182, 212, 0.3));
+}
+
+.progress-bg {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 100px;
+  height: 8px;
+  width: 100%;
+}
+
+.progress-fill {
+  background: linear-gradient(90deg, #10b981, #34d399);
+  height: 100%;
+  border-radius: 100px;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.habit-btn {
+  @apply w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-200 border border-white/10 cursor-pointer;
+}
+
+.habit-btn.active {
+  @apply bg-[#10b981] border-[#10b981] shadow-lg shadow-green-500/20;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+.chat-bubble-bot {
+  background: rgba(255,255,255,0.05);
+  border-left: 3px solid #f97316;
+}
+

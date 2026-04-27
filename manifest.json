@@ -1,0 +1,21 @@
+{
+  "short_name": "OneDay",
+  "name": "OneDay: Habit & Streak Protocol",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#050505",
+  "display": "standalone",
+  "theme_color": "#050505",
+  "description": "AI-powered addiction to consistency."
+}
