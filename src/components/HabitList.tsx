@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Check, Loader2 } from 'lucide-react';
 import { useStore } from '../store/useStore';
+import { toast } from 'react-hot-toast';
 
 export const HabitList = () => {
   const { habits, completeHabit, addHabit, loading } = useStore();
@@ -11,9 +12,14 @@ export const HabitList = () => {
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newHabitName.trim()) return;
-    await addHabit(newHabitName);
-    setNewHabitName('');
-    setIsAdding(false);
+    try {
+      await addHabit(newHabitName);
+      setNewHabitName('');
+      setIsAdding(false);
+      toast.success("HABIT DEPLOYED");
+    } catch (e) {
+      toast.error("DEPLOYMENT FAILED");
+    }
   };
 
   return (
@@ -72,7 +78,16 @@ export const HabitList = () => {
             </div>
             
             <button 
-              onClick={() => !habit.completedToday && completeHabit(habit.id)}
+              onClick={async () => {
+                if (!habit.completedToday && !loading) {
+                  try {
+                    await completeHabit(habit.id);
+                    toast.success("HABIT COMPLETED +10 XP");
+                  } catch (e) {
+                    toast.error("COMMUNICATIONS ERROR");
+                  }
+                }
+              }}
               disabled={habit.completedToday || loading}
               className={`habit-btn ${habit.completedToday ? 'active' : ''}`}
             >

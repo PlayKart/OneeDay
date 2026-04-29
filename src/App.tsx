@@ -14,6 +14,7 @@ import {
 import { signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
 import { auth } from './lib/firebase';
 import { useStore } from './store/useStore';
+import { Toaster, toast } from 'react-hot-toast';
 import { HabitList } from './components/HabitList';
 import { AICoach } from './components/AICoach';
 import { MotivationalQuote } from './components/MotivationalQuote';
@@ -68,6 +69,20 @@ export default function App() {
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-[#050505]">
+      <Toaster 
+        position="top-right" 
+        toastOptions={{
+          style: {
+            background: 'rgba(5, 5, 5, 0.9)',
+            color: '#fff',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            backdropFilter: 'blur(10px)',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            borderRadius: '12px',
+          }
+        }} 
+      />
       {/* Background Orbs */}
       <div className="orb w-[500px] h-[500px] bg-orange-500/5 top-[-100px] right-[-100px]" />
       <div className="orb w-[400px] h-[400px] bg-cyan-500/5 bottom-[-50px] left-[-50px]" />
@@ -168,7 +183,14 @@ export default function App() {
                   <p className="text-sm text-slate-500 mb-6">Pause your progress for 7 days if you need a break without losing your streak.</p>
                   <button 
                     disabled={!!user.freeze_until}
-                    onClick={() => useStore.getState().freezeStreak(7)}
+                    onClick={async () => {
+                      try {
+                        await useStore.getState().freezeStreak(7);
+                        toast.success("STREAK SHIELD ACTIVATED");
+                      } catch (e) {
+                        toast.error("SHIELD FAILURE");
+                      }
+                    }}
                     className="bg-blue-600 hover:bg-blue-500 disabled:bg-white/[0.05] disabled:text-slate-600 text-white font-bold px-10 py-4 rounded-xl transition-all uppercase tracking-widest text-xs"
                   >
                     {user.freeze_until ? "Shield Active" : "Activate Shield"}

@@ -48,10 +48,10 @@ export const useStore = create<State>((set, get) => ({
     try {
       set({ loading: true });
       const [userRes, habitsRes] = await Promise.all([
-        fetch(`${BACKEND_URL}/api/user`, {
+        fetch(`${BACKEND_URL}/user`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch(`${BACKEND_URL}/api/habits`, {
+        fetch(`${BACKEND_URL}/habits`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
       ]);
@@ -83,55 +83,79 @@ export const useStore = create<State>((set, get) => ({
 
   addHabit: async (name: string) => {
     const token = localStorage.getItem("token");
-    await fetch(`${BACKEND_URL}/api/habit`, {
-      method: 'POST',
-      headers: { 
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ name })
-    });
-    await get().refreshFromBackend();
+    try {
+      const res = await fetch(`${BACKEND_URL}/habit`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name })
+      });
+      if (!res.ok) throw new Error("Failed to add habit");
+      await get().refreshFromBackend();
+    } catch (e) {
+      console.error(e);
+      throw e;
+    }
   },
 
   completeHabit: async (habitId: string) => {
     const token = localStorage.getItem("token");
-    await fetch(`${BACKEND_URL}/api/complete`, {
-      method: 'POST',
-      headers: { 
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ habit_id: habitId })
-    });
-    await get().refreshFromBackend();
+    try {
+      const res = await fetch(`${BACKEND_URL}/complete`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ habit_id: habitId })
+      });
+      if (!res.ok) throw new Error("Could not complete habit");
+      await get().refreshFromBackend();
+    } catch (e) {
+      console.error(e);
+      throw e;
+    }
   },
 
   freezeStreak: async (days: number) => {
     const token = localStorage.getItem("token");
-    await fetch(`${BACKEND_URL}/api/freeze`, {
-      method: 'POST',
-      headers: { 
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ days })
-    });
-    await get().refreshFromBackend();
+    try {
+      const res = await fetch(`${BACKEND_URL}/freeze`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ days })
+      });
+      if (!res.ok) throw new Error("Freeze protocol failed");
+      await get().refreshFromBackend();
+    } catch (e) {
+      console.error(e);
+      throw e;
+    }
   },
 
   sendChat: async (message: string) => {
     const token = localStorage.getItem("token");
-    const res = await fetch(`${BACKEND_URL}/api/chat`, {
-      method: 'POST',
-      headers: { 
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ message })
-    });
-    const data = await res.json();
-    return data.reply;
+    try {
+      const res = await fetch(`${BACKEND_URL}/chat`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ message })
+      });
+      if (!res.ok) throw new Error("uplink lost");
+      const data = await res.json();
+      return data.reply;
+    } catch (e) {
+      console.error(e);
+      throw e;
+    }
   }
 }));
 
