@@ -4,6 +4,24 @@ import { onAuthStateChanged } from 'firebase/auth';
 
 const BACKEND_URL = "https://oneday-backend-xocv.onrender.com";
 
+async function apiRequest(path: string, method = "GET", body: any = null) {
+  const token = localStorage.getItem("token");
+  if (!token) throw new Error("No authentication token found");
+
+  const res = await fetch(`${BACKEND_URL}${path}`, {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: body ? JSON.stringify(body) : null
+  });
+
+  if (!res.ok) throw new Error(`API error: ${res.statusText}`);
+
+  return res.json();
+}
+
 interface User {
   name: string;
   xp: number;
@@ -42,24 +60,12 @@ export const useStore = create<State>((set, get) => ({
   initialized: false,
 
   refreshFromBackend: async () => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
     try {
       set({ loading: true });
-      const [userRes, habitsRes] = await Promise.all([
-        fetch(`${BACKEND_URL}/user`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }),
-        fetch(`${BACKEND_URL}/habits`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
+      const [userData, habitsData] = await Promise.all([
+        apiRequest("/api/user"),
+        apiRequest("/api/habits")
       ]);
-
-      if (!userRes.ok || !habitsRes.ok) throw new Error("Sync failed");
-
-      const userData = await userRes.json();
-      const habitsData = await habitsRes.json();
 
       set({ 
         user: userData, 
@@ -82,17 +88,8 @@ export const useStore = create<State>((set, get) => ({
   },
 
   addHabit: async (name: string) => {
-    const token = localStorage.getItem("token");
     try {
-      const res = await fetch(`${BACKEND_URL}/habit`, {
-        method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ name })
-      });
-      if (!res.ok) throw new Error("Failed to add habit");
+      await apiRequest("/api/habit", "POST", { name });
       await get().refreshFromBackend();
     } catch (e) {
       console.error(e);
@@ -101,17 +98,8 @@ export const useStore = create<State>((set, get) => ({
   },
 
   completeHabit: async (habitId: string) => {
-    const token = localStorage.getItem("token");
     try {
-      const res = await fetch(`${BACKEND_URL}/complete`, {
-        method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ habit_id: habitId })
-      });
-      if (!res.ok) throw new Error("Could not complete habit");
+      await apiRequest("/api/complete", "POST", { habit_id: habitId });
       await get().refreshFromBackend();
     } catch (e) {
       console.error(e);
@@ -120,17 +108,8 @@ export const useStore = create<State>((set, get) => ({
   },
 
   freezeStreak: async (days: number) => {
-    const token = localStorage.getItem("token");
     try {
-      const res = await fetch(`${BACKEND_URL}/freeze`, {
-        method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ days })
-      });
-      if (!res.ok) throw new Error("Freeze protocol failed");
+      await apiRequest("/api/freeze", "POST", { days });
       await get().refreshFromBackend();
     } catch (e) {
       console.error(e);
@@ -139,18 +118,8 @@ export const useStore = create<State>((set, get) => ({
   },
 
   sendChat: async (message: string) => {
-    const token = localStorage.getItem("token");
     try {
-      const res = await fetch(`${BACKEND_URL}/chat`, {
-        method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ message })
-      });
-      if (!res.ok) throw new Error("uplink lost");
-      const data = await res.json();
+      const data = await apiRequest("/api/chat", "POST", { message });
       return data.reply;
     } catch (e) {
       console.error(e);
