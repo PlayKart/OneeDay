@@ -1,9 +1,12 @@
 import { create } from 'zustand';
 import { auth } from '../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { GoogleGenAI } from "@google/genai";
 
-const BACKEND_URL = "https://oneday-backend-xocv.onrender.com";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
+if (!BACKEND_URL) {
+  throw new Error("Missing VITE_BACKEND_URL");
+}
 
 async function apiRequest(
   path: string,
@@ -164,27 +167,8 @@ export const useStore = create<State>((set, get) => ({
 
   sendChat: async (message: string) => {
     try {
-      const { user } = get();
-      const streak = user?.streak || 0;
-
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
-      const result = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: message,
-        config: {
-          systemInstruction: `You are 'OneDay' AI Coach. 
-          Your current student has a streak of ${streak} days.
-          Personality Rules:
-          - If streak >= 7: Be STRICT, elite, and slightly aggressive. No excuses allowed.
-          - If streak < 7: Be FIRM but encouraging. Focus on consistency.
-          - If they just returned from a freeze: Be supportive but remind them the clock is ticking.
-          - Tone: Short, punchy, disciplined. 
-          - Never use emojis. Never apologize.
-          - Focus on the IMMEDIATE next action.`
-        }
-      });
-
-      return result.text || "Connection lost. Continue your streak.";
+      const data = await apiRequest("/api/chat", "POST", { message });
+      return data.reply;
     } catch (e: any) {
       console.error("AI Uplink Error:", e);
       throw new Error(e.message || "AI Coach is currently offline. Stay disciplined regardless.");
