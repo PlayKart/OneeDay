@@ -40,7 +40,7 @@ export const StatsGrid = () => {
           <span className="text-slate-400 text-sm font-medium">Freeze</span>
         </div>
         <div className="text-xl font-display font-bold text-slate-100">
-          {user.freezeUntil ? (
+          {user.freeze_until ? (
             <span className="text-blue-400">Active</span>
           ) : (
             <span className="text-slate-500">Stored (0)</span>
@@ -69,7 +69,7 @@ export const StatsGrid = () => {
         <div className="w-full bg-white/5 h-1.5 rounded-full mt-3 overflow-hidden">
           <motion.div 
             initial={{ width: 0 }}
-            animate={{ width: `${user.xp % 100}%` }}
+            animate={{ width: `${user.levelProgress}%` }}
             className="h-full bg-yellow-500"
           />
         </div>

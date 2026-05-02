@@ -1,25 +1,69 @@
 import { create } from 'zustand';
 import { auth } from '../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
+import { GoogleGenAI } from "@google/genai";
 
 const BACKEND_URL = "https://oneday-backend-xocv.onrender.com";
 
-async function apiRequest(path: string, method = "GET", body: any = null) {
-  const token = localStorage.getItem("token");
-  if (!token) throw new Error("No authentication token found");
+async function apiRequest(
+  path: string,
+  method = "GET",
+  body: any = null,
+  isRetry = false
+): Promise<any> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-  const res = await fetch(`${BACKEND_URL}${path}`, {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`
-    },
-    body: body ? JSON.stringify(body) : null
-  });
+  try {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      throw new Error("Communication Failure: Authentication Required");
+    }
 
-  if (!res.ok) throw new Error(`API error: ${res.statusText}`);
+    const token = await currentUser.getIdToken(isRetry);
 
-  return res.json();
+    const res = await fetch(`${BACKEND_URL}${path}`, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: body ? JSON.stringify(body) : null,
+      signal: controller.signal,
+    });
+
+    // Retry ONCE with fresh user + forced token refresh
+    if (res.status === 401 && !isRetry) {
+      return apiRequest(path, method, body, true);
+    }
+
+    const contentType = res.headers.get("content-type") || "";
+    let data: any;
+
+    if (contentType.includes("application/json")) {
+      data = await res.json().catch(() => ({}));
+    } else {
+      data = await res.text().catch(() => "");
+    }
+
+    if (!res.ok) {
+      const message =
+        (data && typeof data === "object" && data.error) ||
+        (typeof data === "string" && data) ||
+        `Uplink Error: ${res.status}`;
+      throw new Error(message);
+    }
+
+    return data;
+  } catch (e: any) {
+    if (e?.name === "AbortError") {
+      throw new Error("Protocol Timeout: Connection lost");
+    }
+    if (e instanceof Error) throw e;
+    throw new Error("Network Instability: Check uplink signal");
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 interface User {
@@ -60,6 +104,8 @@ export const useStore = create<State>((set, get) => ({
   initialized: false,
 
   refreshFromBackend: async () => {
+    if (get().loading) return;
+    
     try {
       set({ loading: true });
       const [userData, habitsData] = await Promise.all([
@@ -67,23 +113,22 @@ export const useStore = create<State>((set, get) => ({
         apiRequest("/api/habits")
       ]);
 
+      const streak = userData.streak;
+      let quote = "The best time to start was yesterday. The second best time is now.";
+      if (streak >= 7) quote = "You’re ahead of 99%. Don’t slow down.";
+      else if (streak === 0) quote = "One day broke. Don't let two.";
+      else if (userData.freeze_until && new Date(userData.freeze_until) > new Date()) quote = "You paused. Don’t quit.";
+
       set({ 
         user: userData, 
         habits: habitsData, 
+        quote,
         loading: false,
         initialized: true 
       });
-      
-      // Update dynamic quote after refresh
-      const streak = userData.streak;
-      if (streak >= 7) set({ quote: "You’re ahead of 99%. Don’t slow down." });
-      else if (streak === 0) set({ quote: "One day broke. Don't let two." });
-      else if (userData.freeze_until && new Date(userData.freeze_until) > new Date()) set({ quote: "You paused. Don’t quit." });
-      else set({ quote: "The best time to start was yesterday. The second best time is now." });
-
-    } catch (error) {
-      console.error("Refresh failed:", error);
-      set({ loading: false });
+    } catch (e) {
+      console.error("Critical State Sync Failure:", e);
+      set({ loading: false, initialized: true });
     }
   },
 
@@ -119,22 +164,38 @@ export const useStore = create<State>((set, get) => ({
 
   sendChat: async (message: string) => {
     try {
-      const data = await apiRequest("/api/chat", "POST", { message });
-      return data.reply;
-    } catch (e) {
-      console.error(e);
-      throw e;
+      const { user } = get();
+      const streak = user?.streak || 0;
+
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+      const result = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: message,
+        config: {
+          systemInstruction: `You are 'OneDay' AI Coach. 
+          Your current student has a streak of ${streak} days.
+          Personality Rules:
+          - If streak >= 7: Be STRICT, elite, and slightly aggressive. No excuses allowed.
+          - If streak < 7: Be FIRM but encouraging. Focus on consistency.
+          - If they just returned from a freeze: Be supportive but remind them the clock is ticking.
+          - Tone: Short, punchy, disciplined. 
+          - Never use emojis. Never apologize.
+          - Focus on the IMMEDIATE next action.`
+        }
+      });
+
+      return result.text || "Connection lost. Continue your streak.";
+    } catch (e: any) {
+      console.error("AI Uplink Error:", e);
+      throw new Error(e.message || "AI Coach is currently offline. Stay disciplined regardless.");
     }
   }
 }));
 
 onAuthStateChanged(auth, async (fbUser) => {
   if (fbUser) {
-    const token = await fbUser.getIdToken();
-    localStorage.setItem("token", token);
     await useStore.getState().refreshFromBackend();
   } else {
-    localStorage.removeItem("token");
-    useStore.setState({ user: null, habits: [], initialized: true });
+    useStore.setState({ user: null, habits: [], initialized: true, loading: false });
   }
 });

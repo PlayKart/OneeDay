@@ -4,7 +4,6 @@ import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import * as admin from "firebase-admin";
-import { GoogleGenAI } from "@google/genai";
 
 dotenv.config();
 
@@ -169,37 +168,8 @@ async function startServer() {
   });
 
   app.post("/api/chat", async (req, res) => {
-    const authHeader = req.headers.authorization;
-    const { message } = req.body;
-    const token = authHeader?.split("Bearer ")[1];
-    if (!token) return res.status(401).send();
-
-    try {
-      const decoded = await admin.auth().verifyIdToken(token);
-      const userDoc = await db.collection('users').doc(decoded.uid).get();
-      const userData = userDoc.data() || { streak: 0 };
-
-      const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
-      const model = genAI.getGenerativeModel({ 
-        model: "gemini-2.0-flash",
-        systemInstruction: `You are 'OneDay' AI Coach. 
-        Your current student has a streak of ${userData.streak} days.
-        Personality Rules:
-        - If streak >= 7: Be STRICT, elite, and slightly aggressive. No excuses allowed.
-        - If streak < 7: Be FIRM but encouraging. Focus on consistency.
-        - If they just returned from a freeze: Be supportive but remind them the clock is ticking.
-        - Tone: Short, punchy, disciplined. 
-        - Never use emojis. Never apologize.
-        - Focus on the IMMEDIATE next action.`
-      });
-
-      const result = await model.generateContent(message);
-      const reply = result.response.text();
-      res.json({ reply });
-    } catch (e) {
-      console.error(e);
-      res.status(500).json({ reply: "Connection failed. Move forward regardless." });
-    }
+    // Deprecated: AI Coach moved to frontend protocol
+    res.status(410).json({ error: "Endpoint deprecated. Use frontend SDK." });
   });
 
   // Vite middleware for development
