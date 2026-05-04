@@ -5,6 +5,8 @@ import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import * as admin from "firebase-admin";
 
+import { OpenAI } from "openai";
+
 dotenv.config();
 
 // Initialize Firebase Admin
@@ -168,8 +170,46 @@ async function startServer() {
   });
 
   app.post("/api/chat", async (req, res) => {
-    // Deprecated: AI Coach moved to frontend protocol
-    res.status(410).json({ error: "Endpoint deprecated. Use frontend SDK." });
+    const authHeader = req.headers.authorization;
+    const { message } = req.body;
+    const token = authHeader?.split("Bearer ")[1];
+    if (!token) return res.status(401).send();
+
+    try {
+      const decoded = await admin.auth().verifyIdToken(token);
+      const userDoc = await db.collection('users').doc(decoded.uid).get();
+      const userData = userDoc.data() || { streak: 0 };
+      const streak = userData.streak || 0;
+
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: `You are 'OneDay' AI Coach. 
+          Your current student has a streak of ${streak} days.
+          Personality Rules:
+          - If streak >= 7: Be STRICT, elite, and slightly aggressive. No excuses allowed.
+          - If streak < 7: Be FIRM but encouraging. Focus on consistency.
+          - If they just returned from a freeze: Be supportive but remind them the clock is ticking.
+          - Tone: Short, punchy, disciplined. 
+          - Never use emojis. Never apologize.
+          - Focus on the IMMEDIATE next action.`
+          },
+          {
+            role: "user",
+            content: message
+          }
+        ],
+        max_tokens: 200,
+      });
+
+      res.json({ reply: response.choices[0].message.content || "Connection lost. Continue your streak." });
+    } catch (e: any) {
+      console.error("AI Context Error:", e);
+      res.status(500).json({ error: "AI Coach is currently offline. Stay disciplined regardless." });
+    }
   });
 
   // Vite middleware for development

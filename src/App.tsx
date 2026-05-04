@@ -29,7 +29,7 @@ const GoogleIcon = () => (
 );
 
 export default function App() {
-  const { user, initialized, loading } = useStore();
+  const { user, firebaseUser, initialized, loading, backendError, refreshFromBackend } = useStore();
 
   const handleLogin = async () => {
     try {
@@ -47,27 +47,8 @@ export default function App() {
     </div>
   );
 
-  if (!user && loading) {
-    return (
-      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center font-sans">
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="flex flex-col items-center gap-6"
-        >
-          <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center animate-pulse">
-            <Flame size={32} className="text-white/50" />
-          </div>
-          <div className="flex flex-col items-center gap-2">
-            <h2 className="text-xl font-bold tracking-tight">Syncing Discipline...</h2>
-            <p className="text-slate-500 text-xs uppercase tracking-widest font-black">Connecting to Uplink</p>
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
-
-  if (!user) {
+  // NOT LOGGED IN
+  if (!firebaseUser) {
     return (
       <div className="min-h-screen relative flex items-center justify-center overflow-hidden bg-[#050505]">
         <div className="orb w-[400px] h-[400px] bg-blue-500/10 top-[-100px] left-[-100px]" />
@@ -96,6 +77,57 @@ export default function App() {
     );
   }
 
+  // LOGGED IN BUT BACKEND ERROR
+  if (backendError) {
+    return (
+      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center font-sans p-6 text-center">
+        <div className="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center mb-6">
+          <ShieldCheck size={32} className="text-red-400" />
+        </div>
+        <h2 className="text-2xl font-bold mb-2">Uplink Error</h2>
+        <p className="text-slate-400 mb-8 max-w-sm">
+          {backendError}
+        </p>
+        <div className="flex flex-col w-full max-w-xs gap-4">
+          <button 
+            onClick={() => refreshFromBackend()}
+            className="w-full bg-white text-black font-bold py-4 rounded-xl transition-all"
+          >
+            Retry Sync
+          </button>
+          <button 
+            onClick={() => signOut(auth)}
+            className="w-full glass text-slate-400 py-4 rounded-xl transition-all"
+          >
+            Sign Out
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // LOGGED IN BUT DATA NOT READY
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center font-sans">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex flex-col items-center gap-6"
+        >
+          <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center animate-pulse">
+            <Flame size={32} className="text-white/50" />
+          </div>
+          <div className="flex flex-col items-center gap-2">
+            <h2 className="text-xl font-bold tracking-tight">Syncing Discipline...</h2>
+            <p className="text-slate-500 text-xs uppercase tracking-widest font-black">Connecting to Uplink</p>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // MAIN APP
   return (
     <div className="min-h-screen relative overflow-hidden bg-[#050505]">
       <Toaster 
@@ -123,10 +155,10 @@ export default function App() {
           <div className="glass p-6">
             <div className="flex items-center gap-4 mb-6">
               <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-orange-500 to-pink-500 border-2 border-white/10 overflow-hidden">
-                <img src={auth.currentUser?.photoURL || ""} alt="" className="w-full h-full object-cover" />
+                <img src={firebaseUser?.photoURL || ""} alt="" className="w-full h-full object-cover" />
               </div>
               <div>
-                <h2 className="font-bold text-sm truncate max-w-[140px]">{user.name}</h2>
+                <h2 className="font-bold text-sm truncate max-w-[140px]">{user?.name}</h2>
                 <p className="text-[10px] text-slate-500 uppercase font-extrabold tracking-widest text-nowrap">Level {user.level} Architect</p>
               </div>
             </div>
@@ -180,7 +212,7 @@ export default function App() {
               {/* Mobile Profile & Logout */}
               <div className="lg:hidden flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-orange-500 to-pink-500 border border-white/10 overflow-hidden">
-                  <img src={auth.currentUser?.photoURL || ""} alt="" className="w-full h-full object-cover" />
+                  <img src={firebaseUser?.photoURL || ""} alt="" className="w-full h-full object-cover" />
                 </div>
                 <button 
                   onClick={() => signOut(auth)}
