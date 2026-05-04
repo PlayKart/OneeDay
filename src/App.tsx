@@ -29,18 +29,47 @@ const GoogleIcon = () => (
 );
 
 export default function App() {
-  const { user, initialized } = useStore();
+  const { user, initialized, loading } = useStore();
 
   const handleLogin = async () => {
-    const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+    } catch (error) {
+      console.error("Login failed:", error);
+      toast.error("LOGIN FAILED. RETRY.");
+    }
   };
 
-  if (!initialized) return null;
+  if (!initialized) return (
+    <div className="min-h-screen bg-[#050505] flex items-center justify-center font-sans">
+      <div className="w-12 h-12 border-2 border-white/5 border-t-white rounded-full animate-spin" />
+    </div>
+  );
+
+  if (!user && loading) {
+    return (
+      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center font-sans">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex flex-col items-center gap-6"
+        >
+          <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center animate-pulse">
+            <Flame size={32} className="text-white/50" />
+          </div>
+          <div className="flex flex-col items-center gap-2">
+            <h2 className="text-xl font-bold tracking-tight">Syncing Discipline...</h2>
+            <p className="text-slate-500 text-xs uppercase tracking-widest font-black">Connecting to Uplink</p>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   if (!user) {
     return (
-      <div className="min-h-screen relative flex items-center justify-center overflow-hidden">
+      <div className="min-h-screen relative flex items-center justify-center overflow-hidden bg-[#050505]">
         <div className="orb w-[400px] h-[400px] bg-blue-500/10 top-[-100px] left-[-100px]" />
         <div className="orb w-[300px] h-[300px] bg-purple-500/10 bottom-[-50px] right-[-50px]" />
         
@@ -140,11 +169,27 @@ export default function App() {
         <main className="overflow-y-auto pr-2 space-y-8 pb-12">
           {/* Header Stats */}
           <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-            <div>
-              <h1 className="text-3xl font-extrabold tracking-tighter">OneDay</h1>
-              <p className="text-slate-500 text-sm tracking-widest uppercase font-bold text-[10px] mt-1">
-                {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-              </p>
+            <div className="flex justify-between items-center w-full md:w-auto">
+              <div>
+                <h1 className="text-3xl font-extrabold tracking-tighter">OneDay</h1>
+                <p className="text-slate-500 text-sm tracking-widest uppercase font-bold text-[10px] mt-1">
+                  {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                </p>
+              </div>
+
+              {/* Mobile Profile & Logout */}
+              <div className="lg:hidden flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-orange-500 to-pink-500 border border-white/10 overflow-hidden">
+                  <img src={auth.currentUser?.photoURL || ""} alt="" className="w-full h-full object-cover" />
+                </div>
+                <button 
+                  onClick={() => signOut(auth)}
+                  className="p-2 glass text-red-400 rounded-lg"
+                  aria-label="Sign Out"
+                >
+                  <LogOut size={16} />
+                </button>
+              </div>
             </div>
 
             <div className="flex gap-4 w-full md:w-auto">

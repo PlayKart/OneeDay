@@ -1,8 +1,10 @@
 import { create } from 'zustand';
 import { auth } from '../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
+import { GoogleGenAI } from "@google/genai";
+import { toast } from 'react-hot-toast';
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "https://oneday-backend-xocv.onrender.com";
 
 if (!BACKEND_URL) {
   throw new Error("Missing VITE_BACKEND_URL");
@@ -15,7 +17,7 @@ async function apiRequest(
   isRetry = false
 ): Promise<any> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000);
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
 
   try {
     const currentUser = auth.currentUser;
@@ -129,9 +131,10 @@ export const useStore = create<State>((set, get) => ({
         loading: false,
         initialized: true 
       });
-    } catch (e) {
+    } catch (e: any) {
       console.error("Critical State Sync Failure:", e);
-      set({ loading: false, initialized: true });
+      toast.error(e.message || "SYNC FAILURE. CHECK CONNECTION.");
+      set({ loading: false, initialized: true, user: null });
     }
   },
 
@@ -167,8 +170,27 @@ export const useStore = create<State>((set, get) => ({
 
   sendChat: async (message: string) => {
     try {
-      const data = await apiRequest("/api/chat", "POST", { message });
-      return data.reply;
+      const { user } = get();
+      const streak = user?.streak || 0;
+
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+      const result = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: message,
+        config: {
+          systemInstruction: `You are 'OneDay' AI Coach. 
+          Your current student has a streak of ${streak} days.
+          Personality Rules:
+          - If streak >= 7: Be STRICT, elite, and slightly aggressive. No excuses allowed.
+          - If streak < 7: Be FIRM but encouraging. Focus on consistency.
+          - If they just returned from a freeze: Be supportive but remind them the clock is ticking.
+          - Tone: Short, punchy, disciplined. 
+          - Never use emojis. Never apologize.
+          - Focus on the IMMEDIATE next action.`
+        }
+      });
+
+      return result.text || "Connection lost. Continue your streak.";
     } catch (e: any) {
       console.error("AI Uplink Error:", e);
       throw new Error(e.message || "AI Coach is currently offline. Stay disciplined regardless.");
