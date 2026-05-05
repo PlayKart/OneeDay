@@ -9,7 +9,9 @@ import {
   LogOut,
   ChevronRight,
   ShieldCheck,
-  Bot
+  Bot,
+  RefreshCw,
+  AlertTriangle
 } from 'lucide-react';
 import { signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
 import { auth } from './lib/firebase';
@@ -41,13 +43,16 @@ export default function App() {
     }
   };
 
+  // ── 1. Waiting for Firebase to resolve auth state on cold start ──────────
   if (!initialized) return (
     <div className="min-h-screen bg-[#050505] flex items-center justify-center font-sans">
       <div className="w-12 h-12 border-2 border-white/5 border-t-white rounded-full animate-spin" />
     </div>
   );
 
-  // NOT LOGGED IN
+  // ── 2. No Firebase user → show login screen ──────────────────────────────
+  // Uses firebaseUser (not backend `user`) so a backend failure never
+  // kicks an authenticated user back to the login screen.
   if (!firebaseUser) {
     return (
       <div className="min-h-screen relative flex items-center justify-center overflow-hidden bg-[#050505]">
@@ -77,37 +82,45 @@ export default function App() {
     );
   }
 
-  // LOGGED IN BUT BACKEND ERROR
-  if (backendError) {
-    return (
-      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center font-sans p-6 text-center">
-        <div className="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center mb-6">
-          <ShieldCheck size={32} className="text-red-400" />
-        </div>
-        <h2 className="text-2xl font-bold mb-2">Uplink Error</h2>
-        <p className="text-slate-400 mb-8 max-w-sm">
-          {backendError}
-        </p>
-        <div className="flex flex-col w-full max-w-xs gap-4">
-          <button 
-            onClick={() => refreshFromBackend()}
-            className="w-full bg-white text-black font-bold py-4 rounded-xl transition-all"
-          >
-            Retry Sync
-          </button>
-          <button 
-            onClick={() => signOut(auth)}
-            className="w-full glass text-slate-400 py-4 rounded-xl transition-all"
-          >
-            Sign Out
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // LOGGED IN BUT DATA NOT READY
+  // ── 3. Firebase user exists but backend data not yet loaded ───────────────
   if (!user) {
+    // Backend error — show retry screen instead of silently looping
+    if (backendError) {
+      return (
+        <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center font-sans gap-6">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex flex-col items-center gap-6 max-w-sm text-center px-6"
+          >
+            <div className="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center">
+              <AlertTriangle size={32} className="text-red-400" />
+            </div>
+            <div className="flex flex-col gap-2">
+              <h2 className="text-xl font-bold tracking-tight">Uplink Failed</h2>
+              <p className="text-slate-500 text-xs uppercase tracking-widest font-black">Backend Unreachable</p>
+              <p className="text-slate-400 text-sm mt-2">{backendError}</p>
+            </div>
+            <button
+              onClick={refreshFromBackend}
+              disabled={loading}
+              className="flex items-center gap-2 bg-white/10 hover:bg-white/20 disabled:opacity-50 text-white font-bold px-8 py-3 rounded-xl transition-all text-sm uppercase tracking-widest"
+            >
+              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+              {loading ? 'Retrying...' : 'Retry'}
+            </button>
+            <button
+              onClick={() => signOut(auth)}
+              className="text-xs text-slate-600 hover:text-red-400 transition-colors uppercase tracking-widest font-bold"
+            >
+              Sign Out
+            </button>
+          </motion.div>
+        </div>
+      );
+    }
+
+    // Normal loading after successful auth
     return (
       <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center font-sans">
         <motion.div 
@@ -127,7 +140,7 @@ export default function App() {
     );
   }
 
-  // MAIN APP
+  // ── 4. Fully authenticated + backend data loaded → main app ───────────────
   return (
     <div className="min-h-screen relative overflow-hidden bg-[#050505]">
       <Toaster 
@@ -155,10 +168,10 @@ export default function App() {
           <div className="glass p-6">
             <div className="flex items-center gap-4 mb-6">
               <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-orange-500 to-pink-500 border-2 border-white/10 overflow-hidden">
-                <img src={firebaseUser?.photoURL || ""} alt="" className="w-full h-full object-cover" />
+                <img src={firebaseUser.photoURL || ""} alt="" className="w-full h-full object-cover" />
               </div>
               <div>
-                <h2 className="font-bold text-sm truncate max-w-[140px]">{user?.name}</h2>
+                <h2 className="font-bold text-sm truncate max-w-[140px]">{user.name}</h2>
                 <p className="text-[10px] text-slate-500 uppercase font-extrabold tracking-widest text-nowrap">Level {user.level} Architect</p>
               </div>
             </div>
@@ -212,7 +225,7 @@ export default function App() {
               {/* Mobile Profile & Logout */}
               <div className="lg:hidden flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-orange-500 to-pink-500 border border-white/10 overflow-hidden">
-                  <img src={firebaseUser?.photoURL || ""} alt="" className="w-full h-full object-cover" />
+                  <img src={firebaseUser.photoURL || ""} alt="" className="w-full h-full object-cover" />
                 </div>
                 <button 
                   onClick={() => signOut(auth)}

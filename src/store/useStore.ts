@@ -3,11 +3,7 @@ import { auth } from '../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { toast } from 'react-hot-toast';
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "https://oneday-backend-xocv.onrender.com";
-
-if (!BACKEND_URL) {
-  throw new Error("Missing VITE_BACKEND_URL");
-}
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
 
 async function apiRequest(
   path: string,
