@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Flame, 
@@ -13,7 +14,7 @@ import {
   RefreshCw,
   AlertTriangle
 } from 'lucide-react';
-import { signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
+import { signInWithPopup, GoogleAuthProvider, signOut, signInAnonymously } from 'firebase/auth';
 import { auth } from './lib/firebase';
 import { useStore } from './store/useStore';
 import { Toaster, toast } from 'react-hot-toast';
@@ -32,6 +33,13 @@ const GoogleIcon = () => (
 
 export default function App() {
   const { user, firebaseUser, initialized, loading, backendError, refreshFromBackend } = useStore();
+  const [showIntro, setShowIntro] = useState(true);
+
+  useEffect(() => {
+    // Show intro animation for 3.5 seconds
+    const timer = setTimeout(() => setShowIntro(false), 3500);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleLogin = async () => {
     try {
@@ -42,6 +50,62 @@ export default function App() {
       toast.error("LOGIN FAILED. RETRY.");
     }
   };
+
+  const handleGuestLogin = async () => {
+    try {
+      await signInAnonymously(auth);
+    } catch (error) {
+      console.error("Guest login failed:", error);
+      toast.error("GUEST LOGIN FAILED.");
+    }
+  };
+
+  // ── 0. Show Intro Animation ───────────────────────────────────────────────
+  if (showIntro) {
+    return (
+      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center relative overflow-hidden">
+        <div className="orb w-[400px] h-[400px] bg-blue-500/5 top-[-100px] left-[-100px] absolute mix-blend-screen animate-pulse" />
+        <div className="orb w-[300px] h-[300px] bg-purple-500/5 bottom-[-50px] right-[-50px] absolute mix-blend-screen animate-pulse" />
+        
+        <AnimatePresence>
+          <motion.div
+             initial={{ opacity: 0, scale: 0.9 }}
+             animate={{ opacity: 1, scale: 1 }}
+             exit={{ opacity: 0, scale: 1.1 }}
+             transition={{ duration: 0.8, ease: "easeOut" }}
+             className="flex flex-col items-center z-10"
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.8 }}
+              className="w-24 h-24 bg-white/10 rounded-3xl flex items-center justify-center mb-8 shadow-[0_0_50px_rgba(255,255,255,0.05)] border border-white/5"
+            >
+              <Flame size={48} className="text-white" />
+            </motion.div>
+            
+            <motion.h1
+               initial={{ opacity: 0, y: 20 }}
+               animate={{ opacity: 1, y: 0 }}
+               transition={{ delay: 0.6, duration: 0.8 }}
+               className="text-6xl font-black tracking-tighter mb-4 text-white"
+            >
+              OneDay
+            </motion.h1>
+            
+            <motion.p
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               transition={{ delay: 1.2, duration: 1 }}
+               className="text-[11px] text-slate-400 font-black tracking-[0.3em] uppercase text-center"
+            >
+              Discipline makes it all
+            </motion.p>
+          </motion.div>
+        </AnimatePresence>
+      </div>
+    );
+  }
 
   // ── 1. Waiting for Firebase to resolve auth state on cold start ──────────
   if (!initialized) return (
@@ -70,13 +134,22 @@ export default function App() {
           <h1 className="text-4xl font-extrabold tracking-tight mb-2">OneDay</h1>
           <p className="text-slate-400 mb-8">One day at a time. Zero excuses.</p>
           
-          <button 
-            onClick={handleLogin}
-            className="w-full bg-white text-black font-bold py-4 rounded-xl flex items-center justify-center gap-3 hover:bg-slate-100 transition-all"
-          >
-            <GoogleIcon />
-            Continue with Google
-          </button>
+          <div className="flex flex-col gap-3">
+            <button 
+              onClick={handleLogin}
+              className="w-full bg-white text-black font-bold py-4 rounded-xl flex items-center justify-center gap-3 hover:bg-slate-100 transition-all"
+            >
+              <GoogleIcon />
+              Continue with Google
+            </button>
+            <button 
+              onClick={handleGuestLogin}
+              className="w-full bg-white/5 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-3 hover:bg-white/10 transition-all border border-white/10"
+            >
+              <UserIcon size={20} />
+              Continue as Guest
+            </button>
+          </div>
         </motion.div>
       </div>
     );
