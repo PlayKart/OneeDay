@@ -4,7 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import * as admin from "firebase-admin";
-
+import { createClient } from "@supabase/supabase-js";
 import { OpenAI } from "openai";
 
 dotenv.config();
@@ -12,11 +12,13 @@ dotenv.config();
 // Initialize Firebase Admin
 if (!admin.apps.length) {
   admin.initializeApp({
-    projectId: process.env.VITE_FIREBASE_PROJECT_ID || "gen-lang-client-0738721798" // Fallback to provided ID
+    projectId: process.env.VITE_FIREBASE_PROJECT_ID || "gen-lang-client-0738721798"
   });
 }
 
-const db = admin.firestore();
+const supabaseUrl = process.env.SUPABASE_URL || "";
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY || "";
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,180 +29,240 @@ async function startServer() {
 
   app.use(express.json());
 
-  // --- NEW ROUTES FOR USER SPEC ---
-
-  app.get("/api/user", async (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: "Unauthorized" });
-    const token = authHeader.split("Bearer ")[1];
-    
+  async function verifyUser(req: any, res: any, next: any) {
     try {
+      const token = req.headers.authorization?.split(" ")[1];
+      if (!token) throw new Error();
+
       const decoded = await admin.auth().verifyIdToken(token);
-      const userRef = db.collection('users').doc(decoded.uid);
-      let userDoc = await userRef.get();
-      
-      if (!userDoc.exists) {
-        // Initial setup
-        await userRef.set({
-          name: decoded.name || decoded.email,
+      req.user = decoded;
+      next();
+    } catch {
+      res.status(401).json({ error: "Unauthorized" });
+    }
+  }
+
+  function todayStr() {
+    return new Date().toISOString().split("T")[0];
+  }
+
+  function calculateLevel(xp: number) {
+    return Math.floor(xp / 100) + 1;
+  }
+
+  app.get("/health", (req, res) => {
+    res.json({ status: "ok" });
+  });
+
+  app.get("/api/user", verifyUser, async (req: any, res: any) => {
+    try {
+      const { uid, email, name } = req.user;
+
+      let { data: user } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", uid)
+        .single();
+
+      if (!user) {
+        await supabase.from("users").insert([{
+          id: uid,
+          name: name || email,
           xp: 0,
           streak: 0,
           level: 1,
           levelProgress: 0,
           freeze_until: null,
-          lastActiveDate: new Date().toISOString(),
-          createdAt: admin.firestore.FieldValue.serverTimestamp()
-        });
-        userDoc = await userRef.get();
+          lastActiveDate: new Date()
+        }]);
+
+        const { data: newUser } = await supabase
+          .from("users")
+          .select("*")
+          .eq("id", uid)
+          .single();
+
+        return res.json(newUser);
       }
 
-      const userData = userDoc.data()!;
-      // Simple streak logic sync
-      const lastActive = new Date(userData.lastActiveDate);
       const now = new Date();
-      const diff = Math.floor((now.getTime() - lastActive.getTime()) / (1000 * 60 * 60 * 24));
-      
-      let updates: any = {};
-      const isFrozen = userData.freeze_until && new Date(userData.freeze_until) > now;
+      const last = new Date(user.lastActiveDate);
+      const diffHours = (now.getTime() - last.getTime()) / (1000 * 60 * 60);
+      const isFrozen = user.freeze_until && new Date(user.freeze_until) > now;
 
-      if (diff >= 2 && !isFrozen) {
-        updates.streak = 0;
-        updates.lastActiveDate = now.toISOString();
-        await userRef.update(updates);
+      if (diffHours > 48 && !isFrozen) {
+        await supabase
+          .from("users")
+          .update({ streak: 0 })
+          .eq("id", uid);
+        user.streak = 0;
       }
 
-      res.json({ ...userData, ...updates });
+      res.json({
+        name: user.name,
+        xp: user.xp,
+        streak: user.streak,
+        level: user.level,
+        levelProgress: user.levelProgress,
+        freeze_until: user.freeze_until,
+        lastActiveDate: user.lastActiveDate
+      });
     } catch (e) {
-      res.status(500).json({ error: "Auth failed" });
+      console.error(e);
+      res.status(500).json({ error: "User failed" });
     }
   });
 
-  app.get("/api/habits", async (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: "Unauthorized" });
-    const token = authHeader.split("Bearer ")[1];
-
+  app.get("/api/habits", verifyUser, async (req: any, res: any) => {
     try {
-      const decoded = await admin.auth().verifyIdToken(token);
-      const habitsSnapshot = await db.collection('habits').where('userId', '==', decoded.uid).get();
-      const today = new Date().toISOString().split('T')[0];
-      
-      const completionsSnapshot = await db.collection('completions')
-        .where('userId', '==', decoded.uid)
-        .where('date', '==', today)
-        .get();
-      
-      const completedHabitIds = new Set(completionsSnapshot.docs.map(d => d.data().habitId));
+      const { uid } = req.user;
+      const { data: habits } = await supabase
+        .from("habits")
+        .select("*")
+        .eq("userId", uid);
 
-      const list = habitsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        name: doc.data().name,
-        completedToday: completedHabitIds.has(doc.id)
+      const today = todayStr();
+      const { data: completions } = await supabase
+        .from("completions")
+        .select("habitId")
+        .eq("userId", uid)
+        .eq("date", today);
+
+      const completedSet = new Set((completions || []).map(c => c.habitId));
+
+      const result = (habits || []).map(h => ({
+        id: h.id,
+        name: h.name,
+        completedToday: completedSet.has(h.id)
       }));
 
-      res.json(list);
+      res.json(result);
     } catch (e) {
-      console.error("Habits fetch error:", e);
-      res.status(500).json({ error: "Fail" });
+      console.error(e);
+      res.status(500).json({ error: "Habits failed" });
     }
   });
 
-  app.post("/api/habit", async (req, res) => {
-    const authHeader = req.headers.authorization;
-    const { name } = req.body;
-    const token = authHeader?.split("Bearer ")[1];
-    if (!token) return res.status(401).send();
-
-    const decoded = await admin.auth().verifyIdToken(token);
-    await db.collection('habits').add({ userId: decoded.uid, name, createdAt: admin.firestore.FieldValue.serverTimestamp() });
-    res.json({ success: true });
-  });
-
-  app.post("/api/complete", async (req, res) => {
-    const authHeader = req.headers.authorization;
-    const { habit_id } = req.body;
-    const token = authHeader?.split("Bearer ")[1];
-    if (!token) return res.status(401).send();
-
-    const decoded = await admin.auth().verifyIdToken(token);
-    const today = new Date().toISOString().split('T')[0];
-    
-    const completions = db.collection('completions');
-    const q = await completions.where('userId', '==', decoded.uid).where('habitId', '==', habit_id).where('date', '==', today).get();
-    if (!q.empty) return res.status(400).json({ error: "Done" });
-
-    await completions.add({ userId: decoded.uid, habitId: habit_id, date: today, ts: admin.firestore.FieldValue.serverTimestamp() });
-    
-    // Update XP and Streak
-    const userRef = db.collection('users').doc(decoded.uid);
-    const userDoc = await userRef.get();
-    const data = userDoc.data()!;
-
-    // Check if first completion today for streak
-    const todayCount = await completions.where('userId', '==', decoded.uid).where('date', '==', today).get();
-    const isFirst = todayCount.size === 1;
-
-    const newXp = (data.xp || 0) + 10;
-    const newStreak = isFirst ? (data.streak || 0) + 1 : (data.streak || 0);
-    const newLevel = Math.floor(newXp / 100) + 1;
-
-    await userRef.update({
-      xp: newXp,
-      streak: newStreak,
-      level: newLevel,
-      levelProgress: newXp % 100,
-      lastActiveDate: new Date().toISOString()
-    });
-
-    res.json({ success: true });
-  });
-
-  app.post("/api/freeze", async (req, res) => {
-    const authHeader = req.headers.authorization;
-    const { days } = req.body;
-    const token = authHeader?.split("Bearer ")[1];
-    if (!token) return res.status(401).send();
-
-    const decoded = await admin.auth().verifyIdToken(token);
-    const until = new Date();
-    until.setDate(until.getDate() + days);
-
-    await db.collection('users').doc(decoded.uid).update({ freeze_until: until.toISOString() });
-    res.json({ success: true });
-  });
-
-  app.post("/api/chat", async (req, res) => {
-    const authHeader = req.headers.authorization;
-    const { message } = req.body;
-    const token = authHeader?.split("Bearer ")[1];
-    if (!token) return res.status(401).send();
-
+  app.post("/api/habit", verifyUser, async (req: any, res: any) => {
     try {
-      const decoded = await admin.auth().verifyIdToken(token);
-      const userDoc = await db.collection('users').doc(decoded.uid).get();
-      const userData = userDoc.data() || { streak: 0 };
-      const streak = userData.streak || 0;
+      const { uid } = req.user;
+      const { name } = req.body;
+
+      await supabase.from("habits").insert([{
+        userId: uid,
+        name,
+        createdAt: new Date()
+      }]);
+
+      res.json({ success: true });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: "Add failed" });
+    }
+  });
+
+  app.post("/api/complete", verifyUser, async (req: any, res: any) => {
+    try {
+      const { uid } = req.user;
+      const { habit_id } = req.body;
+      const today = todayStr();
+
+      const { data: existing } = await supabase
+        .from("completions")
+        .select("id")
+        .eq("habitId", habit_id)
+        .eq("userId", uid)
+        .eq("date", today)
+        .maybeSingle();
+
+      if (existing) {
+        return res.json({ success: false });
+      }
+
+      await supabase.from("completions").insert([{
+        habitId: habit_id,
+        userId: uid,
+        date: today,
+        createdAt: new Date()
+      }]);
+
+      const { data: todayCompletions } = await supabase
+        .from("completions")
+        .select("*")
+        .eq("userId", uid)
+        .eq("date", today);
+
+      const isFirstToday = todayCompletions && todayCompletions.length === 1;
+
+      const { data: user } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", uid)
+        .single();
+
+      let xp = user.xp + 10;
+      let streak = user.streak;
+
+      if (isFirstToday) {
+        streak += 1;
+      }
+
+      await supabase
+        .from("users")
+        .update({
+          xp,
+          streak,
+          level: calculateLevel(xp),
+          levelProgress: xp % 100,
+          lastActiveDate: new Date()
+        })
+        .eq("id", uid);
+
+      res.json({ success: true });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: "Complete failed" });
+    }
+  });
+
+  app.post("/api/freeze", verifyUser, async (req: any, res: any) => {
+    try {
+      const { uid } = req.user;
+      const { days } = req.body;
+      const date = new Date();
+      date.setDate(date.getDate() + days);
+
+      await supabase
+        .from("users")
+        .update({ freeze_until: date })
+        .eq("id", uid);
+
+      res.json({ success: true });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: "Freeze failed" });
+    }
+  });
+
+  app.post("/api/chat", verifyUser, async (req: any, res: any) => {
+    try {
+      const { uid } = req.user;
+      const { message } = req.body;
+
+      const { data: user } = await supabase
+        .from("users")
+        .select("streak")
+        .eq("id", uid)
+        .single();
+
+      const systemPrompt = `You are OneDay AI Coach. User streak: ${user?.streak || 0}. Rules: Short replies, no emojis, no fluff. If streak >= 7: Be strict, aggressive, elite. If streak < 7: Be firm and motivating. Focus on discipline and daily action.`;
 
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
       const response = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
-          {
-            role: "system",
-            content: `You are 'OneDay' AI Coach. 
-          Your current student has a streak of ${streak} days.
-          Personality Rules:
-          - If streak >= 7: Be STRICT, elite, and slightly aggressive. No excuses allowed.
-          - If streak < 7: Be FIRM but encouraging. Focus on consistency.
-          - If they just returned from a freeze: Be supportive but remind them the clock is ticking.
-          - Tone: Short, punchy, disciplined. 
-          - Never use emojis. Never apologize.
-          - Focus on the IMMEDIATE next action.`
-          },
-          {
-            role: "user",
-            content: message
-          }
+          { role: "system", content: systemPrompt },
+          { role: "user", content: message }
         ],
         max_tokens: 200,
       });
