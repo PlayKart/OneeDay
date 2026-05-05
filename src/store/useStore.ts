@@ -1,213 +1,158 @@
-import { create } from 'zustand';
-import { auth } from '../lib/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
-import { toast } from 'react-hot-toast';
+// src/store/useStore.ts
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
+import { create } from 'zustand'
+import { auth } from '../lib/firebase'
+import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth'
+import { toast } from 'react-hot-toast'
 
-async function apiRequest(
-  path: string,
-  method = "GET",
-  body: any = null,
-  isRetry = false
-): Promise<any> {
+const BACKEND_URL = "https://oneday-backend-xocv.onrender.com"
+
+async function apiRequest(path: string, method = "GET", body: any = null, isRetry = false): Promise<any> {
+  const user = auth.currentUser
+  if (!user) throw new Error("Auth required")
+
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 30000);
 
   try {
-    const currentUser = auth.currentUser;
-    if (!currentUser) {
-      throw new Error("Communication Failure: Authentication Required");
-    }
-
-    const token = await currentUser.getIdToken(isRetry);
+    const token = await user.getIdToken(isRetry)
 
     const res = await fetch(`${BACKEND_URL}${path}`, {
       method,
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${token}`
       },
       body: body ? JSON.stringify(body) : null,
-      signal: controller.signal,
-    });
+      signal: controller.signal
+    })
 
-    // Retry ONCE with fresh user + forced token refresh
     if (res.status === 401 && !isRetry) {
-      return apiRequest(path, method, body, true);
-    }
-
-    const contentType = res.headers.get("content-type") || "";
-    let data: any;
-
-    if (contentType.includes("application/json")) {
-      data = await res.json().catch(() => ({}));
-    } else {
-      data = await res.text().catch(() => "");
+      return apiRequest(path, method, body, true)
     }
 
     if (!res.ok) {
-      const message =
-        (data && typeof data === "object" && data.error) ||
-        (typeof data === "string" && data) ||
-        `Uplink Error: ${res.status}`;
-      throw new Error(message);
+      const data = await res.json().catch(() => ({}))
+      throw new Error(data.error || "API error")
     }
 
-    return data;
-  } catch (e: any) {
-    if (e?.name === "AbortError") {
-      throw new Error("Protocol Timeout: Connection lost");
-    }
-    if (e instanceof Error) throw e;
-    throw new Error("Network Instability: Check uplink signal");
+    return res.json()
+  } catch (err: any) {
+    if (err.name === 'AbortError') throw new Error("Connection Timeout")
+    throw err
   } finally {
-    clearTimeout(timeoutId);
+    clearTimeout(timeoutId)
   }
 }
 
-interface User {
-  name: string;
-  xp: number;
-  streak: number;
-  level: number;
-  levelProgress: number; // 0-100
-  freeze_until: string | null;
-  lastActiveDate: string;
-}
-
-interface FirebaseUser {
-  uid: string;
-  email: string | null;
-  displayName: string | null;
-  photoURL: string | null;
+interface BackendUser {
+  name: string
+  xp: number
+  streak: number
+  level: number
+  levelProgress: number
+  freeze_until: string | null
+  lastActiveDate: string
 }
 
 interface Habit {
-  id: string;
-  name: string;
-  completedToday: boolean;
+  id: string
+  name: string
+  completedToday: boolean
 }
 
 interface State {
-  user: User | null;
-  firebaseUser: FirebaseUser | null;
-  habits: Habit[];
-  quote: string;
-  loading: boolean;
-  initialized: boolean;
-  backendError: string | null;
-  
-  refreshFromBackend: () => Promise<void>;
-  addHabit: (name: string) => Promise<void>;
-  completeHabit: (habitId: string) => Promise<void>;
-  freezeStreak: (days: number) => Promise<void>;
-  sendChat: (message: string) => Promise<string>;
+  firebaseUser: FirebaseUser | null
+  user: BackendUser | null
+  habits: Habit[]
+  quote: string
+  initialized: boolean
+  loading: boolean
+  backendError: string | null
+
+  refreshFromBackend: () => Promise<void>
+  addHabit: (name: string) => Promise<void>
+  completeHabit: (habitId: string) => Promise<void>
+  freezeStreak: (days: number) => Promise<void>
+  sendChat: (message: string) => Promise<string>
 }
 
 export const useStore = create<State>((set, get) => ({
-  user: null,
   firebaseUser: null,
+  user: null,
   habits: [],
-  quote: "Discipline is the bridge between goals and accomplishment.",
-  loading: false,
+  quote: "Discipline is the choice between what you want now and what you want most.",
   initialized: false,
+  loading: false,
   backendError: null,
 
   refreshFromBackend: async () => {
-    if (get().loading) return;
-    
     try {
-      set({ loading: true, backendError: null });
+      set({ loading: true, backendError: null })
+
       const [userData, habitsData] = await Promise.all([
         apiRequest("/api/user"),
         apiRequest("/api/habits")
-      ]);
+      ])
 
       const streak = userData.streak;
       let quote = "The best time to start was yesterday. The second best time is now.";
       if (streak >= 7) quote = "You’re ahead of 99%. Don’t slow down.";
       else if (streak === 0) quote = "One day broke. Don't let two.";
-      else if (userData.freeze_until && new Date(userData.freeze_until) > new Date()) quote = "You paused. Don’t quit.";
 
-      set({ 
-        user: userData, 
-        habits: habitsData, 
+      set({
+        user: userData,
+        habits: habitsData,
         quote,
         loading: false,
-        initialized: true 
-      });
-    } catch (e: any) {
-      console.error("Critical State Sync Failure:", e);
-      set({ 
-        loading: false, 
+        initialized: true
+      })
+    } catch (err: any) {
+      set({
+        loading: false,
         initialized: true,
-        backendError: e.message || "SYNC FAILURE. CHECK CONNECTION."
-      });
+        backendError: err.message
+      })
     }
   },
 
   addHabit: async (name: string) => {
-    try {
-      await apiRequest("/api/habit", "POST", { name });
-      await get().refreshFromBackend();
-    } catch (e) {
-      console.error(e);
-      throw e;
-    }
+    await apiRequest("/api/habit", "POST", { name })
+    await get().refreshFromBackend()
   },
 
   completeHabit: async (habitId: string) => {
-    try {
-      await apiRequest("/api/complete", "POST", { habit_id: habitId });
-      await get().refreshFromBackend();
-    } catch (e) {
-      console.error(e);
-      throw e;
-    }
+    await apiRequest("/api/complete", "POST", { habit_id: habitId })
+    await get().refreshFromBackend()
   },
 
   freezeStreak: async (days: number) => {
-    try {
-      await apiRequest("/api/freeze", "POST", { days });
-      await get().refreshFromBackend();
-    } catch (e) {
-      console.error(e);
-      throw e;
-    }
+    await apiRequest("/api/freeze", "POST", { days })
+    await get().refreshFromBackend()
   },
 
   sendChat: async (message: string) => {
-    try {
-      const data = await apiRequest("/api/chat", "POST", { message });
-      return data.reply;
-    } catch (e: any) {
-      console.error("AI Uplink Error:", e);
-      throw new Error(e.message || "AI Coach is currently offline. Stay disciplined regardless.");
-    }
+    const data = await apiRequest("/api/chat", "POST", { message })
+    return data.reply
   }
-}));
+}))
 
 onAuthStateChanged(auth, async (fbUser) => {
   if (fbUser) {
-    useStore.setState({ 
-      firebaseUser: {
-        uid: fbUser.uid,
-        email: fbUser.email,
-        displayName: fbUser.displayName,
-        photoURL: fbUser.photoURL
-      },
+    useStore.setState({
+      firebaseUser: fbUser,
       initialized: true
-    });
-    await useStore.getState().refreshFromBackend();
+    })
+
+    await useStore.getState().refreshFromBackend()
   } else {
-    useStore.setState({ 
-      user: null, 
+    useStore.setState({
       firebaseUser: null,
-      habits: [], 
-      initialized: true, 
+      user: null,
+      habits: [],
+      initialized: true,
       loading: false,
       backendError: null
-    });
+    })
   }
-});
+})
