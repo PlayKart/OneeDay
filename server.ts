@@ -3,7 +3,7 @@ import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
-import * as admin from "firebase-admin";
+import admin from "firebase-admin";
 import { createClient } from "@supabase/supabase-js";
 import { OpenAI } from "openai";
 
@@ -67,7 +67,7 @@ async function startServer() {
       if (!user) {
         await supabase.from("users").insert([{
           id: uid,
-          name: name || email,
+          name: name || email || 'Guest',
           xp: 0,
           streak: 0,
           level: 1,
@@ -192,7 +192,7 @@ async function startServer() {
         .eq("userId", uid)
         .eq("date", today);
 
-      const isFirstToday = todayCompletions && todayCompletions.length === 1;
+      const isFirstToday = todayCompletions?.length === 1;
 
       const { data: user } = await supabase
         .from("users")

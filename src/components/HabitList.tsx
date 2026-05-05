@@ -62,7 +62,7 @@ export const HabitList = () => {
       </AnimatePresence>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {habits.map((habit) => (
+        {(habits || []).map((habit) => (
           <motion.div 
             layout
             key={habit.id}
@@ -96,7 +96,7 @@ export const HabitList = () => {
           </motion.div>
         ))}
 
-        {habits.length === 0 && !isAdding && (
+        {(habits || []).length === 0 && !isAdding && (
           <div className="col-span-full py-16 text-center">
             <p className="text-slate-600 font-bold uppercase tracking-[0.2em] text-[10px]">No active missions.</p>
           </div>
