@@ -21,7 +21,8 @@ async function apiRequest(path: string, method = "GET", body: any = null, isRetr
       method,
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
+        Authorization: `Bearer ${token}`,
+        "x-local-date": new Date().toISOString().split("T")[0]
       },
       body: body ? JSON.stringify(body) : null,
       signal: controller.signal
@@ -46,18 +47,21 @@ async function apiRequest(path: string, method = "GET", body: any = null, isRetr
 }
 
 interface BackendUser {
+  id: string
   name: string
   xp: number
   streak: number
   level: number
   levelProgress: number
   freeze_until: string | null
-  lastActiveDate: string
+  lastActiveDate: string | null
 }
 
 interface Habit {
   id: string
+  userId: string
   name: string
+  createdAt: string
   completedToday: boolean
 }
 
@@ -95,14 +99,18 @@ export const useStore = create<State>((set, get) => ({
         apiRequest("/api/habits")
       ])
 
-      const streak = userData.streak;
+      if (!userData) {
+        throw new Error("Backend returned no user data. Ensure your backend handles anonymous users or check your backend logs.");
+      }
+
+      const streak = userData.streak || 0;
       let quote = "The best time to start was yesterday. The second best time is now.";
       if (streak >= 7) quote = "You’re ahead of 99%. Don’t slow down.";
       else if (streak === 0) quote = "One day broke. Don't let two.";
 
       set({
         user: userData,
-        habits: habitsData,
+        habits: habitsData || [],
         quote,
         loading: false,
         initialized: true

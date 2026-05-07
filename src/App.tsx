@@ -244,7 +244,7 @@ export default function App() {
                 <img src={firebaseUser.photoURL || ""} alt="" className="w-full h-full object-cover" />
               </div>
               <div>
-                <h2 className="font-bold text-sm truncate max-w-[140px]">{user.name}</h2>
+                <h2 className="font-bold text-sm truncate max-w-[140px]">{user.name || "Guest"}</h2>
                 <p className="text-[10px] text-slate-500 uppercase font-extrabold tracking-widest text-nowrap">Level {user.level} Architect</p>
               </div>
             </div>
@@ -321,7 +321,7 @@ export default function App() {
               <div className="glass grow md:grow-0 px-6 py-3 flex items-center gap-4 glow-ice">
                 <span className="text-2xl">❄️</span>
                 <div>
-                  <div className="text-xl font-black">{user.freeze_until ? "Active" : "Ready"}</div>
+                  <div className="text-xl font-black">{user.freeze_until && new Date(user.freeze_until) > new Date() ? "Active" : "Ready"}</div>
                   <div className="text-[10px] font-bold uppercase text-slate-500">Streak Shield</div>
                 </div>
               </div>
@@ -345,7 +345,7 @@ export default function App() {
                   <h3 className="font-bold text-lg mb-2">Streak Protection</h3>
                   <p className="text-sm text-slate-500 mb-6">Pause your progress for 7 days if you need a break without losing your streak.</p>
                   <button 
-                    disabled={!!user.freeze_until}
+                    disabled={!!user.freeze_until && new Date(user.freeze_until) > new Date()}
                     onClick={async () => {
                       try {
                         await useStore.getState().freezeStreak(7);
@@ -356,7 +356,7 @@ export default function App() {
                     }}
                     className="bg-blue-600 hover:bg-blue-500 disabled:bg-white/[0.05] disabled:text-slate-600 text-white font-bold px-10 py-4 rounded-xl transition-all uppercase tracking-widest text-xs"
                   >
-                    {user.freeze_until ? "Shield Active" : "Activate Shield"}
+                    {user.freeze_until && new Date(user.freeze_until) > new Date() ? "Shield Active" : "Activate Shield"}
                   </button>
                </div>
             </div>
