@@ -57,7 +57,7 @@ interface BackendUser {
   lastActiveDate: string | null
 }
 
-interface Habit {
+export interface Habit {
   id: string
   userId: string
   name: string
@@ -118,9 +118,29 @@ export const useStore = create<State>((set, get) => ({
       }
 
       const streak = userData.streak || 0;
-      let quote = "The best time to start was yesterday. The second best time is now.";
-      if (streak >= 7) quote = "You’re ahead of 99%. Don’t slow down.";
-      else if (streak === 0) quote = "One day broke. Don't let two.";
+      
+      const HOUR_IN_MS = 60 * 60 * 1000;
+      const now = Date.now();
+      let quote = "Discipline is the choice between what you want now and what you want most.";
+      
+      try {
+        const lastQuoteTime = localStorage.getItem("lastQuoteTime");
+        const cachedQuote = localStorage.getItem("cachedQuote");
+        
+        if (lastQuoteTime && cachedQuote && now - parseInt(lastQuoteTime) < HOUR_IN_MS) {
+           quote = cachedQuote;
+        } else {
+           // We need a dynamic import to avoid failing if not used, or just import it at top
+           const { generateQuote } = await import("../lib/geminiService");
+           quote = await generateQuote(streak, habitsData || []);
+           localStorage.setItem("lastQuoteTime", now.toString());
+           localStorage.setItem("cachedQuote", quote);
+        }
+      } catch (e) {
+         console.error("Quote generation failed", e);
+         if (streak >= 7) quote = "You’re ahead of 99%. Don’t slow down.";
+         else if (streak === 0) quote = "One day broke. Don't let two.";
+      }
 
       set({
         user: userData,

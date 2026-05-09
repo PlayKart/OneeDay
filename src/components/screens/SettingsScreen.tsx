@@ -1,7 +1,7 @@
 import { useStore } from "../../store/useStore";
 import { auth } from "../../lib/firebase";
 import { signOut } from "firebase/auth";
-import { LogOut, User as UserIcon, Bell, Shield, Download, Trash2, ShieldCheck, ChevronRight } from "lucide-react";
+import { LogOut, User as UserIcon, Shield, Trash2, ShieldCheck, ChevronRight } from "lucide-react";
 import { motion } from "motion/react";
 
 export function SettingsScreen() {
@@ -58,12 +58,32 @@ export function SettingsScreen() {
         </div>
       </section>
 
-      {/* App Section */}
+      {/* Protection Section */}
       <section className="space-y-4">
-        <h2 className="text-[10px] font-black tracking-widest uppercase text-slate-500 ml-2">App</h2>
+        <h2 className="text-[10px] font-black tracking-widest uppercase text-slate-500 ml-2">Protection</h2>
         <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden divide-y divide-white/5">
-          <SettingRow icon={Bell} label="Notifications" value="On" />
-          <SettingRow icon={Shield} label="Privacy Mode" value="Off" />
+          <div className="p-4 flex items-center justify-between group">
+             <div className="flex items-center gap-3">
+               <Shield size={16} className="text-slate-400" />
+               <div>
+                 <div className="text-sm font-bold text-slate-300">Streak Shield</div>
+                 <div className="text-xs text-slate-500 mt-1">Pause your progress for 7 days without losing your streak.</div>
+               </div>
+             </div>
+             <button
+                disabled={!!user.freeze_until && new Date(user.freeze_until) > new Date()}
+                onClick={async () => {
+                  try {
+                    await useStore.getState().freezeStreak(7);
+                  } catch (e) {
+                    console.error("SHIELD FAILURE", e);
+                  }
+                }}
+                className="ml-4 shrink-0 bg-white text-black font-bold px-4 py-2 rounded-lg text-xs uppercase tracking-widest disabled:opacity-50 disabled:bg-white/10 disabled:text-white"
+             >
+                {user.freeze_until && new Date(user.freeze_until) > new Date() ? "Active" : "Activate"}
+             </button>
+          </div>
         </div>
       </section>
 
@@ -71,7 +91,6 @@ export function SettingsScreen() {
       <section className="space-y-4">
         <h2 className="text-[10px] font-black tracking-widest uppercase text-slate-500 ml-2">Data & Privacy</h2>
         <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden divide-y divide-white/5">
-          <SettingRow icon={Download} label="Export Data" />
           <SettingRow icon={Trash2} label="Reset Progress" danger />
           <SettingRow icon={Trash2} label="Delete Account" danger />
         </div>

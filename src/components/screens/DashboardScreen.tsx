@@ -1,8 +1,7 @@
 import { useStore } from "../../store/useStore";
 import { MotivationalQuote } from "../MotivationalQuote";
 import { HabitList } from "../HabitList";
-import { Snowflake, Target, Zap, Clock } from "lucide-react";
-import { toast } from "react-hot-toast";
+import { Target, Zap, Clock } from "lucide-react";
 import { motion } from "motion/react";
 
 export function DashboardScreen() {
@@ -57,7 +56,7 @@ export function DashboardScreen() {
 
       <MotivationalQuote />
 
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <section className="grid grid-cols-2 gap-4">
         <div className="bg-white/5 border border-white/10 p-5 rounded-2xl flex flex-col gap-2">
           <Target className="text-slate-400" size={20} />
           <div className="text-2xl font-black">{completionPercentage}%</div>
@@ -67,29 +66,6 @@ export function DashboardScreen() {
           <Zap className="text-slate-400" size={20} />
           <div className="text-2xl font-black">{completedToday}/{totalHabits}</div>
           <div className="text-[10px] font-bold uppercase text-slate-500 tracking-wider">Habits Done</div>
-        </div>
-        <div className="bg-white/5 border border-white/10 p-5 rounded-2xl flex flex-col gap-2">
-          <Snowflake className="text-slate-400" size={20} />
-          <div className="flex justify-between items-end">
-             <div className="text-lg font-black leading-tight">{user.freeze_until && new Date(user.freeze_until) > new Date() ? "Active" : "Ready"}</div>
-          </div>
-          <div className="text-[10px] font-bold uppercase text-slate-500 tracking-wider">Streak Shield</div>
-        </div>
-        <div className="bg-gradient-to-br from-white/10 to-transparent border border-white/10 p-5 rounded-2xl flex flex-col justify-center items-center text-center cursor-pointer hover:bg-white/10 transition-colors"
-          onClick={async () => {
-             if (user.freeze_until && new Date(user.freeze_until) > new Date()) return;
-             try {
-                await freezeStreak(7);
-                toast.success("STREAK SHIELD ACTIVATED");
-             } catch (e) {
-                toast.error("SHIELD FAILURE");
-             }
-          }}
-        >
-          <div className="text-xs font-bold uppercase tracking-widest text-white mb-1">
-             {user.freeze_until && new Date(user.freeze_until) > new Date() ? "Shield is up" : "Activate Shield"}
-          </div>
-          <div className="text-[10px] text-slate-500">Pause 7 days</div>
         </div>
       </section>
 
