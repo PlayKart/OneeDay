@@ -63,7 +63,16 @@ interface Habit {
   name: string
   createdAt: string
   completedToday: boolean
+  icon?: string
+  category?: string
+  difficulty?: string
+  reminderTime?: string
+  notes?: string
+  repeatType?: "every_day" | "weekdays" | "weekends" | "custom_days"
+  customDays?: string[]
 }
+
+export type TabState = "dashboard" | "habits" | "coach" | "settings"
 
 interface State {
   firebaseUser: FirebaseUser | null
@@ -73,9 +82,11 @@ interface State {
   initialized: boolean
   loading: boolean
   backendError: string | null
+  activeTab: TabState
 
+  setActiveTab: (tab: TabState) => void
   refreshFromBackend: () => Promise<void>
-  addHabit: (name: string) => Promise<void>
+  addHabit: (habitData: Partial<Habit>) => Promise<void>
   completeHabit: (habitId: string) => Promise<void>
   freezeStreak: (days: number) => Promise<void>
   sendChat: (message: string) => Promise<string>
@@ -89,6 +100,9 @@ export const useStore = create<State>((set, get) => ({
   initialized: false,
   loading: false,
   backendError: null,
+  activeTab: "dashboard",
+
+  setActiveTab: (tab) => set({ activeTab: tab }),
 
   refreshFromBackend: async () => {
     try {
@@ -124,8 +138,19 @@ export const useStore = create<State>((set, get) => ({
     }
   },
 
-  addHabit: async (name: string) => {
-    await apiRequest("/api/habit", "POST", { name })
+  addHabit: async (habitData) => {
+    // Stringify additional metadata if backend doesn't support them explicitly
+    const payload = {
+      name: habitData.name,
+      icon: habitData.icon,
+      category: habitData.category,
+      difficulty: habitData.difficulty,
+      reminderTime: habitData.reminderTime,
+      notes: habitData.notes,
+      repeatType: habitData.repeatType,
+      customDays: habitData.customDays,
+    };
+    await apiRequest("/api/habit", "POST", payload)
     await get().refreshFromBackend()
   },
 

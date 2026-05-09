@@ -22,6 +22,12 @@ import { HabitList } from './components/HabitList';
 import { AICoach } from './components/AICoach';
 import { MotivationalQuote } from './components/MotivationalQuote';
 
+import { DashboardScreen } from './components/screens/DashboardScreen';
+import { HabitsScreen } from './components/screens/HabitsScreen';
+import { CoachScreen } from './components/screens/CoachScreen';
+import { SettingsScreen } from './components/screens/SettingsScreen';
+import { MainLayout } from './components/MainLayout';
+
 const GoogleIcon = () => (
   <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -32,7 +38,7 @@ const GoogleIcon = () => (
 );
 
 export default function App() {
-  const { user, firebaseUser, initialized, loading, backendError, refreshFromBackend } = useStore();
+  const { user, firebaseUser, initialized, loading, backendError, refreshFromBackend, activeTab } = useStore();
   const [showIntro, setShowIntro] = useState(true);
 
   useEffect(() => {
@@ -217,7 +223,7 @@ export default function App() {
   return (
     <div className="min-h-screen relative overflow-hidden bg-[#050505]">
       <Toaster 
-        position="top-right" 
+        position="top-center" 
         toastOptions={{
           style: {
             background: 'rgba(5, 5, 5, 0.9)',
@@ -231,137 +237,16 @@ export default function App() {
         }} 
       />
       {/* Background Orbs */}
-      <div className="orb w-[500px] h-[500px] bg-orange-500/5 top-[-100px] right-[-100px]" />
-      <div className="orb w-[400px] h-[400px] bg-cyan-500/5 bottom-[-50px] left-[-50px]" />
+      <div className="orb w-[500px] h-[500px] bg-white/5 top-[-100px] right-[-100px]" />
+      <div className="orb w-[400px] h-[400px] bg-white/5 bottom-[-50px] left-[-50px]" />
 
-      <div className="relative z-10 grid lg:grid-cols-[280px_1fr] gap-8 p-6 lg:p-8 max-w-[1600px] mx-auto h-screen overflow-hidden">
-        
-        {/* Sidebar: Profile & Memories */}
-        <aside className="hidden lg:flex flex-col gap-6 overflow-y-auto pr-2">
-          <div className="glass p-6">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-orange-500 to-pink-500 border-2 border-white/10 overflow-hidden">
-                <img src={firebaseUser.photoURL || ""} alt="" className="w-full h-full object-cover" />
-              </div>
-              <div>
-                <h2 className="font-bold text-sm truncate max-w-[140px]">{user.name || "Guest"}</h2>
-                <p className="text-[10px] text-slate-500 uppercase font-extrabold tracking-widest text-nowrap">Level {user.level} Architect</p>
-              </div>
-            </div>
-
-            <div className="flex justify-between text-[11px] mb-2 font-bold uppercase text-slate-500 tracking-wider">
-              <span>XP Progress</span>
-              <span>{user.levelProgress}%</span>
-            </div>
-            <div className="progress-bg">
-              <div className="progress-fill" style={{ width: `${user.levelProgress}%` }} />
-            </div>
-          </div>
-
-          <div className="glass flex-1 p-6 flex flex-col gap-4">
-            <h3 className="text-[10px] font-extrabold uppercase tracking-widest text-slate-500">Coach Intelligence</h3>
-            
-            <div className="bg-white/5 p-4 rounded-2xl border-l-2 border-orange-500/50">
-              <p className="text-xs text-slate-300 leading-relaxed italic">
-                "Discipline is not a state of mind, it's a series of actions. Keep your streak alive."
-              </p>
-              <span className="text-[9px] text-slate-500 mt-2 block">System • Just Now</span>
-            </div>
-
-            <div className="mt-auto space-y-4">
-              <div className="bg-orange-500/10 p-4 rounded-2xl border border-orange-500/20">
-                <p className="text-[10px] font-black uppercase text-orange-500 mb-1">PWA Protocol</p>
-                <p className="text-[10px] text-slate-400">Install via browser for full-screen discipline.</p>
-              </div>
-              <button 
-                onClick={() => signOut(auth)}
-                className="w-full py-3 glass hover:bg-red-500/10 text-red-400 text-xs font-bold transition-all border-red-500/10"
-              >
-                Sign Out
-              </button>
-            </div>
-          </div>
-        </aside>
-
-        {/* Main Area */}
-        <main className="overflow-y-auto pr-2 space-y-8 pb-12">
-          {/* Header Stats */}
-          <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-            <div className="flex justify-between items-center w-full md:w-auto">
-              <div>
-                <h1 className="text-3xl font-extrabold tracking-tighter">OneDay</h1>
-                <p className="text-slate-500 text-sm tracking-widest uppercase font-bold text-[10px] mt-1">
-                  {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-                </p>
-              </div>
-
-              {/* Mobile Profile & Logout */}
-              <div className="lg:hidden flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-orange-500 to-pink-500 border border-white/10 overflow-hidden">
-                  <img src={firebaseUser.photoURL || ""} alt="" className="w-full h-full object-cover" />
-                </div>
-                <button 
-                  onClick={() => signOut(auth)}
-                  className="p-2 glass text-red-400 rounded-lg"
-                  aria-label="Sign Out"
-                >
-                  <LogOut size={16} />
-                </button>
-              </div>
-            </div>
-
-            <div className="flex gap-4 w-full md:w-auto">
-              <div className="glass grow md:grow-0 px-6 py-3 flex items-center gap-4 glow-fire">
-                <span className="text-2xl">🔥</span>
-                <div>
-                  <div className="text-xl font-black">{user.streak}</div>
-                  <div className="text-[10px] font-bold uppercase text-slate-500">Day Streak</div>
-                </div>
-              </div>
-              <div className="glass grow md:grow-0 px-6 py-3 flex items-center gap-4 glow-ice">
-                <span className="text-2xl">❄️</span>
-                <div>
-                  <div className="text-xl font-black">{user.freeze_until && new Date(user.freeze_until) > new Date() ? "Active" : "Ready"}</div>
-                  <div className="text-[10px] font-bold uppercase text-slate-500">Streak Shield</div>
-                </div>
-              </div>
-            </div>
-          </header>
-
-          {/* Motivational Quote */}
-          <MotivationalQuote />
-
-          <section className="glass p-8">
-            <HabitList />
-          </section>
-
-          <section className="grid md:grid-cols-2 gap-8">
-            <AICoach />
-            <div className="glass p-8 flex flex-col justify-center items-center text-center gap-6">
-               <div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center">
-                  <Snowflake className="text-blue-400" />
-               </div>
-               <div>
-                  <h3 className="font-bold text-lg mb-2">Streak Protection</h3>
-                  <p className="text-sm text-slate-500 mb-6">Pause your progress for 7 days if you need a break without losing your streak.</p>
-                  <button 
-                    disabled={!!user.freeze_until && new Date(user.freeze_until) > new Date()}
-                    onClick={async () => {
-                      try {
-                        await useStore.getState().freezeStreak(7);
-                        toast.success("STREAK SHIELD ACTIVATED");
-                      } catch (e) {
-                        toast.error("SHIELD FAILURE");
-                      }
-                    }}
-                    className="bg-blue-600 hover:bg-blue-500 disabled:bg-white/[0.05] disabled:text-slate-600 text-white font-bold px-10 py-4 rounded-xl transition-all uppercase tracking-widest text-xs"
-                  >
-                    {user.freeze_until && new Date(user.freeze_until) > new Date() ? "Shield Active" : "Activate Shield"}
-                  </button>
-               </div>
-            </div>
-          </section>
-        </main>
+      <div className="relative z-10 h-screen overflow-hidden">
+        <MainLayout>
+          {activeTab === "dashboard" && <DashboardScreen />}
+          {activeTab === "habits" && <HabitsScreen />}
+          {activeTab === "coach" && <CoachScreen />}
+          {activeTab === "settings" && <SettingsScreen />}
+        </MainLayout>
       </div>
     </div>
   );

@@ -73,6 +73,24 @@ body {
   border-radius: 10px;
 }
 
+.glass-nav {
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(24px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
 .chat-bubble-bot {
   background: rgba(255,255,255,0.05);
   border-left: 3px solid #f97316;
