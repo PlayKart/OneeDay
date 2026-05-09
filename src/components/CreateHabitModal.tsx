@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { motion } from "motion/react";
 import { X, Calendar, Flag, Bell, AlignLeft, Check } from "lucide-react";
 import { useStore } from "../store/useStore";
@@ -15,6 +16,12 @@ export function CreateHabitModal({ onClose }: CreateHabitModalProps) {
   const [difficulty, setDifficulty] = useState("Medium");
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
 
   const daysOfWeek = [
     { id: "Mon", label: "M" },
@@ -52,8 +59,8 @@ export function CreateHabitModal({ onClose }: CreateHabitModalProps) {
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 sm:p-0">
+  const content = (
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-4">
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -67,7 +74,7 @@ export function CreateHabitModal({ onClose }: CreateHabitModalProps) {
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: "100%", opacity: 0 }}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
-        className="relative w-full max-w-lg bg-[#0a0a0a] border border-white/10 rounded-[2rem] p-6 shadow-2xl flex flex-col max-h-[90vh]"
+        className="relative w-full max-w-lg bg-[#0a0a0a] border border-white/10 rounded-t-[2rem] sm:rounded-[2rem] p-6 shadow-2xl flex flex-col max-h-[85dvh]"
       >
         <div className="flex justify-between items-center mb-6 shrink-0">
           <h2 className="text-xl font-bold tracking-tighter">New Habit</h2>
@@ -177,7 +184,7 @@ export function CreateHabitModal({ onClose }: CreateHabitModalProps) {
            </div>
         </div>
 
-        <div className="mt-4 shrink-0 pt-4 border-t border-white/10">
+        <div className="mt-4 shrink-0 pt-4 border-t border-white/10 pb-8 sm:pb-0">
           <button 
             disabled={!name.trim() || isSubmitting || (repeatType === 'custom_days' && customDays.length === 0)}
             onClick={handleSave}
@@ -196,4 +203,7 @@ export function CreateHabitModal({ onClose }: CreateHabitModalProps) {
       </motion.div>
     </div>
   );
+
+  if (!mounted) return null;
+  return createPortal(content, document.body);
 }
