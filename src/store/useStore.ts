@@ -121,6 +121,23 @@ export const useStore = create<State>((set, get) => ({
 
       const streak = userData.streak || 0;
       
+      const currentUser = auth.currentUser;
+      const enrichedHabits = (habitsData || []).map((h: any) => {
+         if (currentUser && h.name) {
+            const key = `habit_meta_${currentUser.uid}_${h.name}`;
+            try {
+               const metaStr = localStorage.getItem(key);
+               if (metaStr) {
+                  const meta = JSON.parse(metaStr);
+                  return { ...h, ...meta };
+               }
+            } catch (e) {
+               console.error("Failed to parse habit meta", e);
+            }
+         }
+         return h;
+      });
+
       const HOUR_IN_MS = 60 * 60 * 1000;
       const now = Date.now();
       let quote = "Discipline is the choice between what you want now and what you want most.";
@@ -146,7 +163,7 @@ export const useStore = create<State>((set, get) => ({
 
       set({
         user: userData,
-        habits: habitsData || [],
+        habits: enrichedHabits,
         quote,
         loading: false,
         initialized: true
@@ -161,18 +178,23 @@ export const useStore = create<State>((set, get) => ({
   },
 
   addHabit: async (habitData) => {
-    // Stringify additional metadata if backend doesn't support them explicitly
     const payload = {
-      name: habitData.name,
-      icon: habitData.icon,
-      category: habitData.category,
-      difficulty: habitData.difficulty,
-      reminderTime: habitData.reminderTime,
-      notes: habitData.notes,
-      repeatType: habitData.repeatType,
-      customDays: habitData.customDays,
+      name: habitData.name,     
     };
     await apiRequest("/api/habit", "POST", payload)
+    
+    // Save metadata to localStorage
+    const user = auth.currentUser;
+    if (user && habitData.name) {
+       const key = `habit_meta_${user.uid}_${habitData.name}`;
+       localStorage.setItem(key, JSON.stringify({
+          repeatType: habitData.repeatType,
+          customDays: habitData.customDays,
+          icon: habitData.icon,
+          category: habitData.category
+       }));
+    }
+
     await get().refreshFromBackend()
   },
 

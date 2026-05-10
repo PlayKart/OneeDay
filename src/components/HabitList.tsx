@@ -3,11 +3,14 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Check, Loader2 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { toast } from 'react-hot-toast';
+import { isHabitScheduledForToday, getScheduledDaysMessage } from '../lib/habitUtils';
 
 export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) => {
   const { habits, completeHabit, loading } = useStore();
 
-  const displayHabits = previewMode ? habits.filter(h => !h.completedToday).slice(0, 5) : habits;
+  const displayHabits = previewMode 
+    ? habits.filter(h => !h.completedToday && isHabitScheduledForToday(h)).slice(0, 5) 
+    : habits;
 
   return (
     <div className="space-y-4">
@@ -18,7 +21,9 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
       )}
 
       <div className="grid grid-cols-1 gap-3">
-        {(displayHabits || []).map((habit) => (
+        {(displayHabits || []).map((habit) => {
+          const isToday = isHabitScheduledForToday(habit);
+          return (
           <motion.div 
             layout
             key={habit.id}
@@ -33,12 +38,16 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
                 {habit.name}
               </h4>
               <p className={`text-[10px] font-bold uppercase tracking-widest ${habit.completedToday ? 'text-green-500/50' : 'text-slate-600'}`}>
-                {habit.completedToday ? 'Completed' : habit.repeatType ? habit.repeatType.replace('_', ' ') : 'Available'}
+                {habit.completedToday ? 'Completed' : (isToday ? 'Scheduled Today' : getScheduledDaysMessage(habit))}
               </p>
             </div>
             
             <button 
               onClick={async () => {
+                if (!isToday) {
+                  toast.error(`Dude, do it on ${getScheduledDaysMessage(habit)}. Chill !!!`);
+                  return;
+                }
                 if (!habit.completedToday && !loading) {
                   try {
                     await completeHabit(habit.id);
@@ -52,18 +61,18 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
               className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
                 habit.completedToday 
                   ? 'bg-white text-black' 
-                  : 'bg-white/5 border border-white/10 group-hover:border-white/30 text-transparent'
+                  : (isToday ? 'bg-white/5 border border-white/10 group-hover:border-white/30 text-transparent' : 'bg-white/5 border border-white/5 opacity-50 cursor-not-allowed')
               }`}
             >
-              <Check size={16} className={habit.completedToday ? 'text-black' : 'group-hover:text-white/20'} />
+              <Check size={16} className={habit.completedToday ? 'text-black' : (isToday ? 'group-hover:text-white/20' : 'text-white/10')} />
             </button>
           </motion.div>
-        ))}
+        )})}
 
         {(displayHabits || []).length === 0 && (
           <div className="col-span-full py-12 text-center bg-white/[0.02] rounded-2xl border border-white/5 border-dashed">
             <p className="text-slate-600 font-bold uppercase tracking-[0.2em] text-[10px]">
-              {previewMode ? "All caught up" : "No active habits"}
+              {previewMode ? "All caught up for today" : "No active habits"}
             </p>
           </div>
         )}

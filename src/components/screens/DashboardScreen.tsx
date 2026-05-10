@@ -4,14 +4,18 @@ import { HabitList } from "../HabitList";
 import { Target, Zap, Clock } from "lucide-react";
 import { motion } from "motion/react";
 
+import { isHabitScheduledForToday } from "../../lib/habitUtils";
+
 export function DashboardScreen() {
   const { user, habits, freezeStreak } = useStore();
 
   if (!user) return null;
 
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-  const completedToday = habits.filter(h => h.completedToday).length;
-  const totalHabits = habits.length;
+  const todaysHabits = habits.filter(isHabitScheduledForToday);
+  const completedToday = habits.filter(h => h.completedToday).length; // Backend marks it true if completed today regardless of schedule. But ideally only among scheduled ones. 
+  // Wait, let's use:
+  const totalHabits = todaysHabits.length;
   const completionPercentage = totalHabits === 0 ? 0 : Math.round((completedToday / totalHabits) * 100);
 
   return (
