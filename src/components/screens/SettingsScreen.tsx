@@ -91,8 +91,16 @@ export function SettingsScreen() {
       <section className="space-y-4">
         <h2 className="text-[10px] font-black tracking-widest uppercase text-slate-500 ml-2">Data & Privacy</h2>
         <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden divide-y divide-white/5">
-          <SettingRow icon={Trash2} label="Reset Progress" danger />
-          <SettingRow icon={Trash2} label="Delete Account" danger />
+          <SettingRow icon={Trash2} label="Reset Progress" danger onClick={() => {
+            if (confirm("Are you sure you want to reset all your progress?")) {
+              useStore.getState().resetProgress().catch(console.error);
+            }
+          }} />
+          <SettingRow icon={Trash2} label="Delete Account" danger onClick={() => {
+            if (confirm("Are you sure you want to delete your account forever?")) {
+              useStore.getState().deleteAccount().catch(console.error);
+            }
+          }} />
         </div>
       </section>
 
@@ -113,9 +121,9 @@ export function SettingsScreen() {
   );
 }
 
-function SettingRow({ icon: Icon, label, value, danger }: { icon: any, label: string, value?: string, danger?: boolean }) {
+function SettingRow({ icon: Icon, label, value, danger, onClick }: { icon: any, label: string, value?: string, danger?: boolean, onClick?: () => void }) {
   return (
-    <button className={`w-full p-4 flex items-center justify-between transition-colors group ${danger ? 'hover:bg-red-500/10' : 'hover:bg-white/5'}`}>
+    <button onClick={onClick} className={`w-full p-4 flex items-center justify-between transition-colors group ${danger ? 'hover:bg-red-500/10' : 'hover:bg-white/5'}`}>
        <div className="flex items-center gap-3">
          <Icon size={16} className={danger ? 'text-red-400' : 'text-slate-400'} />
          <span className={`text-sm font-bold ${danger ? 'text-red-400' : 'text-slate-300'}`}>{label}</span>

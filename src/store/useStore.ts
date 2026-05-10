@@ -90,6 +90,8 @@ interface State {
   completeHabit: (habitId: string) => Promise<void>
   freezeStreak: (days: number) => Promise<void>
   sendChat: (message: string) => Promise<string>
+  resetProgress: () => Promise<void>
+  deleteAccount: () => Promise<void>
 }
 
 export const useStore = create<State>((set, get) => ({
@@ -187,6 +189,27 @@ export const useStore = create<State>((set, get) => ({
   sendChat: async (message: string) => {
     const data = await apiRequest("/api/chat", "POST", { message })
     return data.reply
+  },
+
+  resetProgress: async () => {
+    try {
+      await apiRequest("/api/reset", "POST")
+      await get().refreshFromBackend()
+      toast.success("Progress reset successfully")
+    } catch {
+       toast.error("Endpoint /api/reset is missing from your backend.");
+    }
+  },
+
+  deleteAccount: async () => {
+    try {
+      await apiRequest("/api/account", "DELETE")
+    } catch {
+       toast.error("Endpoint /api/account is missing from your backend.");
+    }
+    const fbUser = auth.currentUser
+    if (fbUser) await fbUser.delete()
+    set({ user: null, firebaseUser: null, habits: [] })
   }
 }))
 

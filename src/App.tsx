@@ -27,6 +27,8 @@ import { HabitsScreen } from './components/screens/HabitsScreen';
 import { CoachScreen } from './components/screens/CoachScreen';
 import { SettingsScreen } from './components/screens/SettingsScreen';
 import { MainLayout } from './components/MainLayout';
+import { LandingScreen } from './components/screens/LandingScreen';
+import { TutorialOverlay } from './components/TutorialOverlay';
 
 const GoogleIcon = () => (
   <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
@@ -46,25 +48,6 @@ export default function App() {
     const timer = setTimeout(() => setShowIntro(false), 3500);
     return () => clearTimeout(timer);
   }, []);
-
-  const handleLogin = async () => {
-    try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-    } catch (error) {
-      console.error("Login failed:", error);
-      toast.error("LOGIN FAILED. RETRY.");
-    }
-  };
-
-  const handleGuestLogin = async () => {
-    try {
-      await signInAnonymously(auth);
-    } catch (error) {
-      console.error("Guest login failed:", error);
-      toast.error("GUEST LOGIN FAILED.");
-    }
-  };
 
   // ── 0. Show Intro Animation ───────────────────────────────────────────────
   if (showIntro) {
@@ -124,41 +107,7 @@ export default function App() {
   // Uses firebaseUser (not backend `user`) so a backend failure never
   // kicks an authenticated user back to the login screen.
   if (!firebaseUser) {
-    return (
-      <div className="min-h-screen relative flex items-center justify-center overflow-hidden bg-[#050505]">
-        <div className="orb w-[400px] h-[400px] bg-blue-500/10 top-[-100px] left-[-100px]" />
-        <div className="orb w-[300px] h-[300px] bg-purple-500/10 bottom-[-50px] right-[-50px]" />
-        
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="relative z-10 glass p-12 max-w-md w-full text-center"
-        >
-          <div className="w-16 h-16 bg-white/10 rounded-2xl mx-auto flex items-center justify-center mb-6">
-            <Flame size={32} className="text-white" />
-          </div>
-          <h1 className="text-4xl font-extrabold tracking-tight mb-2">OneDay</h1>
-          <p className="text-slate-400 mb-8">One day at a time. Zero excuses.</p>
-          
-          <div className="flex flex-col gap-3">
-            <button 
-              onClick={handleLogin}
-              className="w-full bg-white text-black font-bold py-4 rounded-xl flex items-center justify-center gap-3 hover:bg-slate-100 transition-all"
-            >
-              <GoogleIcon />
-              Continue with Google
-            </button>
-            <button 
-              onClick={handleGuestLogin}
-              className="w-full bg-white/5 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-3 hover:bg-white/10 transition-all border border-white/10"
-            >
-              <UserIcon size={20} />
-              Continue as Guest
-            </button>
-          </div>
-        </motion.div>
-      </div>
-    );
+    return <LandingScreen onLoginSuccess={() => {}} />;
   }
 
   // ── 3. Firebase user exists but backend data not yet loaded ───────────────
@@ -247,6 +196,7 @@ export default function App() {
           {activeTab === "coach" && <CoachScreen />}
           {activeTab === "settings" && <SettingsScreen />}
         </MainLayout>
+        <TutorialOverlay />
       </div>
     </div>
   );
