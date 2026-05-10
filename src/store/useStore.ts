@@ -88,6 +88,7 @@ interface State {
   refreshFromBackend: () => Promise<void>
   addHabit: (habitData: Partial<Habit>) => Promise<void>
   completeHabit: (habitId: string) => Promise<void>
+  undoHabit: (habitId: string) => Promise<void>
   freezeStreak: (days: number) => Promise<void>
   sendChat: (message: string) => Promise<string>
   resetProgress: () => Promise<void>
@@ -202,6 +203,11 @@ export const useStore = create<State>((set, get) => ({
 
   completeHabit: async (habitId: string) => {
     await apiRequest("/api/complete", "POST", { habit_id: habitId })
+    await get().refreshFromBackend()
+  },
+
+  undoHabit: async (habitId: string) => {
+    await apiRequest("/api/undo", "POST", { habit_id: habitId })
     await get().refreshFromBackend()
   },
 

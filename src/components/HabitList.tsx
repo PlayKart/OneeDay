@@ -6,7 +6,7 @@ import { toast } from 'react-hot-toast';
 import { isHabitScheduledForToday, getScheduledDaysMessage } from '../lib/habitUtils';
 
 export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) => {
-  const { habits, completeHabit, loading } = useStore();
+  const { habits, completeHabit, undoHabit, loading } = useStore();
 
   const displayHabits = previewMode 
     ? habits.filter(h => !h.completedToday && isHabitScheduledForToday(h)).slice(0, 5) 
@@ -44,27 +44,39 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
             
             <button 
               onClick={async () => {
-                if (!isToday) {
+                if (!isToday && !habit.completedToday) {
                   toast.error(`Dude, do it on ${getScheduledDaysMessage(habit)}. Chill !!!`);
                   return;
                 }
-                if (!habit.completedToday && !loading) {
-                  try {
-                    await completeHabit(habit.id);
-                    toast.success("HABIT COMPLETED +10 XP");
-                  } catch (e) {
-                    toast.error("COMMUNICATIONS ERROR");
+                
+                if (habit.completedToday) {
+                  if (window.confirm("Lied to Yourself ?")) {
+                    try {
+                      await undoHabit(habit.id);
+                      toast.success("HABIT UNDONE");
+                    } catch (e) {
+                      toast.error("COMMUNICATIONS ERROR");
+                    }
+                  }
+                } else if (!loading) {
+                  if (window.confirm("Don't lie to yourself bro , You did it or not ?")) {
+                    try {
+                      await completeHabit(habit.id);
+                      toast.success("HABIT COMPLETED +10 XP");
+                    } catch (e) {
+                      toast.error("COMMUNICATIONS ERROR");
+                    }
                   }
                 }
               }}
-              disabled={habit.completedToday || loading}
+              disabled={loading}
               className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
                 habit.completedToday 
-                  ? 'bg-white text-black' 
-                  : (isToday ? 'bg-white/5 border border-white/10 group-hover:border-white/30 text-transparent' : 'bg-white/5 border border-white/5 opacity-50 cursor-not-allowed')
+                  ? 'bg-white text-black hover:bg-red-500 hover:text-white' 
+                  : (isToday ? 'bg-white/5 border border-white/10 group-hover:border-white/30 text-transparent hover:text-white' : 'bg-white/5 border border-white/5 opacity-50 cursor-not-allowed')
               }`}
             >
-              <Check size={16} className={habit.completedToday ? 'text-black' : (isToday ? 'group-hover:text-white/20' : 'text-white/10')} />
+              <Check size={16} className={habit.completedToday ? '' : (isToday ? 'group-hover:text-white/20' : 'text-white/10')} />
             </button>
           </motion.div>
         )})}
