@@ -17,7 +17,7 @@ Do not be cheesy. No emojis. Be sharp and direct. Just the quote text.`;
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.0-flash",
       contents: prompt,
     });
     

@@ -179,11 +179,13 @@ export const useStore = create<State>((set, get) => ({
 
   addHabit: async (habitData) => {
     const payload = {
-      name: habitData.name,     
+      name: habitData.name,
+      repeatType: habitData.repeatType,
+      customDays: habitData.customDays
     };
     await apiRequest("/api/habit", "POST", payload)
     
-    // Save metadata to localStorage
+    // Save metadata to localStorage as fallback
     const user = auth.currentUser;
     if (user && habitData.name) {
        const key = `habit_meta_${user.uid}_${habitData.name}`;
