@@ -215,7 +215,7 @@ export function EditHabitModal({ habit, onClose }: EditHabitModalProps) {
              ) : (
                 <>
                   <Check size={20} />
-                  <span>Update System</span>
+                  <span>Save</span>
                 </>
              )}
           </button>
