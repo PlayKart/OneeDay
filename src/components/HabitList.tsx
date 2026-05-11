@@ -1,18 +1,31 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Check, Loader2 } from 'lucide-react';
-import { useStore } from '../store/useStore';
+import { Plus, Check, Loader2, MoreVertical } from 'lucide-react';
+import { useStore, Habit } from '../store/useStore';
 import { toast } from 'react-hot-toast';
 import { isHabitScheduledForToday, getScheduledDaysMessage } from '../lib/habitUtils';
+import { EditHabitModal } from './EditHabitModal';
 
 export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) => {
   const { habits, completeHabit, undoHabit, loading } = useStore();
+  
+  const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    action: () => Promise<void>;
+  }>({
+    isOpen: false,
+    title: "",
+    action: async () => {}
+  });
 
   const displayHabits = previewMode 
     ? habits.filter(h => !h.completedToday && isHabitScheduledForToday(h)).slice(0, 5) 
     : habits;
 
   return (
+    <>
     <div className="space-y-4">
       {!previewMode && (
          <div className="mb-6 opacity-0 hidden">
@@ -42,42 +55,59 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
               </p>
             </div>
             
-            <button 
-              onClick={async () => {
-                if (!isToday && !habit.completedToday) {
-                  toast.error(`Dude, do it on ${getScheduledDaysMessage(habit)}. Chill !!!`);
-                  return;
-                }
-                
-                if (habit.completedToday) {
-                  if (window.confirm("Lied to Yourself ?")) {
-                    try {
-                      await undoHabit(habit.id);
-                      toast.success("HABIT UNDONE");
-                    } catch (e) {
-                      toast.error("COMMUNICATIONS ERROR");
-                    }
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={async () => {
+                  if (!isToday && !habit.completedToday) {
+                    toast.error(`Dude, do it on ${getScheduledDaysMessage(habit)}. Chill !!!`);
+                    return;
                   }
-                } else if (!loading) {
-                  if (window.confirm("Don't lie to yourself bro , You did it or not ?")) {
-                    try {
-                      await completeHabit(habit.id);
-                      toast.success("HABIT COMPLETED +10 XP");
-                    } catch (e) {
-                      toast.error("COMMUNICATIONS ERROR");
-                    }
+                  
+                  if (habit.completedToday) {
+                    setConfirmModal({
+                      isOpen: true,
+                      title: "Lied to Yourself ?",
+                      action: async () => {
+                        try {
+                          await undoHabit(habit.id);
+                          toast.success("HABIT UNDONE");
+                        } catch (e) {
+                          toast.error("COMMUNICATIONS ERROR");
+                        }
+                      }
+                    });
+                  } else if (!loading) {
+                    setConfirmModal({
+                      isOpen: true,
+                      title: "Don't lie to yourself bro , You did it or not ?",
+                      action: async () => {
+                        try {
+                          await completeHabit(habit.id);
+                          toast.success("HABIT COMPLETED +10 XP");
+                        } catch (e) {
+                          toast.error("COMMUNICATIONS ERROR");
+                        }
+                      }
+                    });
                   }
-                }
-              }}
-              disabled={loading}
-              className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-                habit.completedToday 
-                  ? 'bg-white text-black hover:bg-red-500 hover:text-white' 
-                  : (isToday ? 'bg-white/5 border border-white/10 group-hover:border-white/30 text-transparent hover:text-white' : 'bg-white/5 border border-white/5 opacity-50 cursor-not-allowed')
-              }`}
-            >
-              <Check size={16} className={habit.completedToday ? '' : (isToday ? 'group-hover:text-white/20' : 'text-white/10')} />
-            </button>
+                }}
+                disabled={loading}
+                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                  habit.completedToday 
+                    ? 'bg-white text-black hover:bg-red-500 hover:text-white' 
+                    : (isToday ? 'bg-white/5 border border-white/10 group-hover:border-white/30 text-transparent hover:text-white' : 'bg-white/5 border border-white/5 opacity-50 cursor-not-allowed')
+                }`}
+              >
+                <Check size={16} className={habit.completedToday ? '' : (isToday ? 'group-hover:text-white/20' : 'text-white/10')} />
+              </button>
+              
+              <button
+                onClick={() => setEditingHabit(habit)}
+                className="w-10 h-10 flex items-center justify-center translate-x-2 text-slate-500 hover:text-white transition-colors"
+              >
+                <MoreVertical size={16} />
+              </button>
+            </div>
           </motion.div>
         )})}
 
@@ -90,5 +120,45 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
         )}
       </div>
     </div>
+    
+    <AnimatePresence>
+       {editingHabit && (
+          <EditHabitModal habit={editingHabit} onClose={() => setEditingHabit(null)} />
+       )}
+    </AnimatePresence>
+    
+    {/* Custom Confirm Modal */}
+    <AnimatePresence>
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }} 
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            className="bg-[#111] p-6 rounded-2xl border border-white/10 max-w-sm w-full shadow-2xl"
+          >
+            <h3 className="text-lg font-bold mb-8 text-white text-center leading-snug">{confirmModal.title}</h3>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })} 
+                className="flex-1 py-3 focus:outline-none rounded-xl bg-white/5 text-white font-bold hover:bg-white/10 transition-all uppercase tracking-wider text-xs border border-white/10"
+              >
+                Nope
+              </button>
+              <button 
+                onClick={async () => {
+                  await confirmModal.action();
+                  setConfirmModal({ ...confirmModal, isOpen: false });
+                }} 
+                className="flex-1 py-3 focus:outline-none rounded-xl bg-white text-black font-bold hover:bg-slate-200 transition-all uppercase tracking-wider text-xs"
+              >
+                Yes
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+    </>
   );
 };

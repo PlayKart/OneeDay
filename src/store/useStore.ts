@@ -87,6 +87,8 @@ interface State {
   setActiveTab: (tab: TabState) => void
   refreshFromBackend: () => Promise<void>
   addHabit: (habitData: Partial<Habit>) => Promise<void>
+  editHabit: (habitId: string, habitData: Partial<Habit>) => Promise<void>
+  deleteHabit: (habitId: string) => Promise<void>
   completeHabit: (habitId: string) => Promise<void>
   undoHabit: (habitId: string) => Promise<void>
   freezeStreak: (days: number) => Promise<void>
@@ -199,6 +201,38 @@ export const useStore = create<State>((set, get) => ({
     }
 
     await get().refreshFromBackend()
+  },
+
+  editHabit: async (habitId: string, habitData: Partial<Habit>) => {
+    const payload = {
+      habit_id: habitId,
+      name: habitData.name,
+      repeatType: habitData.repeatType,
+      customDays: habitData.customDays,
+      difficulty: habitData.difficulty,
+      notes: habitData.notes
+    };
+    await apiRequest("/api/habit", "PUT", payload);
+    
+    const user = auth.currentUser;
+    if (user && habitData.name) {
+       const key = `habit_meta_${user.uid}_${habitData.name}`;
+       localStorage.setItem(key, JSON.stringify({
+          repeatType: habitData.repeatType,
+          customDays: habitData.customDays,
+          difficulty: habitData.difficulty,
+          notes: habitData.notes,
+          icon: habitData.icon,
+          category: habitData.category
+       }));
+    }
+
+    await get().refreshFromBackend();
+  },
+
+  deleteHabit: async (habitId: string) => {
+    await apiRequest(`/api/habit/${habitId}`, "DELETE");
+    await get().refreshFromBackend();
   },
 
   completeHabit: async (habitId: string) => {
