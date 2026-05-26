@@ -1,0 +1,23 @@
+{
+  "short_name": "OneDay",
+  "name": "OneDay — AI Habit Tracker & Streak Protocol",
+  "description": "Premium AI-powered habit tracker focused on discipline, consistency, streaks, and self-improvement.",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#050505",
+  "display": "standalone",
+  "theme_color": "#050505"
+}

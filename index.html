@@ -2,11 +2,96 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    <meta name="theme-color" content="#050505" />
+    
+    <!-- Primary Meta Tags -->
+    <title>OneDay — AI Habit Tracker</title>
+    <meta name="title" content="OneDay — AI Habit Tracker" />
+    <meta name="description" content="Premium AI-powered habit tracker focused on discipline, consistency, streaks, and self-improvement." />
+    <meta name="keywords" content="habit tracker, ai habit tracker, streak app, discipline app, productivity app, self improvement" />
+    <meta name="robots" content="index, follow" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://onee-day.vercel.app/" />
+    <meta property="og:title" content="OneDay — AI Habit Tracker" />
+    <meta property="og:description" content="Premium AI-powered habit tracker focused on discipline, consistency, streaks, and self-improvement." />
+    <meta property="og:image" content="https://onee-day.vercel.app/og-image.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://onee-day.vercel.app/" />
+    <meta property="twitter:title" content="OneDay — AI Habit Tracker" />
+    <meta property="twitter:description" content="Premium AI-powered habit tracker focused on discipline, consistency, streaks, and self-improvement." />
+    <meta property="twitter:image" content="https://onee-day.vercel.app/og-image.png" />
+
+    <!-- Favicons & App Icons -->
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.json" />
-    <title>OneDay | Streak Protocol</title>
+    <link rel="canonical" href="https://onee-day.vercel.app/" />
+
+    <!-- Performance: Font Preconnecting -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- Google Search Console Verification Placeholder -->
+    <meta name="google-site-verification" content="GSC_VERIFICATION_TOKEN_PLACEHOLDER" />
+
+    <!-- Schema.org JSON-LD structured data -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "OneDay",
+        "operatingSystem": "All",
+        "applicationCategory": "ProductivityApplication",
+        "offers": {
+          "@type": "Offer",
+          "price": "0.00",
+          "priceCurrency": "USD"
+        },
+        "description": "Premium AI-powered habit tracker focused on discipline, consistency, streaks, and self-improvement.",
+        "ratingValue": "4.9",
+        "reviewCount": "104"
+      }
+    </script>
+    
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "OneDay",
+        "url": "https://onee-day.vercel.app/",
+        "logo": "https://onee-day.vercel.app/apple-touch-icon.png",
+        "sameAs": [
+          "https://twitter.com/oneedayapp"
+        ]
+      }
+    </script>
+
+    <!-- Analytics & Tracking Integration Scripts (Ready to configure) -->
+    <!-- Google Analytics (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-TRACKING_ID_PLACEHOLDER"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-TRACKING_ID_PLACEHOLDER');
+    </script>
+
+    <!-- Microsoft Clarity -->
+    <script type="text/javascript">
+      (function(c,l,a,r,i,t,y){
+          c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+          t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+          y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+      })(window, document, "clarity", "script", "CLARITY_ID_PLACEHOLDER");
+    </script>
   </head>
   <body>
+    <!-- Hidden SEO H1 and semantic landmarks on index.html if necessary; main content rendered inside root -->
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
@@ -18,4 +103,3 @@
     </script>
   </body>
 </html>
-

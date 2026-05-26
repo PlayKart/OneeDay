@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Flame, 
@@ -22,12 +22,14 @@ import { HabitList } from './components/HabitList';
 import { AICoach } from './components/AICoach';
 import { MotivationalQuote } from './components/MotivationalQuote';
 
-import { DashboardScreen } from './components/screens/DashboardScreen';
-import { HabitsScreen } from './components/screens/HabitsScreen';
-import { CoachScreen } from './components/screens/CoachScreen';
-import { SettingsScreen } from './components/screens/SettingsScreen';
+// Lazy loading the heavy screen components for improved SEO, fast initial content paint (FCP), and minimal layout shift
+const DashboardScreen = lazy(() => import('./components/screens/DashboardScreen').then(m => ({ default: m.DashboardScreen })));
+const HabitsScreen = lazy(() => import('./components/screens/HabitsScreen').then(m => ({ default: m.HabitsScreen })));
+const CoachScreen = lazy(() => import('./components/screens/CoachScreen').then(m => ({ default: m.CoachScreen })));
+const SettingsScreen = lazy(() => import('./components/screens/SettingsScreen').then(m => ({ default: m.SettingsScreen })));
+const LandingScreen = lazy(() => import('./components/screens/LandingScreen').then(m => ({ default: m.LandingScreen })));
+
 import { MainLayout } from './components/MainLayout';
-import { LandingScreen } from './components/screens/LandingScreen';
 import { TutorialOverlay } from './components/TutorialOverlay';
 
 const GoogleIcon = () => (
@@ -48,6 +50,33 @@ export default function App() {
     const timer = setTimeout(() => setShowIntro(false), 3500);
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (!firebaseUser) {
+      // Landing page sets its own titles dynamically
+      return;
+    }
+    if (showIntro) {
+      document.title = "OneDay — AI Habit Tracker";
+      return;
+    }
+    switch (activeTab) {
+      case "dashboard":
+        document.title = "Dashboard — OneDay";
+        break;
+      case "habits":
+        document.title = "Habits — OneDay";
+        break;
+      case "coach":
+        document.title = "AI Coach — OneDay";
+        break;
+      case "settings":
+        document.title = "Settings — OneDay";
+        break;
+      default:
+        document.title = "OneDay — AI Habit Tracker";
+    }
+  }, [firebaseUser, activeTab, showIntro]);
 
   // ── 0. Show Intro Animation ───────────────────────────────────────────────
   if (showIntro) {
@@ -107,7 +136,15 @@ export default function App() {
   // Uses firebaseUser (not backend `user`) so a backend failure never
   // kicks an authenticated user back to the login screen.
   if (!firebaseUser) {
-    return <LandingScreen onLoginSuccess={() => {}} />;
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen bg-[#050505] flex items-center justify-center font-sans">
+          <div className="w-12 h-12 border-2 border-white/5 border-t-white rounded-full animate-spin" />
+        </div>
+      }>
+        <LandingScreen onLoginSuccess={() => {}} />
+      </Suspense>
+    );
   }
 
   // ── 3. Firebase user exists but backend data not yet loaded ───────────────
@@ -191,10 +228,16 @@ export default function App() {
 
       <div className="relative z-10 h-screen overflow-hidden">
         <MainLayout>
-          {activeTab === "dashboard" && <DashboardScreen />}
-          {activeTab === "habits" && <HabitsScreen />}
-          {activeTab === "coach" && <CoachScreen />}
-          {activeTab === "settings" && <SettingsScreen />}
+          <Suspense fallback={
+            <div className="flex items-center justify-center h-[50vh] w-full">
+              <div className="w-8 h-8 border-2 border-white/5 border-t-white rounded-full animate-spin" />
+            </div>
+          }>
+            {activeTab === "dashboard" && <DashboardScreen />}
+            {activeTab === "habits" && <HabitsScreen />}
+            {activeTab === "coach" && <CoachScreen />}
+            {activeTab === "settings" && <SettingsScreen />}
+          </Suspense>
         </MainLayout>
         <TutorialOverlay />
       </div>
