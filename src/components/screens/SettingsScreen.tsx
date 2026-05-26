@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useStore } from "../../store/useStore";
 import { auth } from "../../lib/firebase";
 import { signOut } from "firebase/auth";
@@ -7,10 +7,21 @@ import { motion, AnimatePresence } from "motion/react";
 import { toast } from "react-hot-toast";
 
 export function SettingsScreen() {
-  const { user, firebaseUser, freezeStreak } = useStore();
+  const { user, firebaseUser, freezeStreak, deactivateFreeze } = useStore();
   const [showFreezeConfirm, setShowFreezeConfirm] = useState(false);
   const [freezeDays, setFreezeDays] = useState(7);
   const [activating, setActivating] = useState(false);
+  const [confirmDeactivate, setConfirmDeactivate] = useState(false);
+  const [deactivating, setDeactivating] = useState(false);
+
+  // Reset the "Confirm" timer for settings shield deactivation after 3 seconds
+  useEffect(() => {
+    if (!confirmDeactivate) return;
+    const timer = setTimeout(() => {
+      setConfirmDeactivate(false);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [confirmDeactivate]);
 
   if (!user) return null;
 
@@ -109,13 +120,47 @@ export function SettingsScreen() {
                  </div>
                </div>
              </div>
-             <button
-                disabled={isFrozen}
-                onClick={() => setShowFreezeConfirm(true)}
-                className="ml-4 shrink-0 bg-white text-black font-bold px-4 py-2 rounded-lg text-xs uppercase tracking-widest disabled:opacity-50 disabled:bg-white/10 disabled:text-white"
-             >
-                {isFrozen ? "Active" : "Freeze"}
-             </button>
+             {isFrozen ? (
+               <button
+                  onClick={async () => {
+                    if (!confirmDeactivate) {
+                      setConfirmDeactivate(true);
+                      return;
+                    }
+                    try {
+                      setDeactivating(true);
+                      await deactivateFreeze();
+                      toast.success("Streak Shield deactivated! Progression resumed.");
+                      setConfirmDeactivate(false);
+                    } catch (e) {
+                      toast.error("Failed to deactivate streak shield.");
+                    } finally {
+                      setDeactivating(false);
+                    }
+                  }}
+                  disabled={deactivating}
+                  className={`ml-4 shrink-0 font-bold px-4 py-2.5 rounded-lg text-xs uppercase tracking-widest transition-all duration-300 transform active:scale-[0.98] cursor-pointer flex items-center justify-center gap-1.5 ${
+                    confirmDeactivate
+                      ? "bg-red-500/20 text-red-500 border border-red-500/40 font-black animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.2)]"
+                      : "bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20"
+                  }`}
+               >
+                  {deactivating ? (
+                    <span className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin inline-block" />
+                  ) : confirmDeactivate ? (
+                    "Confirm?"
+                  ) : (
+                    "Unfreeze"
+                  )}
+               </button>
+             ) : (
+               <button
+                  onClick={() => setShowFreezeConfirm(true)}
+                  className="ml-4 shrink-0 bg-white text-black font-bold px-4 py-2 rounded-lg text-xs uppercase tracking-widest hover:bg-slate-200 transition-all transform active:scale-[0.98] cursor-pointer"
+               >
+                  Freeze
+               </button>
+             )}
           </div>
         </div>
       </section>

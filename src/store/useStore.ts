@@ -92,6 +92,7 @@ interface State {
   completeHabit: (habitId: string) => Promise<void>
   undoHabit: (habitId: string) => Promise<void>
   freezeStreak: (days: number) => Promise<void>
+  deactivateFreeze: () => Promise<void>
   sendChat: (message: string) => Promise<string>
   resetProgress: () => Promise<void>
   deleteAccount: () => Promise<void>
@@ -284,6 +285,24 @@ export const useStore = create<State>((set, get) => ({
 
   freezeStreak: async (days: number) => {
     await apiRequest("/api/freeze", "POST", { days })
+    await get().refreshFromBackend()
+  },
+
+  deactivateFreeze: async () => {
+    try {
+      await apiRequest("/api/freeze", "POST", { days: 0 })
+    } catch (e) {
+      console.error("deactivateFreeze API call failed, falling back to local reset", e);
+    }
+    const currentUser = get().user;
+    if (currentUser) {
+      set({
+        user: {
+          ...currentUser,
+          freeze_until: null
+        }
+      });
+    }
     await get().refreshFromBackend()
   },
 

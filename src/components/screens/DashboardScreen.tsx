@@ -1,13 +1,26 @@
+import { useState, useEffect } from "react";
 import { useStore } from "../../store/useStore";
 import { MotivationalQuote } from "../MotivationalQuote";
 import { HabitList } from "../HabitList";
-import { Target, Zap, Clock } from "lucide-react";
+import { Target, Zap, Clock, ShieldAlert } from "lucide-react";
 import { motion } from "motion/react";
+import { toast } from "react-hot-toast";
 
 import { isHabitScheduledForToday } from "../../lib/habitUtils";
 
 export function DashboardScreen() {
-  const { user, habits } = useStore();
+  const { user, habits, deactivateFreeze } = useStore();
+  const [confirmDeactivate, setConfirmDeactivate] = useState(false);
+  const [unfreezing, setUnfreezing] = useState(false);
+
+  // Automatically reset the "Confirm Unfreeze" button if not clicked again within 3 seconds
+  useEffect(() => {
+    if (!confirmDeactivate) return;
+    const timer = setTimeout(() => {
+      setConfirmDeactivate(false);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [confirmDeactivate]);
 
   if (!user) return null;
 
@@ -62,8 +75,39 @@ export function DashboardScreen() {
             </div>
           </div>
           
-          <div className="text-cyan-400 text-[9px] font-black uppercase tracking-widest bg-cyan-500/15 border border-cyan-500/20 px-4 py-2 rounded-xl">
-            Streak Frozen
+          <div className="relative z-10 flex items-center gap-2">
+            <button
+              onClick={async () => {
+                if (!confirmDeactivate) {
+                  setConfirmDeactivate(true);
+                  return;
+                }
+                try {
+                  setUnfreezing(true);
+                  await deactivateFreeze();
+                  toast.success("Streak Shield deactivated! Progression resumed.");
+                  setConfirmDeactivate(false);
+                } catch (e) {
+                  toast.error("Failed to deactivate streak shield.");
+                } finally {
+                  setUnfreezing(false);
+                }
+              }}
+              disabled={unfreezing}
+              className={`text-[10px] font-black uppercase tracking-widest px-4 py-2.5 rounded-xl border transition-all duration-300 transform active:scale-95 cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                confirmDeactivate
+                  ? "bg-red-500/20 text-red-400 border-red-500/40 font-black animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.2)]"
+                  : "bg-cyan-500/15 text-cyan-400 border-cyan-500/25 hover:bg-cyan-500/25 hover:border-cyan-500/40 shadow-[0_0_15px_rgba(6,182,212,0.1)]"
+              }`}
+            >
+              {unfreezing ? (
+                <span className="w-3.5 h-3.5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin inline-block" />
+              ) : confirmDeactivate ? (
+                "Confirm Unfreeze?"
+              ) : (
+                "Deactivate Freeze"
+              )}
+            </button>
           </div>
         </motion.div>
       )}
