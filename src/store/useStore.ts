@@ -122,7 +122,44 @@ export const useStore = create<State>((set, get) => ({
         throw new Error("Backend returned no user data. Ensure your backend handles anonymous users or check your backend logs.");
       }
 
-      const streak = userData.streak || 0;
+      // Timezone-aware local day streak calculation & correction
+      const getFormattedLocalDate = (dateInput?: Date | string | number | null) => {
+        if (!dateInput) return "";
+        const d = new Date(dateInput);
+        if (isNaN(d.getTime())) return "";
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
+      let effectiveStreak = userData.streak || 0;
+      if (userData.lastActiveDate) {
+        const todayStr = getFormattedLocalDate(new Date());
+        const lastActiveStr = getFormattedLocalDate(userData.lastActiveDate);
+
+        if (todayStr && lastActiveStr) {
+          const tDate = new Date(todayStr + "T00:00:00");
+          const lDate = new Date(lastActiveStr + "T00:00:00");
+          const diffTime = tDate.getTime() - lDate.getTime();
+          const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+          const isCurrentlyFrozen = userData.freeze_until && new Date(userData.freeze_until) > new Date();
+
+          if (diffDays > 1 && !isCurrentlyFrozen) {
+            // Streak broken due to inactivity for more than 1 day without freeze
+            effectiveStreak = 0;
+          }
+        }
+      } else {
+        effectiveStreak = 0;
+      }
+
+      const streak = effectiveStreak;
+      const correctedUserData = {
+        ...userData,
+        streak: effectiveStreak
+      };
       
       const currentUser = auth.currentUser;
       const enrichedHabits = (habitsData || []).map((h: any) => {
@@ -165,7 +202,7 @@ export const useStore = create<State>((set, get) => ({
       }
 
       set({
-        user: userData,
+        user: correctedUserData,
         habits: enrichedHabits,
         quote,
         loading: false,
