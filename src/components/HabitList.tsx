@@ -42,16 +42,16 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
             key={habit.id}
             className={`p-4 rounded-2xl flex items-center justify-between group transition-all duration-300 border ${
               habit.completedToday 
-                ? 'bg-white/5 border-white/10 opacity-60' 
-                : 'bg-white/[0.03] border-white/5 hover:bg-white/[0.08] hover:border-white/20'
+                ? 'bg-emerald-500/[0.02] border-emerald-500/10 opacity-70' 
+                : 'bg-white/[0.01] border-white/[0.04] hover:bg-white/[0.04] hover:border-white/10 hover:shadow-[0_4px_20px_rgba(0,0,0,0.5)]'
             }`}
           >
-            <div className="flex flex-col gap-1.5">
-              <h4 className={`font-bold transition-all text-sm ${habit.completedToday ? 'text-slate-500' : 'text-white'}`}>
+            <div className="flex flex-col gap-1">
+              <h4 className={`font-semibold transition-all text-sm font-sans tracking-wide ${habit.completedToday ? 'text-slate-500 line-through' : 'text-slate-200'}`}>
                 {habit.name}
               </h4>
-              <p className={`text-[10px] font-bold uppercase tracking-widest ${habit.completedToday ? 'text-green-500/50' : 'text-slate-600'}`}>
-                {habit.completedToday ? 'Completed' : (isToday ? 'Scheduled Today' : getScheduledDaysMessage(habit))}
+              <p className={`text-[9px] font-extrabold uppercase tracking-widest ${habit.completedToday ? 'text-emerald-500/70' : 'text-slate-500'}`}>
+                {habit.completedToday ? 'Completed Today' : (isToday ? 'Scheduled Today' : getScheduledDaysMessage(habit))}
               </p>
             </div>
             
@@ -92,20 +92,20 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
                   }
                 }}
                 disabled={loading}
-                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 transform active:scale-90 cursor-pointer ${
                   habit.completedToday 
-                    ? 'bg-white text-black hover:bg-red-500 hover:text-white' 
-                    : (isToday ? 'bg-white/5 border border-white/10 group-hover:border-white/30 text-transparent hover:text-white' : 'bg-white/5 border border-white/5 opacity-50 cursor-not-allowed')
+                    ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 hover:bg-red-500/20 hover:border-red-500/30 hover:text-red-400' 
+                    : (isToday ? 'bg-white/[0.02] border border-white/10 hover:border-violet-500/40 hover:text-violet-400 hover:bg-violet-500/5' : 'bg-white/[0.01] border border-white/[0.02] opacity-40 cursor-not-allowed')
                 }`}
               >
-                <Check size={16} className={habit.completedToday ? '' : (isToday ? 'group-hover:text-white/20' : 'text-white/10')} />
+                <Check size={14} className={habit.completedToday ? 'stroke-[3px]' : (isToday ? 'opacity-20 group-hover:opacity-100 transition-opacity' : 'opacity-10')} />
               </button>
               
               <button
                 onClick={() => setEditingHabit(habit)}
-                className="w-10 h-10 flex items-center justify-center translate-x-2 text-slate-500 hover:text-white transition-colors"
+                className="w-9 h-9 rounded-full flex items-center justify-center text-slate-500 hover:text-slate-300 hover:bg-white/[0.03] transition-all cursor-pointer"
               >
-                <MoreVertical size={16} />
+                <MoreVertical size={14} />
               </button>
             </div>
           </motion.div>
@@ -130,18 +130,25 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
     {/* Custom Confirm Modal */}
     <AnimatePresence>
       {confirmModal.isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
           <motion.div 
-            initial={{ scale: 0.9, opacity: 0 }} 
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            className="bg-[#111] p-6 rounded-2xl border border-white/10 max-w-sm w-full shadow-2xl"
+            initial={{ scale: 0.95, opacity: 0, y: 10 }} 
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.95, opacity: 0, y: 10 }}
+            transition={{ type: "spring", duration: 0.5 }}
+            className="bg-[#0b0b10] p-6 rounded-[2rem] border border-white/[0.08] max-w-sm w-full shadow-[0_20px_50px_rgba(0,0,0,0.8)] relative overflow-hidden"
           >
-            <h3 className="text-lg font-bold mb-8 text-white text-center leading-snug">{confirmModal.title}</h3>
-            <div className="flex gap-3">
+            {/* Ambient aesthetic glow background */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-violet-500/5 rounded-full blur-[40px] pointer-events-none" />
+            
+            <h3 className="text-md font-display font-light mb-8 text-slate-100 text-center leading-snug px-4">
+              {confirmModal.title}
+            </h3>
+            
+            <div className="flex gap-3 relative z-10">
               <button 
                 onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })} 
-                className="flex-1 py-3 focus:outline-none rounded-xl bg-white/5 text-white font-bold hover:bg-white/10 transition-all uppercase tracking-wider text-xs border border-white/10"
+                className="flex-1 py-3 focus:outline-none rounded-xl bg-white/[0.04] text-slate-300 font-bold hover:bg-white/[0.08] hover:text-white transition-all uppercase tracking-widest text-[10px] border border-white/5 cursor-pointer"
               >
                 Nope
               </button>
@@ -150,7 +157,7 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
                   await confirmModal.action();
                   setConfirmModal({ ...confirmModal, isOpen: false });
                 }} 
-                className="flex-1 py-3 focus:outline-none rounded-xl bg-white text-black font-bold hover:bg-slate-200 transition-all uppercase tracking-wider text-xs"
+                className="flex-1 py-3 focus:outline-none rounded-xl bg-slate-200 text-black font-extrabold hover:bg-white transition-all uppercase tracking-widest text-[10px] cursor-pointer shadow-lg shadow-white/5"
               >
                 Yes
               </button>
