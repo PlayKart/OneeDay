@@ -1,4 +1,5 @@
 export function isHabitScheduledForToday(habit: any): boolean {
+  if (!habit) return false;
   if (!habit.repeatType || habit.repeatType === "every_day") {
     return true;
   }
@@ -25,6 +26,7 @@ export function isHabitScheduledForToday(habit: any): boolean {
 }
 
 export function getScheduledDaysMessage(habit: any): string {
+  if (!habit) return "Every day";
   if (!habit.repeatType || habit.repeatType === "every_day") {
     return "Every day";
   }

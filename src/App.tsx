@@ -22,12 +22,11 @@ import { HabitList } from './components/HabitList';
 import { AICoach } from './components/AICoach';
 import { MotivationalQuote } from './components/MotivationalQuote';
 
-// Lazy loading the heavy screen components for improved SEO, fast initial content paint (FCP), and minimal layout shift
-const DashboardScreen = lazy(() => import('./components/screens/DashboardScreen').then(m => ({ default: m.DashboardScreen })));
-const HabitsScreen = lazy(() => import('./components/screens/HabitsScreen').then(m => ({ default: m.HabitsScreen })));
-const CoachScreen = lazy(() => import('./components/screens/CoachScreen').then(m => ({ default: m.CoachScreen })));
-const SettingsScreen = lazy(() => import('./components/screens/SettingsScreen').then(m => ({ default: m.SettingsScreen })));
-const LandingScreen = lazy(() => import('./components/screens/LandingScreen').then(m => ({ default: m.LandingScreen })));
+import { DashboardScreen } from './components/screens/DashboardScreen';
+import { HabitsScreen } from './components/screens/HabitsScreen';
+import { CoachScreen } from './components/screens/CoachScreen';
+import { SettingsScreen } from './components/screens/SettingsScreen';
+import { LandingScreen } from './components/screens/LandingScreen';
 
 import { MainLayout } from './components/MainLayout';
 import { TutorialOverlay } from './components/TutorialOverlay';

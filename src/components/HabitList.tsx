@@ -20,9 +20,10 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
     action: async () => {}
   });
 
+  const validHabits = (habits || []).filter(Boolean);
   const displayHabits = previewMode 
-    ? habits.filter(h => !h.completedToday && isHabitScheduledForToday(h)).slice(0, 5) 
-    : habits;
+    ? validHabits.filter(h => !h.completedToday && isHabitScheduledForToday(h)).slice(0, 5) 
+    : validHabits;
 
   return (
     <>

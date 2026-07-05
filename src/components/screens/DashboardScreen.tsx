@@ -37,8 +37,9 @@ export function DashboardScreen() {
     month: 'short', 
     day: 'numeric' 
   });
-  const todaysHabits = habits.filter(isHabitScheduledForToday);
-  const completedToday = habits.filter(h => h.completedToday).length; 
+  const validHabits = (habits || []).filter(Boolean);
+  const todaysHabits = validHabits.filter(isHabitScheduledForToday);
+  const completedToday = validHabits.filter(h => h.completedToday).length; 
   const totalHabits = todaysHabits.length;
   const completionPercentage = totalHabits === 0 ? 0 : Math.round((completedToday / totalHabits) * 100);
 
