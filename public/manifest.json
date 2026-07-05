@@ -1,7 +1,12 @@
 {
   "short_name": "OneDay",
-  "name": "OneDay — AI Habit Tracker & Streak Protocol",
-  "description": "Premium AI-powered habit tracker focused on discipline, consistency, streaks, and self-improvement.",
+  "name": "OneDay — AI Habit Tracker & Discipline Engine",
+  "description": "OneDay is an AI-powered habit tracker that helps users build discipline through daily habits, streaks, XP, AI coaching, and more.",
+  "categories": [
+    "productivity",
+    "health",
+    "education"
+  ],
   "icons": [
     {
       "src": "/icon.svg",

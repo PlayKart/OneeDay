@@ -31,6 +31,7 @@ const LandingScreen = lazy(() => import('./components/screens/LandingScreen').th
 
 import { MainLayout } from './components/MainLayout';
 import { TutorialOverlay } from './components/TutorialOverlay';
+import { updateSEO } from './lib/seo';
 
 const GoogleIcon = () => (
   <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
@@ -57,24 +58,52 @@ export default function App() {
       return;
     }
     if (showIntro) {
-      document.title = "OneDay — AI Habit Tracker";
+      updateSEO({
+        title: "OneDay — AI Habit Tracker & Discipline Engine",
+        description: "Premium AI-powered habit tracker focused on discipline, consistency, streaks, and self-improvement.",
+        canonical: "https://onee-day.vercel.app/"
+      });
       return;
     }
     switch (activeTab) {
       case "dashboard":
-        document.title = "Dashboard — OneDay";
+        updateSEO({
+          title: "Dashboard — OneDay",
+          description: "Monitor your daily consistency score, level up, track active habit streaks, and analyze your productivity progress.",
+          keywords: "productivity dashboard, streak tracking, user statistics, level progress, gamified habits, consistency metrics, OneDay",
+          canonical: "https://onee-day.vercel.app/dashboard"
+        });
         break;
       case "habits":
-        document.title = "Habits — OneDay";
+        updateSEO({
+          title: "Habit Control — OneDay",
+          description: "Manage and customize your recurring daily standards, repeat schedules, and custom discipline directives.",
+          keywords: "habit management, repeat schedule, custom habits, recurring standards, custom directives, OneDay",
+          canonical: "https://onee-day.vercel.app/habits"
+        });
         break;
       case "coach":
-        document.title = "AI Coach — OneDay";
+        updateSEO({
+          title: "AI Discipline Coach — OneDay",
+          description: "Interact with the Gemini-powered AI Discipline Coach to analyze your routine, build discipline, and bypass friction.",
+          keywords: "AI coaching, discipline engine, habit advisor, Gemini AI, productivity coach, OneDay",
+          canonical: "https://onee-day.vercel.app/chat"
+        });
         break;
       case "settings":
-        document.title = "Settings — OneDay";
+        updateSEO({
+          title: "System Settings — OneDay",
+          description: "Configure system preferences, profile levels, and activate the Streak Shield protection protocol to freeze your progress.",
+          keywords: "streak freeze, profile management, app settings, Streak Shield, protection protocol, OneDay",
+          canonical: "https://onee-day.vercel.app/settings"
+        });
         break;
       default:
-        document.title = "OneDay — AI Habit Tracker";
+        updateSEO({
+          title: "OneDay — AI Habit Tracker & Discipline Engine",
+          description: "Premium AI-powered habit tracker focused on discipline, consistency, streaks, and self-improvement.",
+          canonical: "https://onee-day.vercel.app/"
+        });
     }
   }, [firebaseUser, activeTab, showIntro]);
 

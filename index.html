@@ -43,30 +43,72 @@
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "OneDay",
-        "operatingSystem": "All",
-        "applicationCategory": "ProductivityApplication",
-        "offers": {
-          "@type": "Offer",
-          "price": "0.00",
-          "priceCurrency": "USD"
-        },
-        "description": "Premium AI-powered habit tracker focused on discipline, consistency, streaks, and self-improvement.",
-        "ratingValue": "4.9",
-        "reviewCount": "104"
-      }
-    </script>
-    
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "Organization",
-        "name": "OneDay",
-        "url": "https://onee-day.vercel.app/",
-        "logo": "https://onee-day.vercel.app/apple-touch-icon.png",
-        "sameAs": [
-          "https://twitter.com/oneedayapp"
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "@id": "https://onee-day.vercel.app/#software",
+            "name": "OneDay",
+            "url": "https://onee-day.vercel.app",
+            "operatingSystem": "Web",
+            "applicationCategory": "ProductivityApplication",
+            "genre": [
+              "Productivity",
+              "Health & Fitness",
+              "Education"
+            ],
+            "offers": {
+              "@type": "Offer",
+              "price": "0.00",
+              "priceCurrency": "USD"
+            },
+            "description": "OneDay is an AI-powered habit tracker that helps users build discipline through daily habits, streaks, XP, AI coaching, and what all in the web app.",
+            "creator": [
+              {
+                "@type": "Person",
+                "name": "Harsha Vardhan"
+              },
+              {
+                "@type": "Person",
+                "name": "Vikhyath"
+              },
+              {
+                "@type": "Person",
+                "name": "Trinay"
+              }
+            ],
+            "image": "https://onee-day.vercel.app/og-image.png"
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://onee-day.vercel.app/#website",
+            "url": "https://onee-day.vercel.app",
+            "name": "OneDay",
+            "description": "OneDay is an AI-powered habit tracker that helps users build discipline through daily habits, streaks, XP, AI coaching, and what all in the web app.",
+            "publisher": {
+              "@id": "https://onee-day.vercel.app/#organization"
+            }
+          },
+          {
+            "@type": "Organization",
+            "@id": "https://onee-day.vercel.app/#organization",
+            "name": "OneDay",
+            "url": "https://onee-day.vercel.app",
+            "logo": "https://onee-day.vercel.app/apple-touch-icon.png",
+            "founder": [
+              {
+                "@type": "Person",
+                "name": "Harsha Vardhan"
+              },
+              {
+                "@type": "Person",
+                "name": "Vikhyath"
+              },
+              {
+                "@type": "Person",
+                "name": "Trinay"
+              }
+            ]
+          }
         ]
       }
     </script>

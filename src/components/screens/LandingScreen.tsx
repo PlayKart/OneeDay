@@ -4,6 +4,7 @@ import { signInWithPopup, GoogleAuthProvider, signInAnonymously } from "firebase
 import { auth } from "../../lib/firebase";
 import { User, Check, Shield } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { updateSEO } from "../../lib/seo";
 
 interface LandingScreenProps {
   onLoginSuccess: () => void;
@@ -12,9 +13,14 @@ interface LandingScreenProps {
 export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
   const [showAuthModal, setShowAuthModal] = useState(false);
 
-  // Dynamic Page Title SEO optimization: changes title as user scrolls sections
+  // Dynamic Page Title & Meta SEO optimization: changes SEO tags as user scrolls sections
   useEffect(() => {
-    document.title = "OneDay — AI Habit Tracker";
+    updateSEO({
+      title: "OneDay — AI Habit Tracker & Discipline Engine",
+      description: "OneDay is an AI-powered habit tracker that helps users build discipline through daily habits, streaks, XP, AI coaching, and more in the web app.",
+      keywords: "OneDay, habit tracker, ai habit tracker, streak app, discipline app, productivity app, self improvement, consistency, routines",
+      canonical: "https://onee-day.vercel.app/"
+    });
 
     const handleScroll = () => {
       const featuresEl = document.getElementById("features");
@@ -26,13 +32,33 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
       const scrollPos = window.scrollY + 250; // Offset for navbar & threshold
 
       if (systemEl && scrollPos >= systemEl.offsetTop) {
-        document.title = "Discipline Protocol — OneDay";
+        updateSEO({
+          title: "Discipline Protocol — OneDay",
+          description: "Explore the consistency framework and advanced streak tracking protocols of OneDay, the high-performance AI habit tracker.",
+          keywords: "consistency framework, streak tracking, AI habit tracker, discipline building, daily consistency",
+          canonical: "https://onee-day.vercel.app/#discipline-system"
+        });
       } else if (scrollPos >= aboutEl.offsetTop) {
-        document.title = "About — OneDay";
+        updateSEO({
+          title: "About — OneDay",
+          description: "Read the student story of OneDay, built with care by Harsha Vardhan, Vikhyath, and Trinay to simplify self-improvement.",
+          keywords: "student startup, founders story, habit tracker design, mindful technology, Harsha Vardhan, Vikhyath, Trinay",
+          canonical: "https://onee-day.vercel.app/#about"
+        });
       } else if (scrollPos >= featuresEl.offsetTop) {
-        document.title = "Features — OneDay";
+        updateSEO({
+          title: "Features — OneDay",
+          description: "Unlock systematic progress, streak tracking, and personalized AI discipline coaching to master your daily standards.",
+          keywords: "habit features, consistency score, AI coaching, gamified routines, productivity features",
+          canonical: "https://onee-day.vercel.app/#features"
+        });
       } else {
-        document.title = "OneDay — AI Habit Tracker";
+        updateSEO({
+          title: "OneDay — AI Habit Tracker & Discipline Engine",
+          description: "OneDay is an AI-powered habit tracker that helps users build discipline through daily habits, streaks, XP, AI coaching, and more in the web app.",
+          keywords: "OneDay, habit tracker, ai habit tracker, streak app, discipline app, productivity app, self improvement, consistency, routines",
+          canonical: "https://onee-day.vercel.app/"
+        });
       }
     };
 
