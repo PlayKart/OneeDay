@@ -1,6 +1,7 @@
 import React from "react";
 import { useStore } from "../store/useStore";
-import { LayoutDashboard, CheckSquare, MessageSquare, Settings, Sparkles } from "lucide-react";
+import { LayoutDashboard, CheckSquare, MessageSquare, Settings } from "lucide-react";
+import { BrandLogo } from "./BrandLogo";
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -25,14 +26,12 @@ export function MainLayout({ children }: MainLayoutProps) {
         
         {/* Branding header */}
         <div className="p-6 pb-4 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#3b82f6] via-[#8b5cf6] to-[#ec4899] flex items-center justify-center p-[1px] shadow-[0_0_20px_rgba(139,92,246,0.2)] animate-pulse-slow">
-            <div className="w-full h-full rounded-[11px] bg-black flex items-center justify-center">
-              <Sparkles size={16} className="text-violet-400" />
-            </div>
+          <div className="w-9 h-9 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-center shadow-inner">
+            <BrandLogo size={18} />
           </div>
           <div className="flex flex-col">
-            <span className="font-display font-bold text-md tracking-tight text-slate-100">OneDay</span>
-            <span className="text-[9px] font-bold text-slate-500 tracking-wider uppercase">Discipline Protocol</span>
+            <span className="font-display font-light text-md tracking-tight text-white">OneDay</span>
+            <span className="text-[8px] font-black text-slate-500 tracking-widest uppercase">Discipline Protocol</span>
           </div>
         </div>
 

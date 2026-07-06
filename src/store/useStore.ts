@@ -84,8 +84,10 @@ interface State {
   backendError: string | null
   activeTab: TabState
   isLocalFallback: boolean
+  selectedLogoStyle: "monolith" | "infinite" | "eclipse" | "zen"
 
   setActiveTab: (tab: TabState) => void
+  setSelectedLogoStyle: (style: "monolith" | "infinite" | "eclipse" | "zen") => void
   refreshFromBackend: () => Promise<void>
   addHabit: (habitData: Partial<Habit>) => Promise<void>
   editHabit: (habitId: string, habitData: Partial<Habit>) => Promise<void>
@@ -109,8 +111,13 @@ export const useStore = create<State>((set, get) => ({
   backendError: null,
   activeTab: "dashboard",
   isLocalFallback: false,
+  selectedLogoStyle: (localStorage.getItem("logo_style") as any) || "infinite",
 
   setActiveTab: (tab) => set({ activeTab: tab }),
+  setSelectedLogoStyle: (style) => {
+    localStorage.setItem("logo_style", style);
+    set({ selectedLogoStyle: style });
+  },
 
   refreshFromBackend: async () => {
     try {

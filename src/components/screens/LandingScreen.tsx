@@ -5,6 +5,7 @@ import { auth } from "../../lib/firebase";
 import { User, Check, Shield } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { updateSEO } from "../../lib/seo";
+import { BrandLogo } from "../BrandLogo";
 
 interface LandingScreenProps {
   onLoginSuccess: () => void;
@@ -103,7 +104,12 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
       {/* SEMANTIC HEADER & NAV */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#000000]/80 backdrop-blur-xl border-b border-white/5 h-20 flex items-center px-6 md:px-12">
         <nav className="max-w-7xl mx-auto w-full flex justify-between items-center" aria-label="Main Navigation">
-          <div className="text-xl font-extrabold tracking-tighter">OneDay</div>
+          <div className="flex items-center gap-2.5 text-xl font-display font-light text-white tracking-tight">
+            <div className="w-8 h-8 rounded-lg bg-white/[0.04] border border-white/5 flex items-center justify-center">
+              <BrandLogo size={16} />
+            </div>
+            OneDay
+          </div>
           
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-400">
             <button onClick={() => scrollToSection("features")} className="hover:text-white transition-colors cursor-pointer">Features</button>
@@ -338,19 +344,25 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative bg-[#0a0a0a] border border-white/10 rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl space-y-8"
+              className="relative bg-[#0c0c12]/80 border border-white/5 rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl space-y-8 backdrop-blur-2xl overflow-hidden"
             >
-              <div className="text-center space-y-2">
-                <h3 className="text-3xl font-extrabold tracking-tight">Welcome</h3>
-                <p className="text-slate-500 font-medium">Log in to continue your journey.</p>
+              {/* Inner ambient glow */}
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-48 bg-violet-500/5 rounded-full blur-[50px] pointer-events-none" />
+
+              <div className="text-center space-y-3 relative z-10">
+                <div className="w-12 h-12 mx-auto rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-center shadow-inner mb-2">
+                  <BrandLogo size={22} />
+                </div>
+                <h3 className="text-2xl font-display font-light tracking-tight text-white">Welcome to OneDay</h3>
+                <p className="text-slate-500 text-xs font-light">Initiate your high-performance discipline protocol.</p>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-3 relative z-10">
                 <button 
                   onClick={handleGoogleLogin}
-                  className="w-full bg-white text-black font-bold py-4 rounded-2xl flex items-center justify-center gap-3 hover:bg-slate-200 transition-all text-sm tracking-tight cursor-pointer"
+                  className="w-full bg-slate-100 text-black font-extrabold py-3.5 rounded-2xl flex items-center justify-center gap-3 hover:bg-white transition-all text-xs uppercase tracking-widest cursor-pointer shadow-lg shadow-white/5 active:scale-[0.98]"
                 >
-                  <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
+                  <svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">
                     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#000000"/>
                     <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#000000"/>
                     <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#000000"/>
@@ -360,9 +372,9 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
                 </button>
                 <button 
                   onClick={handleGuestLogin}
-                  className="w-full bg-white/5 border border-white/10 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-3 hover:bg-white/10 transition-all text-sm tracking-tight cursor-pointer"
+                  className="w-full bg-white/[0.02] border border-white/5 text-slate-300 font-bold py-3 rounded-2xl flex items-center justify-center gap-3 hover:bg-white/[0.05] hover:text-white transition-all text-xs uppercase tracking-wider cursor-pointer"
                 >
-                  <User size={20} />
+                  <User size={14} className="text-slate-400" />
                   Continue as Guest
                 </button>
               </div>
