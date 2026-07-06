@@ -16,8 +16,8 @@ export const MotivationalQuote = () => {
         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
         className="space-y-6"
       >
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/5 border border-violet-500/10 text-[9px] uppercase tracking-[0.25em] text-violet-400 font-extrabold">
-          <Sparkles size={10} className="text-violet-400 animate-pulse" />
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[9px] uppercase tracking-[0.25em] text-white font-extrabold">
+          <Sparkles size={10} className="text-white" />
           <span>Daily Focus Directive</span>
         </div>
         

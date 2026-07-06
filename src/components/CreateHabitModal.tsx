@@ -76,16 +76,12 @@ export function CreateHabitModal({ onClose }: CreateHabitModalProps) {
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: "100%", opacity: 0 }}
         transition={{ type: "spring", damping: 30, stiffness: 350 }}
-        className="relative w-full max-w-lg bg-[#0c0c12] border border-white/[0.08] rounded-t-[2.25rem] sm:rounded-[2.25rem] p-6 md:p-8 shadow-[0_25px_60px_rgba(0,0,0,0.95)] flex flex-col max-h-[85dvh] overflow-hidden"
+        className="relative w-full max-w-lg bg-black border border-white/10 rounded-t-[2.25rem] sm:rounded-[2.25rem] p-6 md:p-8 shadow-[0_25px_60px_rgba(0,0,0,0.95)] flex flex-col max-h-[85dvh] overflow-hidden"
       >
-        {/* Ambient Top Glow */}
-        <div className="absolute top-0 left-1/4 right-1/4 h-[1px] bg-gradient-to-r from-transparent via-violet-500/40 to-transparent" />
-        <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-48 h-24 bg-violet-500/5 rounded-full blur-2xl pointer-events-none" />
-
         {/* Header */}
         <div className="flex justify-between items-center mb-6 shrink-0 relative z-10">
           <div className="flex items-center gap-2">
-            <Sparkles size={14} className="text-violet-400 animate-pulse" />
+            <Sparkles size={14} className="text-white" />
             <h2 className="text-xl font-display font-light text-white">Create Habit</h2>
           </div>
           <button 
@@ -105,7 +101,7 @@ export function CreateHabitModal({ onClose }: CreateHabitModalProps) {
                placeholder="What habit will you master?"
                value={name}
                onChange={(e) => setName(e.target.value)}
-               className="w-full bg-transparent border-b border-white/5 p-2 text-xl font-display font-light text-slate-100 focus:outline-none focus:border-violet-500/40 placeholder-slate-600 transition-colors"
+               className="w-full bg-transparent border-b border-white/5 p-2 text-xl font-display font-light text-slate-100 focus:outline-none focus:border-white/20 placeholder-slate-600 transition-colors"
                autoFocus
              />
            </div>
@@ -125,7 +121,7 @@ export function CreateHabitModal({ onClose }: CreateHabitModalProps) {
                    onClick={() => setRepeatType(type)}
                    className={`py-3.5 px-1 rounded-xl border text-[10px] font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer ${
                      repeatType === type
-                       ? 'bg-violet-500/10 text-violet-300 border-violet-500/30 shadow-[0_0_15px_rgba(139,92,246,0.1)]'
+                       ? 'bg-white text-black border-white'
                        : 'bg-white/[0.01] border-white/5 text-slate-500 hover:bg-white/[0.04] hover:border-white/10 hover:text-slate-300'
                    }`}
                  >
@@ -149,7 +145,7 @@ export function CreateHabitModal({ onClose }: CreateHabitModalProps) {
                        onClick={() => handleToggleDay(id)}
                        className={`flex-1 aspect-square rounded-full flex items-center justify-center text-[10px] font-extrabold border transition-all duration-300 cursor-pointer ${
                          isSelected 
-                           ? 'bg-violet-400 text-black border-violet-400 shadow-md shadow-violet-500/20' 
+                           ? 'bg-white text-black border-white' 
                            : 'bg-white/[0.01] border-white/5 text-slate-500 hover:bg-white/[0.04] hover:border-white/10 hover:text-slate-300'
                        }`}
                      >
@@ -175,7 +171,7 @@ export function CreateHabitModal({ onClose }: CreateHabitModalProps) {
                     onClick={() => setDifficulty(level)}
                     className={`flex-1 py-3 rounded-xl border text-[10px] font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer ${
                       difficulty === level
-                        ? 'bg-violet-500/10 text-violet-300 border-violet-500/30 shadow-[0_0_15px_rgba(139,92,246,0.1)]'
+                        ? 'bg-white text-black border-white'
                         : 'bg-white/[0.01] border-white/5 text-slate-500 hover:bg-white/[0.04] hover:border-white/10 hover:text-slate-300'
                     }`}
                   >
@@ -196,7 +192,7 @@ export function CreateHabitModal({ onClose }: CreateHabitModalProps) {
                value={notes}
                onChange={(e) => setNotes(e.target.value)}
                rows={2}
-               className="w-full bg-white/[0.01] border border-white/5 rounded-2xl p-4 text-xs text-slate-200 focus:outline-none focus:border-violet-500/20 placeholder-slate-600 resize-none transition-colors"
+               className="w-full bg-white/[0.01] border border-white/5 rounded-2xl p-4 text-xs text-slate-200 focus:outline-none focus:border-white/20 placeholder-slate-600 resize-none transition-colors"
              />
            </div>
         </div>

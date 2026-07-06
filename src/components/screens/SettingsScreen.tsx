@@ -70,11 +70,11 @@ export function SettingsScreen() {
         <div className="gemini-card rounded-[1.5rem] overflow-hidden divide-y divide-white/[0.03]">
           <div className="p-5 flex items-center justify-between">
             <div className="flex items-center gap-4">
-               <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-tr from-violet-600/30 to-indigo-600/30 border border-white/10 flex items-center justify-center">
+               <div className="w-12 h-12 rounded-full overflow-hidden bg-white/10 border border-white/10 flex items-center justify-center">
                   {firebaseUser?.photoURL ? (
                      <img src={firebaseUser.photoURL} alt="" className="w-full h-full object-cover" />
                   ) : (
-                     <UserIcon className="w-5 h-5 text-violet-400" />
+                     <UserIcon className="w-5 h-5 text-white" />
                   )}
                </div>
                <div className="space-y-0.5">
@@ -82,7 +82,7 @@ export function SettingsScreen() {
                  <div className="text-[10px] text-slate-500 font-mono">{firebaseUser?.email || "Anonymous Account"}</div>
                </div>
             </div>
-            <div className="text-[9px] font-extrabold uppercase tracking-widest bg-violet-500/10 border border-violet-500/20 px-3 py-1 rounded-full text-violet-300">
+            <div className="text-[9px] font-extrabold uppercase tracking-widest bg-white/10 border border-white/20 px-3 py-1 rounded-full text-white">
                Level {user.level}
             </div>
           </div>
@@ -106,13 +106,13 @@ export function SettingsScreen() {
           <div className="p-5 flex items-center justify-between gap-4">
              <div className="flex items-start gap-4">
                <div className="mt-0.5">
-                 <Shield size={18} className={isFrozen ? "text-cyan-400 animate-pulse" : "text-slate-500"} />
+                 <Shield size={18} className={isFrozen ? "text-white animate-pulse" : "text-slate-500"} />
                </div>
                <div className="space-y-1">
                  <div className="text-xs font-extrabold uppercase tracking-widest text-slate-300 flex items-center gap-2.5">
                    Streak Shield
                    {isFrozen && (
-                     <span className="text-[8px] font-black uppercase text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-1.5 py-0.5 rounded-full tracking-wider animate-pulse">
+                     <span className="text-[8px] font-black uppercase text-white bg-white/10 border border-white/20 px-1.5 py-0.5 rounded-full tracking-wider animate-pulse">
                        Active
                      </span>
                    )}
@@ -200,10 +200,10 @@ export function SettingsScreen() {
 
           <div className="grid grid-cols-2 gap-3">
             {[
-              { id: "monolith", title: "The Monolith", desc: "Brushed metal pillar of unbreakable focus.", color: "border-blue-500/10 hover:border-blue-500/30" },
-              { id: "infinite", title: "The Infinite", desc: "Luxurious infinite loop of pure consistency.", color: "border-pink-500/10 hover:border-pink-500/30" },
-              { id: "eclipse", title: "The Eclipse", desc: "Solar alignment breaking through shadows.", color: "border-amber-500/10 hover:border-amber-500/30" },
-              { id: "zen", title: "The Zen Balance", desc: "Interlocking curves of calm daily poise.", color: "border-emerald-500/10 hover:border-emerald-500/30" }
+              { id: "monolith", title: "The Monolith", desc: "Brushed metal pillar of unbreakable focus.", color: "border-white/5 hover:border-white/20" },
+              { id: "infinite", title: "The Infinite", desc: "Luxurious infinite loop of pure consistency.", color: "border-white/5 hover:border-white/20" },
+              { id: "eclipse", title: "The Eclipse", desc: "Solar alignment breaking through shadows.", color: "border-white/5 hover:border-white/20" },
+              { id: "zen", title: "The Zen Balance", desc: "Interlocking curves of calm daily poise.", color: "border-white/5 hover:border-white/20" }
             ].map((styleOption) => {
               const isSelected = selectedLogoStyle === styleOption.id;
               return (
@@ -223,7 +223,7 @@ export function SettingsScreen() {
                     <div>
                       <div className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
                         {styleOption.title}
-                        {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />}
+                        {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
                       </div>
                       <div className="text-[10px] text-slate-500 mt-0.5 leading-tight">{styleOption.desc}</div>
                     </div>
@@ -304,15 +304,13 @@ export function SettingsScreen() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
               transition={{ type: "spring", duration: 0.5 }}
-              className="relative bg-[#0c0c12] border border-cyan-500/20 rounded-[2.25rem] p-8 max-w-md w-full shadow-[0_25px_60px_rgba(0,0,0,0.9),0_0_50px_rgba(6,182,212,0.05)] space-y-6 z-10 overflow-hidden"
+              className="relative bg-black border border-white/10 rounded-[2.25rem] p-8 max-w-md w-full shadow-[0_25px_60px_rgba(0,0,0,0.9)] space-y-6 z-10 overflow-hidden"
             >
-              {/* Ambient decoration */}
-              <div className="absolute top-0 right-0 w-36 h-36 bg-cyan-500/5 rounded-full blur-[45px] pointer-events-none" />
 
               {/* Header */}
               <div className="flex justify-between items-center relative z-10">
-                <div className="flex items-center gap-2 text-cyan-400">
-                  <Shield size={16} className="animate-pulse" />
+                <div className="flex items-center gap-2 text-white">
+                  <Shield size={16} />
                   <span className="text-[9px] font-black uppercase tracking-widest">Streak Freeze Control</span>
                 </div>
                 <button
@@ -336,7 +334,7 @@ export function SettingsScreen() {
               <div className="bg-white/[0.01] border border-white/5 rounded-2xl p-5 space-y-4 text-left relative z-10">
                 <div className="flex justify-between items-center">
                   <span className="text-[9px] font-black uppercase text-slate-500 tracking-wider">Freeze Duration</span>
-                  <span className="text-xs font-black text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-3 py-1 rounded-full">
+                  <span className="text-xs font-black text-white bg-white/10 border border-white/20 px-3 py-1 rounded-full">
                     {freezeDays} {freezeDays === 1 ? "Day" : "Days"}
                   </span>
                 </div>
@@ -372,10 +370,10 @@ export function SettingsScreen() {
               </div>
 
               {/* Date Preview */}
-              <div className="bg-cyan-500/[0.02] border border-cyan-500/10 rounded-[1.25rem] p-4 flex gap-4 items-center text-left relative z-10">
+              <div className="bg-white/[0.02] border border-white/10 rounded-[1.25rem] p-4 flex gap-4 items-center text-left relative z-10">
                 <div className="text-xl">❄️</div>
                 <div>
-                  <div className="text-[8px] font-black uppercase text-cyan-400 tracking-widest">Shield Active Until</div>
+                  <div className="text-[8px] font-black uppercase text-white tracking-widest">Shield Active Until</div>
                   <div className="text-xs font-bold text-slate-200 mt-0.5">{previewEndDate}</div>
                 </div>
               </div>
@@ -392,7 +390,7 @@ export function SettingsScreen() {
                     <div className="w-4 h-4 border-2 border-black/35 border-t-black rounded-full animate-spin" />
                   ) : (
                     <>
-                      <Sparkles size={12} className="animate-pulse" />
+                      <Sparkles size={12} className="text-black" />
                       Activate Shield
                     </>
                   )}
@@ -418,7 +416,7 @@ function SettingRow({ icon: Icon, label, value, danger, onClick }: { icon: any, 
   return (
     <button onClick={onClick} className={`w-full p-5 flex items-center justify-between transition-all duration-300 group cursor-pointer ${danger ? 'hover:bg-red-500/5' : 'hover:bg-white/[0.02]'}`}>
        <div className="flex items-center gap-3.5">
-         <Icon size={15} className={danger ? 'text-red-400/80 group-hover:text-red-400 transition-colors' : 'text-slate-500 group-hover:text-violet-400 transition-colors'} />
+         <Icon size={15} className={danger ? 'text-red-400/80 group-hover:text-red-400 transition-colors' : 'text-slate-500 group-hover:text-white transition-colors'} />
          <span className={`text-xs font-bold uppercase tracking-wider ${danger ? 'text-red-400/80 group-hover:text-red-400' : 'text-slate-400 group-hover:text-slate-200'} transition-colors`}>{label}</span>
        </div>
        <div className="flex items-center gap-2">

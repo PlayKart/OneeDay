@@ -43,15 +43,15 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
             key={habit.id}
             className={`p-4 rounded-2xl flex items-center justify-between group transition-all duration-300 border ${
               habit.completedToday 
-                ? 'bg-emerald-500/[0.02] border-emerald-500/10 opacity-70' 
-                : 'bg-white/[0.01] border-white/[0.04] hover:bg-white/[0.04] hover:border-white/10 hover:shadow-[0_4px_20px_rgba(0,0,0,0.5)]'
+                ? 'bg-black border-white/20 opacity-70' 
+                : 'bg-white/[0.01] border-white/[0.04] hover:bg-white/[0.04] hover:border-white/10'
             }`}
           >
             <div className="flex flex-col gap-1">
               <h4 className={`font-semibold transition-all text-sm font-sans tracking-wide ${habit.completedToday ? 'text-slate-500 line-through' : 'text-slate-200'}`}>
                 {habit.name}
               </h4>
-              <p className={`text-[9px] font-extrabold uppercase tracking-widest ${habit.completedToday ? 'text-emerald-500/70' : 'text-slate-500'}`}>
+              <p className={`text-[9px] font-extrabold uppercase tracking-widest ${habit.completedToday ? 'text-white' : 'text-slate-500'}`}>
                 {habit.completedToday ? 'Completed Today' : (isToday ? 'Scheduled Today' : getScheduledDaysMessage(habit))}
               </p>
             </div>
@@ -70,10 +70,10 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
                       title: "Lied to Yourself ?",
                       action: async () => {
                         try {
-                          await undoHabit(habit.id);
-                          toast.success("HABIT UNDONE");
+                           await undoHabit(habit.id);
+                           toast.success("HABIT UNDONE");
                         } catch (e) {
-                          toast.error("COMMUNICATIONS ERROR");
+                           toast.error("COMMUNICATIONS ERROR");
                         }
                       }
                     });
@@ -83,10 +83,10 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
                       title: "Don't lie to yourself bro , You did it or not ?",
                       action: async () => {
                         try {
-                          await completeHabit(habit.id);
-                          toast.success("HABIT COMPLETED +10 XP");
+                           await completeHabit(habit.id);
+                           toast.success("HABIT COMPLETED +10 XP");
                         } catch (e) {
-                          toast.error("COMMUNICATIONS ERROR");
+                           toast.error("COMMUNICATIONS ERROR");
                         }
                       }
                     });
@@ -95,8 +95,8 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
                 disabled={loading}
                 className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 transform active:scale-90 cursor-pointer ${
                   habit.completedToday 
-                    ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 hover:bg-red-500/20 hover:border-red-500/30 hover:text-red-400' 
-                    : (isToday ? 'bg-white/[0.02] border border-white/10 hover:border-violet-500/40 hover:text-violet-400 hover:bg-violet-500/5' : 'bg-white/[0.01] border border-white/[0.02] opacity-40 cursor-not-allowed')
+                    ? 'bg-white text-black border border-white hover:bg-red-500/20 hover:border-red-500/30 hover:text-red-400' 
+                    : (isToday ? 'bg-white/[0.02] border border-white/10 hover:border-white hover:text-white hover:bg-white/10' : 'bg-white/[0.01] border border-white/[0.02] opacity-40 cursor-not-allowed')
                 }`}
               >
                 <Check size={14} className={habit.completedToday ? 'stroke-[3px]' : (isToday ? 'opacity-20 group-hover:opacity-100 transition-opacity' : 'opacity-10')} />
@@ -137,10 +137,8 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 10 }}
             transition={{ type: "spring", duration: 0.5 }}
-            className="bg-[#0b0b10] p-6 rounded-[2rem] border border-white/[0.08] max-w-sm w-full shadow-[0_20px_50px_rgba(0,0,0,0.8)] relative overflow-hidden"
+            className="bg-black p-6 rounded-[2rem] border border-white/10 max-w-sm w-full shadow-[0_20px_50px_rgba(0,0,0,0.8)] relative overflow-hidden"
           >
-            {/* Ambient aesthetic glow background */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-violet-500/5 rounded-full blur-[40px] pointer-events-none" />
             
             <h3 className="text-md font-display font-light mb-8 text-slate-100 text-center leading-snug px-4">
               {confirmModal.title}

@@ -129,7 +129,7 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
       {/* SEMANTIC MAIN LANDMARKS */}
       <main>
         {/* HERO SECTION */}
-        <section className="pt-48 pb-32 px-6 bg-gradient-to-b from-[#0a0a0a] to-black min-h-[90vh] flex flex-col justify-center">
+        <section className="pt-48 pb-32 px-6 bg-black min-h-[90vh] flex flex-col justify-center">
           <div className="max-w-4xl mx-auto text-center space-y-8">
             <motion.h1 
               initial={{ opacity: 0, y: 20 }}
@@ -180,7 +180,7 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
             </div>
 
             <div className="grid md:grid-cols-2 gap-8">
-              <div className="bg-[#0a0a0a] border border-white/5 rounded-[2.5rem] p-12 hover:border-white/20 transition-colors group">
+              <div className="bg-black border border-white/10 rounded-[2.5rem] p-12 hover:border-white/20 transition-colors group">
                 <div className="w-16 h-16 bg-white border border-white/10 rounded-2xl flex items-center justify-center mb-8 transform group-hover:scale-110 transition-transform">
                    <Check size={32} className="text-black" />
                 </div>
@@ -197,7 +197,7 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
                 </div>
               </div>
 
-              <div className="bg-[#0a0a0a] border border-white/5 rounded-[2.5rem] p-12 hover:border-white/20 transition-colors group">
+              <div className="bg-black border border-white/10 rounded-[2.5rem] p-12 hover:border-white/20 transition-colors group">
                 <div className="w-16 h-16 bg-white border border-white/10 rounded-2xl flex items-center justify-center mb-8 transform group-hover:scale-110 transition-transform">
                    <Shield size={32} className="text-black" />
                 </div>
@@ -237,7 +237,7 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
                  <p className="text-lg text-slate-500">The story behind our mission to simplify self-improvement</p>
               </div>
 
-              <div className="bg-[#0a0a0a] border border-white/5 rounded-[3rem] p-12 md:p-20 text-center space-y-12">
+              <div className="bg-black border border-white/10 rounded-[3rem] p-12 md:p-20 text-center space-y-12">
                  <div className="w-24 h-24 mx-auto rounded-full bg-white flex items-center justify-center shadow-[0_0_40px_rgba(255,255,255,0.2)]">
                     <User size={40} className="text-black" />
                  </div>
@@ -267,7 +267,7 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
                    { name: "Vikhyath", role: "Development & Systems", desc: "Focused on engineering, backend systems, and making OneDay reliable and scalable." },
                    { name: "Trinay", role: "Design & Experience", desc: "Focused on creating a minimal, premium, and emotionally engaging user experience." }
                  ].map((member, i) => (
-                   <div key={i} className="bg-[#0a0a0a] border border-white/5 rounded-[2.5rem] p-10 text-center space-y-6 hover:border-white/20 transition-colors group">
+                   <div key={i} className="bg-black border border-white/10 rounded-[2.5rem] p-10 text-center space-y-6 hover:border-white/20 transition-colors group">
                       <div className="w-16 h-16 mx-auto rounded-full bg-white/10 flex items-center justify-center text-white font-bold text-xl group-hover:bg-white group-hover:text-black transition-colors">
                          {member.name[0]}
                       </div>
@@ -286,7 +286,7 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
         </section>
 
         {/* SEMANTIC & PERSISTENT SEO SYSTEM DESCRIPTION SECTION (Naturally integrated keywords) */}
-        <section id="discipline-system" className="py-32 px-6 border-t border-white/5 bg-[#020202]">
+        <section id="discipline-system" className="py-32 px-6 border-t border-white/5 bg-black">
           <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-12 items-center">
             <div className="space-y-6">
               <h2 className="text-3xl md:text-4xl font-extrabold tracking-tighter">
@@ -344,11 +344,8 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative bg-[#0c0c12]/80 border border-white/5 rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl space-y-8 backdrop-blur-2xl overflow-hidden"
+              className="relative bg-black border border-white/10 rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl space-y-8 backdrop-blur-2xl overflow-hidden"
             >
-              {/* Inner ambient glow */}
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-48 bg-violet-500/5 rounded-full blur-[50px] pointer-events-none" />
-
               <div className="text-center space-y-3 relative z-10">
                 <div className="w-12 h-12 mx-auto rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-center shadow-inner mb-2">
                   <BrandLogo size={22} />

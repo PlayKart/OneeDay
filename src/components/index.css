@@ -30,24 +30,18 @@
 }
 
 :root {
-  --background: #030303;
-  --foreground: #fcfcfc;
+  --background: #000000;
+  --foreground: #ffffff;
 }
 
 body {
-  @apply bg-[#030303] text-slate-100 antialiased font-sans overflow-x-hidden selection:bg-indigo-500/30 selection:text-white;
+  @apply bg-black text-white antialiased font-sans overflow-x-hidden selection:bg-white selection:text-black;
   min-height: 100vh;
-  background-image: 
-    radial-gradient(circle at 50% 0%, rgba(139, 92, 246, 0.03) 0%, transparent 50%),
-    radial-gradient(circle at 0% 100%, rgba(59, 130, 246, 0.02) 0%, transparent 50%);
+  background-color: #000000;
 }
 
 .gemini-gradient-text {
-  background: linear-gradient(75deg, #1e3a8a 0%, #3b82f6 25%, #8b5cf6 50%, #ec4899 75%, #f97316 100%);
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: gemini-gradient 12s linear infinite;
+  color: #ffffff;
 }
 
 .gemini-border-glow {
@@ -59,40 +53,36 @@ body {
   inset: -1px;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899, #f97316);
+  background: #ffffff;
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   pointer-events: none;
-  opacity: 0.3;
+  opacity: 0.1;
   transition: opacity 0.3s ease;
 }
 .gemini-border-glow:focus-within::before {
-  opacity: 1;
+  opacity: 0.4;
 }
 
 .gemini-card {
-  background: rgba(10, 10, 15, 0.4);
-  backdrop-filter: blur(30px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .gemini-card:hover {
-  background: rgba(15, 15, 22, 0.6);
-  border-color: rgba(255, 255, 255, 0.09);
-  box-shadow: 0 10px 40px -15px rgba(0, 0, 0, 0.8), 0 0 40px -10px rgba(139, 92, 246, 0.03);
+  background: #000000;
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .glass {
-  background: rgba(10, 10, 15, 0.45);
-  backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .glass-nav {
-  background: rgba(4, 4, 6, 0.7);
-  backdrop-filter: blur(30px);
-  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  background: #000000;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .scrollbar-hide::-webkit-scrollbar {
@@ -104,14 +94,14 @@ body {
 }
 
 .progress-bg {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 99px;
   height: 6px;
   width: 100%;
 }
 
 .progress-fill {
-  background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+  background: #ffffff;
   height: 100%;
   border-radius: 99px;
   transition: width 0.7s cubic-bezier(0.16, 1, 0.3, 1);
