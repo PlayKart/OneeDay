@@ -84,8 +84,8 @@ export default function App() {
       case "coach":
         updateSEO({
           title: "AI Discipline Coach — OneDay",
-          description: "Interact with the Gemini-powered AI Discipline Coach to analyze your routine, build discipline, and bypass friction.",
-          keywords: "AI coaching, discipline engine, habit advisor, Gemini AI, productivity coach, OneDay",
+          description: "Interact with the AI Discipline Coach to analyze your routine, build discipline, and bypass friction.",
+          keywords: "AI coaching, discipline engine, habit advisor, productivity coach, OneDay",
           canonical: "https://onee-day.vercel.app/chat"
         });
         break;

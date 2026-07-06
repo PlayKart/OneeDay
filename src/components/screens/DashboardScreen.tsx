@@ -189,13 +189,13 @@ export function DashboardScreen() {
 
       {/* TODAY'S HABIT PROGRESS METRICS (Grid layout) */}
       <section className="relative z-10 grid grid-cols-2 gap-4">
-        <div className="gemini-card p-5 rounded-[1.5rem] flex flex-col gap-2 relative overflow-hidden">
+        <div className="brand-card p-5 rounded-[1.5rem] flex flex-col gap-2 relative overflow-hidden">
           <Target className="text-white" size={18} />
           <div className="text-2xl font-bold font-display tracking-tight text-white">{completionPercentage}%</div>
           <div className="text-[9px] font-black uppercase text-slate-500 tracking-widest">Today's Progress</div>
         </div>
         
-        <div className="gemini-card p-5 rounded-[1.5rem] flex flex-col gap-2 relative overflow-hidden">
+        <div className="brand-card p-5 rounded-[1.5rem] flex flex-col gap-2 relative overflow-hidden">
           <Zap className="text-white" size={18} />
           <div className="text-2xl font-bold font-display tracking-tight text-white">{completedToday} / {totalHabits}</div>
           <div className="text-[9px] font-black uppercase text-slate-500 tracking-widest">Habits Done</div>
@@ -203,7 +203,7 @@ export function DashboardScreen() {
       </section>
 
       {/* MAIN HABITS CONTAINER */}
-      <section className="relative z-10 gemini-card rounded-[1.75rem] p-6">
+      <section className="relative z-10 brand-card rounded-[1.75rem] p-6">
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-2">
             <Sparkles size={14} className="text-white" />

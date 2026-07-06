@@ -6,12 +6,12 @@
   --font-display: "Outfit", sans-serif;
   --font-mono: "JetBrains Mono", monospace;
   
-  --animate-gemini-gradient: gemini-gradient 8s ease infinite;
+  --animate-brand-gradient: brand-gradient 8s ease infinite;
   --animate-float: float 6s ease-in-out infinite;
   --animate-pulse-slow: pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   --animate-spin-slow: spin-slow 20s linear infinite;
 
-  @keyframes gemini-gradient {
+  @keyframes brand-gradient {
     0%, 100% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
   }
@@ -40,14 +40,14 @@ body {
   background-color: #000000;
 }
 
-.gemini-gradient-text {
+.brand-gradient-text {
   color: #ffffff;
 }
 
-.gemini-border-glow {
+.brand-border-glow {
   position: relative;
 }
-.gemini-border-glow::before {
+.brand-border-glow::before {
   content: "";
   position: absolute;
   inset: -1px;
@@ -61,16 +61,16 @@ body {
   opacity: 0.1;
   transition: opacity 0.3s ease;
 }
-.gemini-border-glow:focus-within::before {
+.brand-border-glow:focus-within::before {
   opacity: 0.4;
 }
 
-.gemini-card {
+.brand-card {
   background: #000000;
   border: 1px solid rgba(255, 255, 255, 0.1);
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.gemini-card:hover {
+.brand-card:hover {
   background: #000000;
   border-color: rgba(255, 255, 255, 0.2);
 }

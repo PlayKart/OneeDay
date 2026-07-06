@@ -8,7 +8,7 @@ import { toast } from "react-hot-toast";
 import { BrandLogo } from "../BrandLogo";
 
 export function SettingsScreen() {
-  const { user, firebaseUser, freezeStreak, deactivateFreeze, selectedLogoStyle, setSelectedLogoStyle } = useStore();
+  const { user, firebaseUser, freezeStreak, deactivateFreeze } = useStore();
   const [showFreezeConfirm, setShowFreezeConfirm] = useState(false);
   const [freezeDays, setFreezeDays] = useState(7);
   const [activating, setActivating] = useState(false);
@@ -67,7 +67,7 @@ export function SettingsScreen() {
       {/* Account Section */}
       <section className="space-y-3">
         <h2 className="text-[9px] font-black tracking-widest uppercase text-slate-500 ml-2">Account</h2>
-        <div className="gemini-card rounded-[1.5rem] overflow-hidden divide-y divide-white/[0.03]">
+        <div className="brand-card rounded-[1.5rem] overflow-hidden divide-y divide-white/[0.03]">
           <div className="p-5 flex items-center justify-between">
             <div className="flex items-center gap-4">
                <div className="w-12 h-12 rounded-full overflow-hidden bg-white/10 border border-white/10 flex items-center justify-center">
@@ -102,7 +102,7 @@ export function SettingsScreen() {
       {/* Protection Section */}
       <section className="space-y-3">
         <h2 className="text-[9px] font-black tracking-widest uppercase text-slate-500 ml-2">Protection</h2>
-        <div className="gemini-card rounded-[1.5rem] overflow-hidden">
+        <div className="brand-card rounded-[1.5rem] overflow-hidden">
           <div className="p-5 flex items-center justify-between gap-4">
              <div className="flex items-start gap-4">
                <div className="mt-0.5">
@@ -173,7 +173,7 @@ export function SettingsScreen() {
       {/* Data Section */}
       <section className="space-y-3">
         <h2 className="text-[9px] font-black tracking-widest uppercase text-slate-500 ml-2">Data & Privacy</h2>
-        <div className="gemini-card rounded-[1.5rem] overflow-hidden divide-y divide-white/[0.03]">
+        <div className="brand-card rounded-[1.5rem] overflow-hidden divide-y divide-white/[0.03]">
           <SettingRow icon={Trash2} label="Reset Progress" danger onClick={() => {
             if (confirm("Are you sure you want to reset all your progress?")) {
               useStore.getState().resetProgress().catch(console.error);
@@ -184,90 +184,6 @@ export function SettingsScreen() {
               useStore.getState().deleteAccount().catch(console.error);
             }
           }} />
-        </div>
-      </section>
-
-      {/* Brand Identity & Logo Lab */}
-      <section className="space-y-4">
-        <h2 className="text-[9px] font-black tracking-widest uppercase text-slate-500 ml-2">Brand Identity & Logo Lab</h2>
-        <div className="gemini-card rounded-[1.75rem] p-6 space-y-6">
-          <div className="space-y-1">
-            <h3 className="text-sm font-display font-medium text-slate-200">Interactive Website Logo Ideas</h3>
-            <p className="text-xs text-slate-500 leading-relaxed font-light">
-              Select an aesthetic theme to dynamically re-brand the website's logo and overall visual identity in real-time.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { id: "monolith", title: "The Monolith", desc: "Brushed metal pillar of unbreakable focus.", color: "border-white/5 hover:border-white/20" },
-              { id: "infinite", title: "The Infinite", desc: "Luxurious infinite loop of pure consistency.", color: "border-white/5 hover:border-white/20" },
-              { id: "eclipse", title: "The Eclipse", desc: "Solar alignment breaking through shadows.", color: "border-white/5 hover:border-white/20" },
-              { id: "zen", title: "The Zen Balance", desc: "Interlocking curves of calm daily poise.", color: "border-white/5 hover:border-white/20" }
-            ].map((styleOption) => {
-              const isSelected = selectedLogoStyle === styleOption.id;
-              return (
-                <button
-                  key={styleOption.id}
-                  onClick={() => setSelectedLogoStyle(styleOption.id as any)}
-                  className={`p-4 rounded-2xl border text-left transition-all duration-300 relative group cursor-pointer ${
-                    isSelected
-                      ? "bg-white/[0.04] border-white/20 shadow-md shadow-white/5 scale-[1.02]"
-                      : `bg-white/[0.01] border-white/5 ${styleOption.color}`
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-black flex items-center justify-center border border-white/5">
-                      <BrandLogo size={20} styleOverride={styleOption.id as any} />
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                        {styleOption.title}
-                        {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
-                      </div>
-                      <div className="text-[10px] text-slate-500 mt-0.5 leading-tight">{styleOption.desc}</div>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Premium AI Mockups Showcase */}
-          <div className="space-y-3 pt-3 border-t border-white/[0.03]">
-            <div className="space-y-1">
-              <h4 className="text-xs font-semibold text-slate-300">AI-Generated High-Fidelity Mockups</h4>
-              <p className="text-[11px] text-slate-500 font-light">
-                Rendered with advanced neural visualizers for premium corporate and web placement.
-              </p>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-3">
-              <div className="relative group rounded-2xl overflow-hidden border border-white/5 bg-[#07070a] aspect-square">
-                <img
-                  src="/src/assets/images/logo_monolith_concept_1783336242999.jpg"
-                  alt="Monolith Concept Mockup"
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex items-end p-3">
-                  <span className="text-[9px] font-black tracking-wider uppercase text-slate-200">The Monolith 3D Render</span>
-                </div>
-              </div>
-
-              <div className="relative group rounded-2xl overflow-hidden border border-white/5 bg-[#07070a] aspect-square">
-                <img
-                  src="/src/assets/images/logo_infinite_concept_1783336257298.jpg"
-                  alt="Infinite Loop Concept Mockup"
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex items-end p-3">
-                  <span className="text-[9px] font-black tracking-wider uppercase text-slate-200">The Infinite Gold Loop</span>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </section>
 

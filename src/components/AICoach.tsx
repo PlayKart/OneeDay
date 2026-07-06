@@ -42,7 +42,7 @@ export const AICoach = () => {
             <Sparkles size={11} className="text-white" />
           </div>
           <div>
-            <h3 className="text-xs font-bold text-slate-200 tracking-wide">Gemini Discipline Engine</h3>
+            <h3 className="text-xs font-bold text-slate-200 tracking-wide">AI Discipline Engine</h3>
             <span className="text-[8px] font-bold text-white uppercase tracking-widest block leading-none">Intelligence Coach</span>
           </div>
         </div>
@@ -86,7 +86,7 @@ export const AICoach = () => {
           ))}
         </AnimatePresence>
 
-        {/* Gemini Pulse Thinking Wave */}
+        {/* AI Pulse Thinking Wave */}
         {loading && (
           <motion.div 
             initial={{ opacity: 0 }}
@@ -106,7 +106,7 @@ export const AICoach = () => {
 
       {/* Floating Capsule Input Form */}
       <form onSubmit={handleSend} className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black via-black/90 to-transparent pt-12">
-        <div className="relative max-w-2xl mx-auto gemini-border-glow rounded-[1.75rem]">
+        <div className="relative max-w-2xl mx-auto brand-border-glow rounded-[1.75rem]">
           <div className="w-full bg-black border border-white/10 rounded-[1.75rem] px-5 py-3 flex items-center gap-3 shadow-2xl">
             {/* Visual Action Buttons inside the input pill */}
             <div className="flex items-center gap-2.5 text-slate-500">
