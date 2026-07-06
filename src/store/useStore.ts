@@ -555,23 +555,9 @@ export const useStore = create<State>((set, get) => ({
   },
 
   sendChat: async (message: string) => {
-    const openRouterKey = import.meta.env.VITE_OPENROUTER_API_KEY;
-    const geminiKey = import.meta.env.VITE_GEMINI_API_KEY;
-
-    if (openRouterKey || geminiKey) {
-       try {
-          const { askAICoach } = await import("../lib/geminiService");
-          const habits = get().habits;
-          const streak = get().user?.streak || 0;
-          return await askAICoach(message, [], streak, habits);
-       } catch (err) {
-          console.error("Client-side coach chat failed, attempting backend call", err);
-       }
-    }
-
     try {
-      const data = await apiRequest("/api/chat", "POST", { message })
-      return data.reply
+      const data = await apiRequest("/api/chat", "POST", { message });
+      return data.reply;
     } catch (err) {
       console.error("Backend chat failed", err);
       return "I am currently in Offline Standby Mode. Remember: Stoic discipline requires executing your daily standards regardless of external conditions. Complete your tasks today.";

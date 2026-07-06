@@ -211,47 +211,6 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
           </div>
         </section>
 
-        {/* ORGANIZED HABITS SECTION */}
-        <section className="py-32 px-6 bg-[#030303]">
-          <div className="max-w-7xl mx-auto space-y-16">
-            <div className="text-center space-y-6 max-w-3xl mx-auto">
-              <h2 className="text-4xl md:text-5xl font-extrabold tracking-tighter">
-                Your habits, beautifully organized
-              </h2>
-              <p className="text-xl text-slate-400 leading-relaxed max-w-2xl mx-auto">
-                See your progress at a glance with our intuitive dashboard. Track streaks, monitor consistency, and celebrate your wins.
-              </p>
-              <button 
-                onClick={() => scrollToSection("features")}
-                className="mt-4 bg-white/5 hover:bg-white/10 border border-white/10 text-white px-8 py-3 rounded-full text-sm font-bold tracking-tight transition-all cursor-pointer"
-              >
-                Explore Features
-              </button>
-            </div>
-
-            <div className="bg-[#0a0a0a] border border-white/10 rounded-[3rem] p-8 md:p-12 max-w-5xl mx-auto overflow-hidden shadow-2xl relative group">
-               <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-               <div className="space-y-4">
-                  {[
-                    { name: "Morning Protocol", days: "Every Day" },
-                    { name: "Deep Work", days: "Weekdays" },
-                    { name: "Physical Training", days: "Custom Days" }
-                  ].map((h, i) => (
-                    <div key={i} className="bg-white/5 border border-white/5 rounded-3xl p-6 flex items-center justify-between">
-                       <div>
-                         <div className="font-bold text-lg">{h.name}</div>
-                         <div className="text-sm font-medium text-slate-500 mt-1">{h.days}</div>
-                       </div>
-                       <div className="w-12 h-12 rounded-full border-2 border-white/10 flex items-center justify-center">
-                          <div className="w-4 h-4 rounded-full bg-white/20" />
-                       </div>
-                    </div>
-                  ))}
-               </div>
-            </div>
-          </div>
-        </section>
-
         {/* ABOUT SECTION */}
         <section id="about" className="py-40 px-6">
           <div className="max-w-5xl mx-auto space-y-32">
