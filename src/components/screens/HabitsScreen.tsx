@@ -14,7 +14,7 @@ export function HabitsScreen() {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      className="p-6 md:p-8 max-w-4xl mx-auto relative"
+      className="px-4 py-6 md:p-8 max-w-4xl mx-auto relative"
     >
       <header className="flex justify-between items-center pt-4 mb-8">
         <div>

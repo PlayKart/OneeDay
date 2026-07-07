@@ -95,7 +95,7 @@ export function MainLayout({ children }: MainLayoutProps) {
 
       {/* MAIN VIEWPORT */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-        <main className="flex-1 overflow-y-auto pb-28 md:pb-8 scrollbar-hide">
+        <main className={`flex-1 overflow-y-auto scrollbar-hide ${activeTab === "coach" ? "pb-24 md:pb-4 h-full flex flex-col" : "pb-28 md:pb-8"}`}>
           {children}
         </main>
 

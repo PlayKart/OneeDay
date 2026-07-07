@@ -34,7 +34,7 @@ export const AICoach = () => {
   };
 
   return (
-    <div className="flex flex-col h-[550px] md:h-[600px] overflow-hidden bg-black">
+    <div className="flex flex-col h-full overflow-hidden bg-black">
       {/* Header Panel */}
       <div className="p-4 border-b border-white/[0.05] bg-black flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2.5">

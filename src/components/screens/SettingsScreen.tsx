@@ -55,7 +55,7 @@ export function SettingsScreen() {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      className="p-6 md:p-8 max-w-2xl mx-auto space-y-10 relative"
+      className="px-4 py-6 md:p-8 max-w-2xl mx-auto space-y-10 relative"
     >
       <header className="pt-4">
         <h1 className="text-3xl font-display font-light tracking-tight text-white">Settings</h1>
