@@ -5,7 +5,6 @@ import { signOut } from "firebase/auth";
 import { LogOut, User as UserIcon, Shield, Trash2, ShieldCheck, ChevronRight, X, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "react-hot-toast";
-import { BrandLogo } from "../BrandLogo";
 
 export function SettingsScreen() {
   const { user, firebaseUser, freezeStreak, deactivateFreeze } = useStore();
@@ -51,80 +50,76 @@ export function SettingsScreen() {
 
   return (
     <motion.div 
-      initial={{ opacity: 0, y: 15 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      className="px-4 py-6 md:p-8 max-w-2xl mx-auto space-y-10 relative"
+      className="p-6 md:p-8 max-w-2xl mx-auto space-y-10 relative"
     >
       <header className="pt-4">
-        <h1 className="text-3xl font-display font-light tracking-tight text-white">Settings</h1>
-        <p className="text-slate-500 text-[9px] tracking-[0.25em] uppercase font-bold mt-1">
+        <h1 className="text-3xl font-extrabold tracking-tighter">Settings</h1>
+        <p className="text-slate-500 text-[10px] tracking-widest uppercase font-bold mt-1">
           System Preferences
         </p>
       </header>
 
       {/* Account Section */}
-      <section className="space-y-3">
-        <h2 className="text-[9px] font-black tracking-widest uppercase text-slate-500 ml-2">Account</h2>
-        <div className="brand-card rounded-[1.5rem] overflow-hidden divide-y divide-white/[0.03]">
-          <div className="p-5 flex items-center justify-between">
+      <section className="space-y-4">
+        <h2 className="text-[10px] font-black tracking-widest uppercase text-slate-500 ml-2">Account</h2>
+        <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden divide-y divide-white/5">
+          <div className="p-4 flex items-center justify-between">
             <div className="flex items-center gap-4">
-               <div className="w-12 h-12 rounded-full overflow-hidden bg-white/10 border border-white/10 flex items-center justify-center">
+               <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-tr from-slate-800 to-slate-700">
                   {firebaseUser?.photoURL ? (
                      <img src={firebaseUser.photoURL} alt="" className="w-full h-full object-cover" />
                   ) : (
-                     <UserIcon className="w-5 h-5 text-white" />
+                     <UserIcon className="w-full h-full p-3 text-white/50" />
                   )}
                </div>
-               <div className="space-y-0.5">
-                 <div className="font-bold text-sm text-slate-200">{user.name || "Guest"}</div>
-                 <div className="text-[10px] text-slate-500 font-mono">{firebaseUser?.email || "Anonymous Account"}</div>
+               <div>
+                 <div className="font-bold text-sm">{user.name || "Guest"}</div>
+                 <div className="text-[10px] text-slate-500">{firebaseUser?.email || "Anonymous Account"}</div>
                </div>
             </div>
-            <div className="text-[9px] font-extrabold uppercase tracking-widest bg-white/10 border border-white/20 px-3 py-1 rounded-full text-white">
+            <div className="text-[10px] font-bold uppercase tracking-wider bg-white/10 px-3 py-1 rounded-full text-slate-300">
                Level {user.level}
             </div>
           </div>
           <button 
              onClick={() => signOut(auth)}
-             className="w-full p-4 flex items-center justify-between text-slate-300 hover:bg-white/[0.02] transition-all group cursor-pointer"
+             className="w-full p-4 flex items-center justify-between text-slate-300 hover:bg-white/5 transition-colors group"
           >
              <div className="flex items-center gap-3">
-               <LogOut size={15} className="text-red-400/80 group-hover:text-red-400 transition-colors" />
-               <span className="text-xs font-bold text-red-400/80 group-hover:text-red-400 transition-colors uppercase tracking-wider">Sign Out</span>
+               <LogOut size={16} className="text-red-400 group-hover:text-red-300" />
+               <span className="text-sm font-bold text-red-400 group-hover:text-red-300 transition-colors">Sign Out</span>
              </div>
-             <ChevronRight size={15} className="text-slate-600 group-hover:text-slate-400 transition-colors" />
+             <ChevronRight size={16} className="text-white/20" />
           </button>
         </div>
       </section>
 
       {/* Protection Section */}
-      <section className="space-y-3">
-        <h2 className="text-[9px] font-black tracking-widest uppercase text-slate-500 ml-2">Protection</h2>
-        <div className="brand-card rounded-[1.5rem] overflow-hidden">
-          <div className="p-5 flex items-center justify-between gap-4">
-             <div className="flex items-start gap-4">
-               <div className="mt-0.5">
-                 <Shield size={18} className={isFrozen ? "text-white animate-pulse" : "text-slate-500"} />
-               </div>
-               <div className="space-y-1">
-                 <div className="text-xs font-extrabold uppercase tracking-widest text-slate-300 flex items-center gap-2.5">
+      <section className="space-y-4">
+        <h2 className="text-[10px] font-black tracking-widest uppercase text-slate-500 ml-2">Protection</h2>
+        <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden divide-y divide-white/5">
+          <div className="p-4 flex items-center justify-between group">
+             <div className="flex items-center gap-3">
+               <Shield size={16} className={isFrozen ? "text-cyan-400 animate-pulse" : "text-slate-400"} />
+               <div>
+                 <div className="text-sm font-bold text-slate-300 flex items-center gap-2">
                    Streak Shield
                    {isFrozen && (
-                     <span className="text-[8px] font-black uppercase text-white bg-white/10 border border-white/20 px-1.5 py-0.5 rounded-full tracking-wider animate-pulse">
+                     <span className="text-[9px] font-black uppercase text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded-full tracking-wider">
                        Active
                      </span>
                    )}
                  </div>
-                 <p className="text-xs text-slate-500 leading-relaxed font-light">
+                 <div className="text-xs text-slate-500 mt-1">
                    {isFrozen 
                      ? `Protected until ${new Date(user.freeze_until || "").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
-                     : "Temporarily freeze your streak and preserve your discipline system during holidays or emergency breaks."}
-                 </p>
+                     : "Temporarily pause your activity with a flexible freeze (1 to 10 days) without losing your streak."}
+                 </div>
                </div>
              </div>
-             
              {isFrozen ? (
                <button
                   onClick={async () => {
@@ -144,10 +139,10 @@ export function SettingsScreen() {
                     }
                   }}
                   disabled={deactivating}
-                  className={`shrink-0 font-bold px-4 py-2.5 rounded-xl text-[9px] uppercase tracking-widest transition-all duration-300 transform active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 ${
+                  className={`ml-4 shrink-0 font-bold px-4 py-2.5 rounded-lg text-xs uppercase tracking-widest transition-all duration-300 transform active:scale-[0.98] cursor-pointer flex items-center justify-center gap-1.5 ${
                     confirmDeactivate
-                      ? "bg-red-500/25 text-red-400 border border-red-500/40 font-black animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.2)]"
-                      : "bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/10"
+                      ? "bg-red-500/20 text-red-500 border border-red-500/40 font-black animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.2)]"
+                      : "bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20"
                   }`}
                >
                   {deactivating ? (
@@ -161,7 +156,7 @@ export function SettingsScreen() {
              ) : (
                <button
                   onClick={() => setShowFreezeConfirm(true)}
-                  className="shrink-0 bg-slate-200 text-black font-extrabold px-4 py-2 rounded-xl text-[9px] uppercase tracking-widest hover:bg-white transition-all transform active:scale-95 cursor-pointer shadow-lg shadow-white/5"
+                  className="ml-4 shrink-0 bg-white text-black font-bold px-4 py-2 rounded-lg text-xs uppercase tracking-widest hover:bg-slate-200 transition-all transform active:scale-[0.98] cursor-pointer"
                >
                   Freeze
                </button>
@@ -171,9 +166,9 @@ export function SettingsScreen() {
       </section>
 
       {/* Data Section */}
-      <section className="space-y-3">
-        <h2 className="text-[9px] font-black tracking-widest uppercase text-slate-500 ml-2">Data & Privacy</h2>
-        <div className="brand-card rounded-[1.5rem] overflow-hidden divide-y divide-white/[0.03]">
+      <section className="space-y-4">
+        <h2 className="text-[10px] font-black tracking-widest uppercase text-slate-500 ml-2">Data & Privacy</h2>
+        <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden divide-y divide-white/5">
           <SettingRow icon={Trash2} label="Reset Progress" danger onClick={() => {
             if (confirm("Are you sure you want to reset all your progress?")) {
               useStore.getState().resetProgress().catch(console.error);
@@ -188,13 +183,13 @@ export function SettingsScreen() {
       </section>
 
       {/* About Section */}
-      <section className="space-y-3 opacity-60 hover:opacity-100 transition-opacity duration-300">
-        <h2 className="text-[9px] font-black tracking-widest uppercase text-slate-500 ml-2">About</h2>
-        <div className="gemini-card rounded-[1.5rem] overflow-hidden divide-y divide-white/[0.03]">
+      <section className="space-y-4 opacity-60">
+        <h2 className="text-[10px] font-black tracking-widest uppercase text-slate-500 ml-2">About</h2>
+        <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden divide-y divide-white/5">
           <SettingRow icon={ShieldCheck} label="Privacy Policy" />
-          <div className="p-5 flex items-center justify-between text-slate-400">
-             <span className="text-xs font-bold uppercase tracking-wider">Version</span>
-             <span className="text-xs font-mono text-slate-500">3.2.0</span>
+          <div className="p-4 flex items-center justify-between text-slate-300">
+             <span className="text-sm font-bold">Version</span>
+             <span className="text-xs font-mono text-slate-500">1.0.0</span>
           </div>
         </div>
       </section>
@@ -210,7 +205,7 @@ export function SettingsScreen() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/85 backdrop-blur-md"
+              className="absolute inset-0 bg-black/80 backdrop-blur-md"
               onClick={() => { if (!activating) setShowFreezeConfirm(false); }}
             />
             
@@ -219,38 +214,36 @@ export function SettingsScreen() {
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              transition={{ type: "spring", duration: 0.5 }}
-              className="relative bg-black border border-white/10 rounded-[2.25rem] p-8 max-w-md w-full shadow-[0_25px_60px_rgba(0,0,0,0.9)] space-y-6 z-10 overflow-hidden"
+              className="relative bg-[#0c0c0c] border border-cyan-500/25 rounded-[2rem] p-8 max-w-md w-full shadow-[0_0_50px_rgba(6,182,212,0.15)] space-y-6 z-10"
             >
-
               {/* Header */}
-              <div className="flex justify-between items-center relative z-10">
-                <div className="flex items-center gap-2 text-white">
-                  <Shield size={16} />
-                  <span className="text-[9px] font-black uppercase tracking-widest">Streak Freeze Control</span>
+              <div className="flex justify-between items-start">
+                <div className="flex items-center gap-2 text-cyan-400">
+                  <Shield size={20} className="animate-pulse" />
+                  <span className="text-xs font-black uppercase tracking-widest">Protocol Protection</span>
                 </div>
                 <button
                   disabled={activating}
                   onClick={() => setShowFreezeConfirm(false)}
-                  className="p-1.5 rounded-full text-slate-500 hover:text-white hover:bg-white/[0.04] transition-colors cursor-pointer"
+                  className="p-1 rounded-full text-slate-500 hover:text-white hover:bg-white/5 transition-colors"
                 >
-                  <X size={16} />
+                  <X size={18} />
                 </button>
               </div>
 
               {/* Title */}
-              <div className="space-y-1.5 text-left relative z-10">
-                <h3 className="text-xl font-display font-light text-white">Activate Streak Shield</h3>
-                <p className="text-slate-400 text-xs leading-relaxed font-light">
-                  Deep-freezes your Day Streak, putting progress rules on hold. Select a duration from <strong className="text-slate-200">1 to 10 days</strong>.
+              <div className="space-y-2 text-left">
+                <h3 className="text-2xl font-black tracking-tight text-white">Activate Streak Shield</h3>
+                <p className="text-slate-400 text-xs leading-relaxed">
+                  Deep-freezes your Day Streak and protects it from decay. Choose a duration from <strong className="text-white">1 to 10 days</strong>.
                 </p>
               </div>
 
               {/* Slider Input */}
-              <div className="bg-white/[0.01] border border-white/5 rounded-2xl p-5 space-y-4 text-left relative z-10">
+              <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5 space-y-4 text-left">
                 <div className="flex justify-between items-center">
-                  <span className="text-[9px] font-black uppercase text-slate-500 tracking-wider">Freeze Duration</span>
-                  <span className="text-xs font-black text-white bg-white/10 border border-white/20 px-3 py-1 rounded-full">
+                  <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Freeze Duration</span>
+                  <span className="text-sm font-black text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-3 py-1 rounded-full">
                     {freezeDays} {freezeDays === 1 ? "Day" : "Days"}
                   </span>
                 </div>
@@ -262,7 +255,7 @@ export function SettingsScreen() {
                   value={freezeDays}
                   onChange={(e) => setFreezeDays(parseInt(e.target.value))}
                   disabled={activating}
-                  className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-white hover:bg-white/20 transition-colors"
+                  className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-white"
                 />
 
                 {/* Quick Selection Presets */}
@@ -273,40 +266,40 @@ export function SettingsScreen() {
                       type="button"
                       disabled={activating}
                       onClick={() => setFreezeDays(d)}
-                      className={`py-1.5 text-[9px] font-bold rounded-lg border transition-all cursor-pointer uppercase tracking-wider ${
+                      className={`py-1.5 text-[10px] font-extrabold rounded-lg border transition-all cursor-pointer ${
                         freezeDays === d
-                          ? "bg-white text-black border-white font-black"
-                          : "bg-white/[0.02] text-slate-400 border-white/5 hover:border-white/10 hover:text-slate-200"
+                          ? "bg-white text-black border-white"
+                          : "bg-white/5 text-slate-400 border-white/5 hover:border-white/10"
                       }`}
                     >
-                      {d}d
+                      {d} {d === 1 ? "Day" : "Days"}
                     </button>
                   ))}
                 </div>
               </div>
 
               {/* Date Preview */}
-              <div className="bg-white/[0.02] border border-white/10 rounded-[1.25rem] p-4 flex gap-4 items-center text-left relative z-10">
-                <div className="text-xl">❄️</div>
+              <div className="bg-cyan-500/[0.02] border border-cyan-500/10 rounded-2xl p-4 flex gap-4 items-center text-left">
+                <div className="text-2xl">❄️</div>
                 <div>
-                  <div className="text-[8px] font-black uppercase text-white tracking-widest">Shield Active Until</div>
+                  <div className="text-[9px] font-black uppercase text-cyan-400 tracking-widest">Protected Until</div>
                   <div className="text-xs font-bold text-slate-200 mt-0.5">{previewEndDate}</div>
                 </div>
               </div>
 
               {/* Actions */}
-              <div className="flex flex-col gap-2 pt-2 relative z-10">
+              <div className="flex flex-col gap-2 pt-2">
                 <button
                   type="button"
                   disabled={activating}
                   onClick={handleActivateShield}
-                  className="w-full bg-slate-100 text-black font-extrabold py-3 rounded-xl text-xs uppercase tracking-widest hover:bg-white transition-all active:scale-[0.98] flex items-center justify-center gap-2 h-11 cursor-pointer shadow-lg shadow-white/5"
+                  className="w-full bg-white text-black font-extrabold py-3.5 rounded-xl text-sm uppercase tracking-wider hover:bg-slate-200 transition-all active:scale-[0.98] flex items-center justify-center gap-2 h-12 cursor-pointer"
                 >
                   {activating ? (
-                    <div className="w-4 h-4 border-2 border-black/35 border-t-black rounded-full animate-spin" />
+                    <div className="w-5 h-5 border-2 border-black/35 border-t-black rounded-full animate-spin" />
                   ) : (
                     <>
-                      <Sparkles size={12} className="text-black" />
+                      <Sparkles size={14} />
                       Activate Shield
                     </>
                   )}
@@ -315,7 +308,7 @@ export function SettingsScreen() {
                   type="button"
                   disabled={activating}
                   onClick={() => setShowFreezeConfirm(false)}
-                  className="w-full bg-white/[0.02] text-slate-500 border border-white/5 font-bold py-2.5 rounded-xl text-[10px] uppercase tracking-widest hover:bg-white/[0.06] hover:text-slate-300 transition-all h-10 cursor-pointer"
+                  className="w-full bg-white/5 text-slate-400 border border-white/5 font-extrabold py-3 rounded-xl text-xs uppercase tracking-wider hover:bg-white/10 hover:text-white transition-all h-11 cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -330,14 +323,14 @@ export function SettingsScreen() {
 
 function SettingRow({ icon: Icon, label, value, danger, onClick }: { icon: any, label: string, value?: string, danger?: boolean, onClick?: () => void }) {
   return (
-    <button onClick={onClick} className={`w-full p-5 flex items-center justify-between transition-all duration-300 group cursor-pointer ${danger ? 'hover:bg-red-500/5' : 'hover:bg-white/[0.02]'}`}>
-       <div className="flex items-center gap-3.5">
-         <Icon size={15} className={danger ? 'text-red-400/80 group-hover:text-red-400 transition-colors' : 'text-slate-500 group-hover:text-white transition-colors'} />
-         <span className={`text-xs font-bold uppercase tracking-wider ${danger ? 'text-red-400/80 group-hover:text-red-400' : 'text-slate-400 group-hover:text-slate-200'} transition-colors`}>{label}</span>
+    <button onClick={onClick} className={`w-full p-4 flex items-center justify-between transition-colors group ${danger ? 'hover:bg-red-500/10' : 'hover:bg-white/5'}`}>
+       <div className="flex items-center gap-3">
+         <Icon size={16} className={danger ? 'text-red-400' : 'text-slate-400'} />
+         <span className={`text-sm font-bold ${danger ? 'text-red-400' : 'text-slate-300'}`}>{label}</span>
        </div>
        <div className="flex items-center gap-2">
-         {value && <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest font-mono">{value}</span>}
-         <ChevronRight size={15} className="text-slate-600 group-hover:text-slate-400 transition-colors" />
+         {value && <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">{value}</span>}
+         <ChevronRight size={16} className="text-white/20" />
        </div>
     </button>
   )

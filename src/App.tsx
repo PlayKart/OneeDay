@@ -22,15 +22,15 @@ import { HabitList } from './components/HabitList';
 import { AICoach } from './components/AICoach';
 import { MotivationalQuote } from './components/MotivationalQuote';
 
-import { DashboardScreen } from './components/screens/DashboardScreen';
-import { HabitsScreen } from './components/screens/HabitsScreen';
-import { CoachScreen } from './components/screens/CoachScreen';
-import { SettingsScreen } from './components/screens/SettingsScreen';
-import { LandingScreen } from './components/screens/LandingScreen';
+// Lazy loading the heavy screen components for improved SEO, fast initial content paint (FCP), and minimal layout shift
+const DashboardScreen = lazy(() => import('./components/screens/DashboardScreen').then(m => ({ default: m.DashboardScreen })));
+const HabitsScreen = lazy(() => import('./components/screens/HabitsScreen').then(m => ({ default: m.HabitsScreen })));
+const CoachScreen = lazy(() => import('./components/screens/CoachScreen').then(m => ({ default: m.CoachScreen })));
+const SettingsScreen = lazy(() => import('./components/screens/SettingsScreen').then(m => ({ default: m.SettingsScreen })));
+const LandingScreen = lazy(() => import('./components/screens/LandingScreen').then(m => ({ default: m.LandingScreen })));
 
 import { MainLayout } from './components/MainLayout';
 import { TutorialOverlay } from './components/TutorialOverlay';
-import { updateSEO } from './lib/seo';
 
 const GoogleIcon = () => (
   <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
@@ -57,52 +57,24 @@ export default function App() {
       return;
     }
     if (showIntro) {
-      updateSEO({
-        title: "OneDay — AI Habit Tracker & Discipline Engine",
-        description: "Premium AI-powered habit tracker focused on discipline, consistency, streaks, and self-improvement.",
-        canonical: "https://onee-day.vercel.app/"
-      });
+      document.title = "OneDay — AI Habit Tracker";
       return;
     }
     switch (activeTab) {
       case "dashboard":
-        updateSEO({
-          title: "Dashboard — OneDay",
-          description: "Monitor your daily consistency score, level up, track active habit streaks, and analyze your productivity progress.",
-          keywords: "productivity dashboard, streak tracking, user statistics, level progress, gamified habits, consistency metrics, OneDay",
-          canonical: "https://onee-day.vercel.app/dashboard"
-        });
+        document.title = "Dashboard — OneDay";
         break;
       case "habits":
-        updateSEO({
-          title: "Habit Control — OneDay",
-          description: "Manage and customize your recurring daily standards, repeat schedules, and custom discipline directives.",
-          keywords: "habit management, repeat schedule, custom habits, recurring standards, custom directives, OneDay",
-          canonical: "https://onee-day.vercel.app/habits"
-        });
+        document.title = "Habits — OneDay";
         break;
       case "coach":
-        updateSEO({
-          title: "AI Discipline Coach — OneDay",
-          description: "Interact with the AI Discipline Coach to analyze your routine, build discipline, and bypass friction.",
-          keywords: "AI coaching, discipline engine, habit advisor, productivity coach, OneDay",
-          canonical: "https://onee-day.vercel.app/chat"
-        });
+        document.title = "AI Coach — OneDay";
         break;
       case "settings":
-        updateSEO({
-          title: "System Settings — OneDay",
-          description: "Configure system preferences, profile levels, and activate the Streak Shield protection protocol to freeze your progress.",
-          keywords: "streak freeze, profile management, app settings, Streak Shield, protection protocol, OneDay",
-          canonical: "https://onee-day.vercel.app/settings"
-        });
+        document.title = "Settings — OneDay";
         break;
       default:
-        updateSEO({
-          title: "OneDay — AI Habit Tracker & Discipline Engine",
-          description: "Premium AI-powered habit tracker focused on discipline, consistency, streaks, and self-improvement.",
-          canonical: "https://onee-day.vercel.app/"
-        });
+        document.title = "OneDay — AI Habit Tracker";
     }
   }, [firebaseUser, activeTab, showIntro]);
 

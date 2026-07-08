@@ -10,24 +10,23 @@ export function HabitsScreen() {
 
   return (
     <motion.div 
-      initial={{ opacity: 0, y: 15 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      className="px-4 py-6 md:p-8 max-w-4xl mx-auto relative"
+      className="p-6 md:p-8 max-w-4xl mx-auto min-h-screen relative"
     >
       <header className="flex justify-between items-center pt-4 mb-8">
         <div>
-          <h1 className="text-3xl font-display font-light tracking-tight text-white">Habits</h1>
-          <p className="text-slate-500 text-[9px] tracking-[0.25em] uppercase font-bold mt-1">
+          <h1 className="text-3xl font-extrabold tracking-tighter">Habits</h1>
+          <p className="text-slate-500 text-[10px] tracking-widest uppercase font-bold mt-1">
             Build your system
           </p>
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 bg-slate-200 text-black font-extrabold px-5 py-2.5 rounded-xl hover:bg-white transition-all text-[9px] uppercase tracking-widest cursor-pointer shadow-lg shadow-white/5 active:scale-95"
+          className="flex items-center gap-2 bg-white text-black font-bold px-5 py-2.5 rounded-xl hover:bg-slate-200 transition-all text-xs uppercase tracking-widest"
         >
-          <Plus size={14} />
+          <Plus size={16} />
           <span>New Habit</span>
         </button>
       </header>

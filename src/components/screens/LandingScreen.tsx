@@ -4,8 +4,6 @@ import { signInWithPopup, GoogleAuthProvider, signInAnonymously } from "firebase
 import { auth } from "../../lib/firebase";
 import { User, Check, Shield } from "lucide-react";
 import { toast } from "react-hot-toast";
-import { updateSEO } from "../../lib/seo";
-import { BrandLogo } from "../BrandLogo";
 
 interface LandingScreenProps {
   onLoginSuccess: () => void;
@@ -14,14 +12,9 @@ interface LandingScreenProps {
 export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
   const [showAuthModal, setShowAuthModal] = useState(false);
 
-  // Dynamic Page Title & Meta SEO optimization: changes SEO tags as user scrolls sections
+  // Dynamic Page Title SEO optimization: changes title as user scrolls sections
   useEffect(() => {
-    updateSEO({
-      title: "OneDay — AI Habit Tracker & Discipline Engine",
-      description: "OneDay is an AI-powered habit tracker that helps users build discipline through daily habits, streaks, XP, AI coaching, and more in the web app.",
-      keywords: "OneDay, habit tracker, ai habit tracker, streak app, discipline app, productivity app, self improvement, consistency, routines",
-      canonical: "https://onee-day.vercel.app/"
-    });
+    document.title = "OneDay — AI Habit Tracker";
 
     const handleScroll = () => {
       const featuresEl = document.getElementById("features");
@@ -33,33 +26,13 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
       const scrollPos = window.scrollY + 250; // Offset for navbar & threshold
 
       if (systemEl && scrollPos >= systemEl.offsetTop) {
-        updateSEO({
-          title: "Discipline Protocol — OneDay",
-          description: "Explore the consistency framework and advanced streak tracking protocols of OneDay, the high-performance AI habit tracker.",
-          keywords: "consistency framework, streak tracking, AI habit tracker, discipline building, daily consistency",
-          canonical: "https://onee-day.vercel.app/#discipline-system"
-        });
+        document.title = "Discipline Protocol — OneDay";
       } else if (scrollPos >= aboutEl.offsetTop) {
-        updateSEO({
-          title: "About — OneDay",
-          description: "Read the student story of OneDay, built with care by Harsha Vardhan, Vikhyath, and Trinay to simplify self-improvement.",
-          keywords: "student startup, founders story, habit tracker design, mindful technology, Harsha Vardhan, Vikhyath, Trinay",
-          canonical: "https://onee-day.vercel.app/#about"
-        });
+        document.title = "About — OneDay";
       } else if (scrollPos >= featuresEl.offsetTop) {
-        updateSEO({
-          title: "Features — OneDay",
-          description: "Unlock systematic progress, streak tracking, and personalized AI discipline coaching to master your daily standards.",
-          keywords: "habit features, consistency score, AI coaching, gamified routines, productivity features",
-          canonical: "https://onee-day.vercel.app/#features"
-        });
+        document.title = "Features — OneDay";
       } else {
-        updateSEO({
-          title: "OneDay — AI Habit Tracker & Discipline Engine",
-          description: "OneDay is an AI-powered habit tracker that helps users build discipline through daily habits, streaks, XP, AI coaching, and more in the web app.",
-          keywords: "OneDay, habit tracker, ai habit tracker, streak app, discipline app, productivity app, self improvement, consistency, routines",
-          canonical: "https://onee-day.vercel.app/"
-        });
+        document.title = "OneDay — AI Habit Tracker";
       }
     };
 
@@ -104,12 +77,7 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
       {/* SEMANTIC HEADER & NAV */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#000000]/80 backdrop-blur-xl border-b border-white/5 h-20 flex items-center px-6 md:px-12">
         <nav className="max-w-7xl mx-auto w-full flex justify-between items-center" aria-label="Main Navigation">
-          <div className="flex items-center gap-2.5 text-xl font-display font-light text-white tracking-tight">
-            <div className="w-8 h-8 rounded-lg bg-white/[0.04] border border-white/5 flex items-center justify-center">
-              <BrandLogo size={16} />
-            </div>
-            OneDay
-          </div>
+          <div className="text-xl font-extrabold tracking-tighter">OneDay</div>
           
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-400">
             <button onClick={() => scrollToSection("features")} className="hover:text-white transition-colors cursor-pointer">Features</button>
@@ -129,7 +97,7 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
       {/* SEMANTIC MAIN LANDMARKS */}
       <main>
         {/* HERO SECTION */}
-        <section className="pt-48 pb-32 px-6 bg-black min-h-[90vh] flex flex-col justify-center">
+        <section className="pt-48 pb-32 px-6 bg-gradient-to-b from-[#0a0a0a] to-black min-h-[90vh] flex flex-col justify-center">
           <div className="max-w-4xl mx-auto text-center space-y-8">
             <motion.h1 
               initial={{ opacity: 0, y: 20 }}
@@ -180,7 +148,7 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
             </div>
 
             <div className="grid md:grid-cols-2 gap-8">
-              <div className="bg-black border border-white/10 rounded-[2.5rem] p-12 hover:border-white/20 transition-colors group">
+              <div className="bg-[#0a0a0a] border border-white/5 rounded-[2.5rem] p-12 hover:border-white/20 transition-colors group">
                 <div className="w-16 h-16 bg-white border border-white/10 rounded-2xl flex items-center justify-center mb-8 transform group-hover:scale-110 transition-transform">
                    <Check size={32} className="text-black" />
                 </div>
@@ -197,7 +165,7 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
                 </div>
               </div>
 
-              <div className="bg-black border border-white/10 rounded-[2.5rem] p-12 hover:border-white/20 transition-colors group">
+              <div className="bg-[#0a0a0a] border border-white/5 rounded-[2.5rem] p-12 hover:border-white/20 transition-colors group">
                 <div className="w-16 h-16 bg-white border border-white/10 rounded-2xl flex items-center justify-center mb-8 transform group-hover:scale-110 transition-transform">
                    <Shield size={32} className="text-black" />
                 </div>
@@ -213,6 +181,47 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
                   </ul>
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ORGANIZED HABITS SECTION */}
+        <section className="py-32 px-6 bg-[#030303]">
+          <div className="max-w-7xl mx-auto space-y-16">
+            <div className="text-center space-y-6 max-w-3xl mx-auto">
+              <h2 className="text-4xl md:text-5xl font-extrabold tracking-tighter">
+                Your habits, beautifully organized
+              </h2>
+              <p className="text-xl text-slate-400 leading-relaxed max-w-2xl mx-auto">
+                See your progress at a glance with our intuitive dashboard. Track streaks, monitor consistency, and celebrate your wins.
+              </p>
+              <button 
+                onClick={() => scrollToSection("features")}
+                className="mt-4 bg-white/5 hover:bg-white/10 border border-white/10 text-white px-8 py-3 rounded-full text-sm font-bold tracking-tight transition-all cursor-pointer"
+              >
+                Explore Features
+              </button>
+            </div>
+
+            <div className="bg-[#0a0a0a] border border-white/10 rounded-[3rem] p-8 md:p-12 max-w-5xl mx-auto overflow-hidden shadow-2xl relative group">
+               <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+               <div className="space-y-4">
+                  {[
+                    { name: "Morning Protocol", days: "Every Day" },
+                    { name: "Deep Work", days: "Weekdays" },
+                    { name: "Physical Training", days: "Custom Days" }
+                  ].map((h, i) => (
+                    <div key={i} className="bg-white/5 border border-white/5 rounded-3xl p-6 flex items-center justify-between">
+                       <div>
+                         <div className="font-bold text-lg">{h.name}</div>
+                         <div className="text-sm font-medium text-slate-500 mt-1">{h.days}</div>
+                       </div>
+                       <div className="w-12 h-12 rounded-full border-2 border-white/10 flex items-center justify-center">
+                          <div className="w-4 h-4 rounded-full bg-white/20" />
+                       </div>
+                    </div>
+                  ))}
+               </div>
             </div>
           </div>
         </section>
@@ -237,7 +246,7 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
                  <p className="text-lg text-slate-500">The story behind our mission to simplify self-improvement</p>
               </div>
 
-              <div className="bg-black border border-white/10 rounded-[3rem] p-12 md:p-20 text-center space-y-12">
+              <div className="bg-[#0a0a0a] border border-white/5 rounded-[3rem] p-12 md:p-20 text-center space-y-12">
                  <div className="w-24 h-24 mx-auto rounded-full bg-white flex items-center justify-center shadow-[0_0_40px_rgba(255,255,255,0.2)]">
                     <User size={40} className="text-black" />
                  </div>
@@ -267,7 +276,7 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
                    { name: "Vikhyath", role: "Development & Systems", desc: "Focused on engineering, backend systems, and making OneDay reliable and scalable." },
                    { name: "Trinay", role: "Design & Experience", desc: "Focused on creating a minimal, premium, and emotionally engaging user experience." }
                  ].map((member, i) => (
-                   <div key={i} className="bg-black border border-white/10 rounded-[2.5rem] p-10 text-center space-y-6 hover:border-white/20 transition-colors group">
+                   <div key={i} className="bg-[#0a0a0a] border border-white/5 rounded-[2.5rem] p-10 text-center space-y-6 hover:border-white/20 transition-colors group">
                       <div className="w-16 h-16 mx-auto rounded-full bg-white/10 flex items-center justify-center text-white font-bold text-xl group-hover:bg-white group-hover:text-black transition-colors">
                          {member.name[0]}
                       </div>
@@ -286,7 +295,7 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
         </section>
 
         {/* SEMANTIC & PERSISTENT SEO SYSTEM DESCRIPTION SECTION (Naturally integrated keywords) */}
-        <section id="discipline-system" className="py-32 px-6 border-t border-white/5 bg-black">
+        <section id="discipline-system" className="py-32 px-6 border-t border-white/5 bg-[#020202]">
           <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-12 items-center">
             <div className="space-y-6">
               <h2 className="text-3xl md:text-4xl font-extrabold tracking-tighter">
@@ -344,22 +353,19 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative bg-black border border-white/10 rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl space-y-8 backdrop-blur-2xl overflow-hidden"
+              className="relative bg-[#0a0a0a] border border-white/10 rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl space-y-8"
             >
-              <div className="text-center space-y-3 relative z-10">
-                <div className="w-12 h-12 mx-auto rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-center shadow-inner mb-2">
-                  <BrandLogo size={22} />
-                </div>
-                <h3 className="text-2xl font-display font-light tracking-tight text-white">Welcome to OneDay</h3>
-                <p className="text-slate-500 text-xs font-light">Initiate your high-performance discipline protocol.</p>
+              <div className="text-center space-y-2">
+                <h3 className="text-3xl font-extrabold tracking-tight">Welcome</h3>
+                <p className="text-slate-500 font-medium">Log in to continue your journey.</p>
               </div>
 
-              <div className="space-y-3 relative z-10">
+              <div className="space-y-4">
                 <button 
                   onClick={handleGoogleLogin}
-                  className="w-full bg-slate-100 text-black font-extrabold py-3.5 rounded-2xl flex items-center justify-center gap-3 hover:bg-white transition-all text-xs uppercase tracking-widest cursor-pointer shadow-lg shadow-white/5 active:scale-[0.98]"
+                  className="w-full bg-white text-black font-bold py-4 rounded-2xl flex items-center justify-center gap-3 hover:bg-slate-200 transition-all text-sm tracking-tight cursor-pointer"
                 >
-                  <svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">
+                  <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
                     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#000000"/>
                     <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#000000"/>
                     <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#000000"/>
@@ -369,9 +375,9 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
                 </button>
                 <button 
                   onClick={handleGuestLogin}
-                  className="w-full bg-white/[0.02] border border-white/5 text-slate-300 font-bold py-3 rounded-2xl flex items-center justify-center gap-3 hover:bg-white/[0.05] hover:text-white transition-all text-xs uppercase tracking-wider cursor-pointer"
+                  className="w-full bg-white/5 border border-white/10 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-3 hover:bg-white/10 transition-all text-sm tracking-tight cursor-pointer"
                 >
-                  <User size={14} className="text-slate-400" />
+                  <User size={20} />
                   Continue as Guest
                 </button>
               </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { motion } from "motion/react";
-import { X, Calendar, Flag, Bell, AlignLeft, Check, Sparkles } from "lucide-react";
+import { X, Calendar, Flag, Bell, AlignLeft, Check } from "lucide-react";
 import { useStore } from "../store/useStore";
 
 interface CreateHabitModalProps {
@@ -61,92 +61,80 @@ export function CreateHabitModal({ onClose }: CreateHabitModalProps) {
 
   const content = (
     <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-4">
-      {/* Backdrop */}
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-black/85 backdrop-blur-md"
+        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
         onClick={onClose}
       />
       
-      {/* Modal Card */}
       <motion.div
         initial={{ y: "100%", opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: "100%", opacity: 0 }}
-        transition={{ type: "spring", damping: 30, stiffness: 350 }}
-        className="relative w-full max-w-lg bg-black border border-white/10 rounded-t-[2.25rem] sm:rounded-[2.25rem] p-6 md:p-8 shadow-[0_25px_60px_rgba(0,0,0,0.95)] flex flex-col max-h-[85dvh] overflow-hidden"
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+        className="relative w-full max-w-lg bg-[#0a0a0a] border border-white/10 rounded-t-[2rem] sm:rounded-[2rem] p-6 shadow-2xl flex flex-col max-h-[85dvh]"
       >
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6 shrink-0 relative z-10">
-          <div className="flex items-center gap-2">
-            <Sparkles size={14} className="text-white" />
-            <h2 className="text-xl font-display font-light text-white">Create Habit</h2>
-          </div>
-          <button 
-            onClick={onClose} 
-            className="p-2 bg-white/[0.03] border border-white/5 rounded-full hover:bg-white/[0.08] text-slate-400 hover:text-white transition-all cursor-pointer"
-          >
-            <X size={16} />
+        <div className="flex justify-between items-center mb-6 shrink-0">
+          <h2 className="text-xl font-bold tracking-tighter">New Habit</h2>
+          <button onClick={onClose} className="p-2 bg-white/5 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors">
+            <X size={20} />
           </button>
         </div>
 
-        {/* Form Body Scroll area */}
-        <div className="overflow-y-auto space-y-7 pb-8 scrollbar-hide flex-1 relative z-10">
-           {/* Text Entry Input */}
-           <div className="pt-2">
+        <div className="overflow-y-auto space-y-8 pb-8 scrollbar-hide flex-1">
+           {/* Name */}
+           <div>
              <input 
                type="text" 
-               placeholder="What habit will you master?"
+               placeholder="What do you want to build?"
                value={name}
                onChange={(e) => setName(e.target.value)}
-               className="w-full bg-transparent border-b border-white/5 p-2 text-xl font-display font-light text-slate-100 focus:outline-none focus:border-white/20 placeholder-slate-600 transition-colors"
+               className="w-full bg-transparent border-b border-white/10 p-2 text-2xl font-bold text-white focus:outline-none focus:border-white/40 placeholder-slate-600 transition-colors"
                autoFocus
              />
            </div>
 
-           {/* Schedule Configuration */}
+           {/* Repeat Schedule */}
            <div className="space-y-3">
-             <div className="flex items-center gap-2 text-slate-500">
-               <Calendar size={13} />
-               <span className="text-[9px] uppercase tracking-[0.2em] font-extrabold">Repeat Schedule</span>
+             <div className="flex items-center gap-2 text-slate-400">
+               <Calendar size={16} />
+               <span className="text-[10px] uppercase tracking-widest font-bold">Repeat</span>
              </div>
              
              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                {(["every_day", "weekdays", "weekends", "custom_days"] as const).map(type => (
                  <button
                    key={type}
-                   type="button"
                    onClick={() => setRepeatType(type)}
-                   className={`py-3.5 px-1 rounded-xl border text-[10px] font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer ${
+                   className={`p-3 rounded-xl border text-xs font-bold transition-all ${
                      repeatType === type
                        ? 'bg-white text-black border-white'
-                       : 'bg-white/[0.01] border-white/5 text-slate-500 hover:bg-white/[0.04] hover:border-white/10 hover:text-slate-300'
+                       : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:border-white/20'
                    }`}
                  >
-                   {type.split('_').join(' ')}
+                   {type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
                  </button>
                ))}
              </div>
 
              {repeatType === "custom_days" && (
                <motion.div 
-                 initial={{ opacity: 0, y: -5 }}
-                 animate={{ opacity: 1, y: 0 }}
-                 className="flex justify-between gap-1.5 pt-2"
+                 initial={{ opacity: 0, height: 0 }}
+                 animate={{ opacity: 1, height: "auto" }}
+                 className="flex justify-between gap-2 pt-2"
                >
                  {daysOfWeek.map(({ id, label }) => {
                    const isSelected = customDays.includes(id);
                    return (
                      <button
                        key={id}
-                       type="button"
                        onClick={() => handleToggleDay(id)}
-                       className={`flex-1 aspect-square rounded-full flex items-center justify-center text-[10px] font-extrabold border transition-all duration-300 cursor-pointer ${
+                       className={`flex-1 aspect-square rounded-full flex items-center justify-center text-xs font-bold border transition-all ${
                          isSelected 
                            ? 'bg-white text-black border-white' 
-                           : 'bg-white/[0.01] border-white/5 text-slate-500 hover:bg-white/[0.04] hover:border-white/10 hover:text-slate-300'
+                           : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
                        }`}
                      >
                        {label}
@@ -157,22 +145,21 @@ export function CreateHabitModal({ onClose }: CreateHabitModalProps) {
              )}
            </div>
 
-           {/* Difficulty Slider / Choice */}
+           {/* Difficulty level */}
            <div className="space-y-3">
-             <div className="flex items-center gap-2 text-slate-500">
-               <Flag size={13} />
-               <span className="text-[9px] uppercase tracking-[0.2em] font-extrabold">Discipline Difficulty</span>
+             <div className="flex items-center gap-2 text-slate-400">
+               <Flag size={16} />
+               <span className="text-[10px] uppercase tracking-widest font-bold">Difficulty</span>
              </div>
              <div className="flex gap-2">
                 {["Easy", "Medium", "Hard", "Elite"].map(level => (
                   <button
                     key={level}
-                    type="button"
                     onClick={() => setDifficulty(level)}
-                    className={`flex-1 py-3 rounded-xl border text-[10px] font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer ${
+                    className={`flex-1 py-3 rounded-xl border text-xs font-bold transition-all ${
                       difficulty === level
-                        ? 'bg-white text-black border-white'
-                        : 'bg-white/[0.01] border-white/5 text-slate-500 hover:bg-white/[0.04] hover:border-white/10 hover:text-slate-300'
+                        ? 'bg-white/10 text-white border-white/30'
+                        : 'bg-transparent border-white/5 text-slate-500 hover:bg-white/5 hover:text-slate-400'
                     }`}
                   >
                     {level}
@@ -181,35 +168,34 @@ export function CreateHabitModal({ onClose }: CreateHabitModalProps) {
              </div>
            </div>
 
-           {/* Notes text area */}
+           {/* Notes */}
            <div className="space-y-3">
-             <div className="flex items-center gap-2 text-slate-500">
-               <AlignLeft size={13} />
-               <span className="text-[9px] uppercase tracking-[0.2em] font-extrabold">Directive Notes</span>
+             <div className="flex items-center gap-2 text-slate-400">
+               <AlignLeft size={16} />
+               <span className="text-[10px] uppercase tracking-widest font-bold">Notes</span>
              </div>
              <textarea 
-               placeholder="Why is this habit a non-negotiable standard?"
+               placeholder="Why are you doing this?"
                value={notes}
                onChange={(e) => setNotes(e.target.value)}
-               rows={2}
-               className="w-full bg-white/[0.01] border border-white/5 rounded-2xl p-4 text-xs text-slate-200 focus:outline-none focus:border-white/20 placeholder-slate-600 resize-none transition-colors"
+               rows={3}
+               className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-sm text-white focus:outline-none focus:border-white/30 placeholder-slate-600 resize-none transition-colors"
              />
            </div>
         </div>
 
-        {/* Footer trigger button */}
-        <div className="mt-4 shrink-0 pt-4 border-t border-white/[0.04] pb-6 sm:pb-0 relative z-10">
+        <div className="mt-4 shrink-0 pt-4 border-t border-white/10 pb-8 sm:pb-0">
           <button 
             disabled={!name.trim() || isSubmitting || (repeatType === 'custom_days' && customDays.length === 0)}
             onClick={handleSave}
-            className="w-full bg-slate-200 text-black font-extrabold py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-white transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer shadow-lg shadow-white/5"
+            className="w-full bg-white text-black font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-slate-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
              {isSubmitting ? (
                 <div className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
              ) : (
                 <>
-                  <Check size={16} strokeWidth={2.5} />
-                  <span className="text-xs uppercase tracking-widest">Initialize Habit</span>
+                  <Check size={20} />
+                  <span>Save System</span>
                 </>
              )}
           </button>
