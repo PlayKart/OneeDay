@@ -307,8 +307,25 @@ export const useStore = create<State>((set, get) => ({
   },
 
   sendChat: async (message: string) => {
-    const data = await apiRequest("/api/chat", "POST", { message })
-    return data.reply
+    const { user, habits } = get();
+    
+    const contextData = {
+      name: user?.name || "Achiever",
+      level: user?.level || 1,
+      streak: user?.streak || 0,
+      habits: (habits || []).map(h => ({
+        name: h.name,
+        completedToday: !!h.completedToday,
+        completed: !!h.completedToday
+      }))
+    };
+
+    const data = await apiRequest("/api/chat", "POST", {
+      message,
+      ...contextData,
+      context: contextData // Nested as well to guarantee compatibility with any parser structure
+    });
+    return data.reply;
   },
 
   resetProgress: async () => {
