@@ -1,3 +1,4 @@
+import React from "react";
 import { motion } from "motion/react";
 import { ArrowLeft, Shield, Lock, Eye, Database, Cpu, Trash2 } from "lucide-react";
 
@@ -6,6 +7,8 @@ interface PrivacyPageProps {
 }
 
 export function PrivacyPage({ onBack }: PrivacyPageProps) {
+  const contactEmail = import.meta.env.VITE_SUPPORT_EMAIL || "privacy@oneday.app";
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 15 }}
@@ -194,9 +197,11 @@ export function PrivacyPage({ onBack }: PrivacyPageProps) {
             <p>
               For concerns regarding this policy, data modification requests, or deletion processing, please write directly to our engineering team at:
             </p>
-            <p className="font-mono text-slate-300 text-sm bg-white/5 p-4 rounded-xl border border-white/5 inline-block">
-              privacy@oneday.app
-            </p>
+            <div className="bg-white/5 p-4 rounded-xl border border-white/5 inline-flex">
+              <a href={`mailto:${contactEmail}`} className="font-mono text-slate-300 hover:text-white transition-colors text-sm font-semibold">
+                {contactEmail}
+              </a>
+            </div>
           </section>
 
         </div>
