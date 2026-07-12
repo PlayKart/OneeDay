@@ -165,6 +165,20 @@ export default function App() {
               <h2 className="text-xl font-bold tracking-tight">Uplink Failed</h2>
               <p className="text-slate-500 text-xs uppercase tracking-widest font-black">Backend Unreachable</p>
               <p className="text-slate-400 text-sm mt-2">{backendError}</p>
+              {backendError.toLowerCase().includes("supabase") && (
+                <div className="mt-4 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-left text-xs text-amber-200">
+                  <p className="font-bold mb-1">💡 Render Backend Setup Required:</p>
+                  <p className="leading-relaxed">
+                    This error is coming from your external backend hosted on Render. 
+                    To fix this, go to your **Render Dashboard**, open your Web Service's 
+                    **Environment** settings, and add the following Environment Variables:
+                  </p>
+                  <ul className="list-disc ml-4 mt-2 space-y-1 text-slate-300 font-mono">
+                    <li><span className="text-amber-200">SUPABASE_URL</span></li>
+                    <li><span className="text-amber-200">SUPABASE_SERVICE_ROLE_KEY</span></li>
+                  </ul>
+                </div>
+              )}
             </div>
             <button
               onClick={refreshFromBackend}

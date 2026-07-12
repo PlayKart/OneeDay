@@ -4,6 +4,8 @@ import { signInWithPopup, GoogleAuthProvider, signInAnonymously } from "firebase
 import { auth } from "../../lib/firebase";
 import { User, Check, Shield } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { PrivacyPage } from "../PrivacyPage";
+import { TermsPage } from "../TermsPage";
 
 interface LandingScreenProps {
   onLoginSuccess: () => void;
@@ -11,6 +13,15 @@ interface LandingScreenProps {
 
 export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [view, setView] = useState<"landing" | "privacy" | "terms">("landing");
+  const [isChecked, setIsChecked] = useState(() => {
+    return localStorage.getItem("oneday_policy_accepted_v1") === "true";
+  });
+
+  const handleBack = () => {
+    setView("landing");
+    window.scrollTo({ top: 0 });
+  };
 
   // Dynamic Page Title SEO optimization: changes title as user scrolls sections
   useEffect(() => {
@@ -41,9 +52,14 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
   }, []);
 
   const handleGoogleLogin = async () => {
+    if (!isChecked) {
+      toast.error("Please agree to the Terms and Privacy Policy.");
+      return;
+    }
     try {
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
+      localStorage.setItem("oneday_policy_accepted_v1", "true");
       onLoginSuccess();
     } catch (error: any) {
       console.error("Login failed:", error);
@@ -56,8 +72,13 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
   };
 
   const handleGuestLogin = async () => {
+    if (!isChecked) {
+      toast.error("Please agree to the Terms and Privacy Policy.");
+      return;
+    }
     try {
       await signInAnonymously(auth);
+      localStorage.setItem("oneday_policy_accepted_v1", "true");
       onLoginSuccess();
     } catch (error) {
       console.error("Guest login failed:", error);
@@ -73,7 +94,20 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[#000000] text-white selection:bg-white/30 font-sans w-full overflow-x-hidden">
+    <AnimatePresence mode="wait">
+      {view === "privacy" ? (
+        <PrivacyPage onBack={handleBack} />
+      ) : view === "terms" ? (
+        <TermsPage onBack={handleBack} />
+      ) : (
+        <motion.div
+          key="landing"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
+          className="min-h-screen bg-[#000000] text-white selection:bg-white/30 font-sans w-full overflow-x-hidden"
+        >
       {/* SEMANTIC HEADER & NAV */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#000000]/80 backdrop-blur-xl border-b border-white/5 h-20 flex items-center px-6 md:px-12">
         <nav className="max-w-7xl mx-auto w-full flex justify-between items-center" aria-label="Main Navigation">
@@ -334,8 +368,24 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
       </main>
 
       {/* FOOTER */}
-      <footer className="py-12 border-t border-white/10 text-center text-slate-600 text-sm relative z-10 bg-black">
-         <p>© {new Date().getFullYear()} OneDay. All rights reserved.</p>
+      <footer className="py-16 border-t border-white/10 text-center text-slate-500 text-sm relative z-10 bg-black">
+         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
+           <p className="text-slate-600">© {new Date().getFullYear()} OneDay. All rights reserved.</p>
+           <div className="flex gap-6 text-xs font-semibold">
+             <button 
+               onClick={() => { setView("privacy"); window.scrollTo({ top: 0 }); }} 
+               className="hover:text-white transition-colors cursor-pointer text-slate-500"
+             >
+               Privacy Policy
+             </button>
+             <button 
+               onClick={() => { setView("terms"); window.scrollTo({ top: 0 }); }} 
+               className="hover:text-white transition-colors cursor-pointer text-slate-500"
+             >
+               Terms & Conditions
+             </button>
+           </div>
+         </div>
       </footer>
 
       {/* AUTH MODAL */}
@@ -360,10 +410,38 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
                 <p className="text-slate-500 font-medium">Log in to continue your journey.</p>
               </div>
 
+              {/* CHECKBOX AND AGREEMENT */}
+              <div className="flex items-start gap-3 text-left">
+                <input 
+                  type="checkbox" 
+                  id="agree-policies"
+                  checked={isChecked}
+                  onChange={(e) => setIsChecked(e.target.checked)}
+                  className="mt-1 w-4 h-4 rounded border-white/10 bg-black text-white focus:ring-0 focus:ring-offset-0 cursor-pointer accent-white"
+                />
+                <label htmlFor="agree-policies" className="text-xs text-slate-400 leading-normal cursor-pointer select-none">
+                  I have read and agree to the{" "}
+                  <button 
+                    onClick={() => { setView("terms"); setShowAuthModal(false); window.scrollTo({ top: 0 }); }} 
+                    className="text-white hover:underline font-semibold cursor-pointer inline-block"
+                  >
+                    Terms & Conditions
+                  </button>{" "}
+                  and{" "}
+                  <button 
+                    onClick={() => { setView("privacy"); setShowAuthModal(false); window.scrollTo({ top: 0 }); }} 
+                    className="text-white hover:underline font-semibold cursor-pointer inline-block"
+                  >
+                    Privacy Policy
+                  </button>.
+                </label>
+              </div>
+
               <div className="space-y-4">
                 <button 
                   onClick={handleGoogleLogin}
-                  className="w-full bg-white text-black font-bold py-4 rounded-2xl flex items-center justify-center gap-3 hover:bg-slate-200 transition-all text-sm tracking-tight cursor-pointer"
+                  disabled={!isChecked}
+                  className="w-full bg-white text-black font-bold py-4 rounded-2xl flex items-center justify-center gap-3 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-sm tracking-tight cursor-pointer"
                 >
                   <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
                     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#000000"/>
@@ -375,7 +453,8 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
                 </button>
                 <button 
                   onClick={handleGuestLogin}
-                  className="w-full bg-white/5 border border-white/10 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-3 hover:bg-white/10 transition-all text-sm tracking-tight cursor-pointer"
+                  disabled={!isChecked}
+                  className="w-full bg-white/5 border border-white/10 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-3 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-sm tracking-tight cursor-pointer"
                 >
                   <User size={20} />
                   Continue as Guest
@@ -386,6 +465,8 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
         )}
       </AnimatePresence>
 
-    </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
