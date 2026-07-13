@@ -85,6 +85,7 @@ export interface Habit {
   notes?: string
   repeatType?: "every_day" | "weekdays" | "weekends" | "custom_days"
   customDays?: string[]
+  completedDates?: string[]
 }
 
 export type TabState = "dashboard" | "habits" | "coach" | "settings"
@@ -202,19 +203,76 @@ export const useStore = create<State>((set, get) => ({
       
       const currentUser = auth.currentUser;
       const enrichedHabits = (habitsData || []).map((h: any) => {
+         let baseHabit = { ...h };
          if (currentUser && h.name) {
             const key = `habit_meta_${currentUser.uid}_${h.name}`;
             try {
                const metaStr = localStorage.getItem(key);
                if (metaStr) {
                   const meta = JSON.parse(metaStr);
-                  return { ...h, ...meta };
+                  baseHabit = { ...baseHabit, ...meta };
                }
             } catch (e) {
                console.error("Failed to parse habit meta", e);
             }
          }
-         return h;
+
+         // Defensive programming for completedDates
+         const rawCompletedDates = baseHabit.completedDates;
+
+         // Console logging during development
+         if (process.env.NODE_ENV !== "production") {
+            console.log("Development Logging for completedDates:");
+            console.log("- completedDates value:", rawCompletedDates);
+            console.log("- typeof completedDates:", typeof rawCompletedDates);
+            console.log("- Array.isArray(completedDates):", Array.isArray(rawCompletedDates));
+         }
+
+         let safeCompletedDates: any[] = [];
+         if (Array.isArray(rawCompletedDates)) {
+            safeCompletedDates = rawCompletedDates;
+         } else if (rawCompletedDates !== null && rawCompletedDates !== undefined) {
+            if (typeof rawCompletedDates === "object") {
+               // If the backend returns an object instead of an array, handle it correctly
+               const keys = Object.keys(rawCompletedDates);
+               const isNumericKeys = keys.every(key => !isNaN(Number(key)));
+               if (isNumericKeys && keys.length > 0) {
+                  // e.g. { "0": "2026-07-13", "1": "2026-07-12" } -> array of dates
+                  safeCompletedDates = Object.values(rawCompletedDates);
+               } else {
+                  // e.g. { "2026-07-13": true, "2026-07-12": false } -> array of completed dates
+                  safeCompletedDates = keys.filter(key => rawCompletedDates[key] === true || rawCompletedDates[key] === "true");
+               }
+            } else if (typeof rawCompletedDates === "string") {
+               // Handle serialized JSON string or a single date string
+               try {
+                  const parsed = JSON.parse(rawCompletedDates);
+                  if (Array.isArray(parsed)) {
+                     safeCompletedDates = parsed;
+                  } else if (parsed && typeof parsed === "object") {
+                     const keys = Object.keys(parsed);
+                     const isNumericKeys = keys.every(key => !isNaN(Number(key)));
+                     if (isNumericKeys && keys.length > 0) {
+                        safeCompletedDates = Object.values(parsed);
+                     } else {
+                        safeCompletedDates = keys.filter(key => parsed[key] === true || parsed[key] === "true");
+                     }
+                  } else {
+                     safeCompletedDates = [rawCompletedDates];
+                  }
+               } catch (e) {
+                  if (rawCompletedDates.trim() !== "") {
+                     safeCompletedDates = [rawCompletedDates];
+                  }
+               }
+            } else {
+               // Fallback for primitive non-null values
+               safeCompletedDates = [rawCompletedDates];
+            }
+         }
+
+         baseHabit.completedDates = safeCompletedDates;
+         return baseHabit;
       });
 
       const HOUR_IN_MS = 60 * 60 * 1000;
