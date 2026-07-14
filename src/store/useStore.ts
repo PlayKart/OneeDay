@@ -7,7 +7,7 @@ import { toast } from 'react-hot-toast'
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "https://oneday-backend-xocv.onrender.com";
 
-async function apiRequest(path: string, method = "GET", body: any = null, isRetry = false): Promise<any> {
+export async function apiRequest(path: string, method = "GET", body: any = null, isRetry = false): Promise<any> {
   const user = auth.currentUser
   if (!user) throw new Error("Auth required")
 
