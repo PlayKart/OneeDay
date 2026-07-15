@@ -244,18 +244,24 @@ export const AICoach = () => {
   };
 
   // Filter and sort conversations
-  const sortedSessions = [...chatSessions].sort((a, b) => {
-    if (a.is_pinned && !b.is_pinned) return -1;
-    if (!a.is_pinned && b.is_pinned) return 1;
-    return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+  const safeChatSessions = Array.isArray(chatSessions) ? chatSessions : [];
+  const sortedSessions = [...safeChatSessions].sort((a, b) => {
+    if (a && b) {
+      if (a.is_pinned && !b.is_pinned) return -1;
+      if (!a.is_pinned && b.is_pinned) return 1;
+      return new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime();
+    }
+    return 0;
   });
 
   const filteredSessions = sortedSessions.filter(session => 
-    session.title.toLowerCase().includes(searchQuery.toLowerCase())
+    session && typeof session.title === "string" && session.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const totalHabits = habits?.length || 0;
-  const completedToday = habits?.filter(h => h.completedToday).length || 0;
+  const safeHabits = Array.isArray(habits) ? habits : [];
+  const totalHabits = safeHabits.length;
+  const completedToday = safeHabits.filter(h => h && h.completedToday).length;
+  const safeChatMessages = Array.isArray(chatMessages) ? chatMessages : [];
 
   const quickPrompts = [
     { label: "🔍 Audit neglected habits", text: "Audit my neglected habits today." },
@@ -353,14 +359,14 @@ export const AICoach = () => {
               <div className="flex-1 overflow-y-auto py-6 space-y-3 scrollbar-hide">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] uppercase tracking-widest font-bold text-slate-500">Recent Chats</span>
-                  {chatSessions.length > 0 && (
+                  {safeChatSessions.length > 0 && (
                     <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/10 text-slate-400 font-bold">
-                      {chatSessions.length}
+                      {safeChatSessions.length}
                     </span>
                   )}
                 </div>
 
-                {chatSessions.length === 0 ? (
+                {safeChatSessions.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20 text-center text-slate-600">
                     <p className="text-xs uppercase font-bold tracking-widest">No previous chats</p>
                     <p className="text-[11px] mt-1 max-w-[180px]">Start your first coaching session below</p>
@@ -486,7 +492,7 @@ export const AICoach = () => {
               <div className="flex flex-col items-center">
                 <span className="text-[9px] uppercase tracking-widest font-bold text-slate-500">OneDay Coach Protocol</span>
                 <span className="text-xs font-extrabold text-white truncate max-w-xs mt-0.5">
-                  {chatSessions.find(s => s.id === activeChatId)?.title || "Coaching Session"}
+                  {safeChatSessions.find(s => s && s.id === activeChatId)?.title || "Coaching Session"}
                 </span>
               </div>
 
@@ -513,7 +519,7 @@ export const AICoach = () => {
                           const currentId = activeChatId;
                           if (currentId) {
                             setEditingSessionId(currentId);
-                            setRenameText(chatSessions.find(s => s.id === currentId)?.title || "");
+                            setRenameText(safeChatSessions.find(s => s && s.id === currentId)?.title || "");
                           }
                           setMenuOpen(false);
                         }}
@@ -626,7 +632,7 @@ export const AICoach = () => {
                 </div>
               )}
 
-              {chatMessages.length === 0 ? (
+              {safeChatMessages.length === 0 ? (
                 /* Empty / Welcome prompts state */
                 <div className="max-w-xl mx-auto text-center py-20 flex flex-col items-center justify-center">
                   <div className="w-14 h-14 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center mb-6">
@@ -651,7 +657,8 @@ export const AICoach = () => {
                   </div>
                 </div>
               ) : (
-                chatMessages.map((msg) => {
+                safeChatMessages.map((msg) => {
+                  if (!msg) return null;
                   const isUser = msg.role === 'user';
                   const isMessageEditing = editingMessageId === msg.id;
 
@@ -797,7 +804,7 @@ export const AICoach = () => {
               <div className="max-w-2xl mx-auto w-full">
                 
                 {/* Micro suggested prompts list if messages present but short */}
-                {chatMessages.length > 0 && chatMessages.length < 5 && (
+                {safeChatMessages.length > 0 && safeChatMessages.length < 5 && (
                   <div className="flex gap-1.5 justify-center overflow-x-auto pb-3 mb-1 scrollbar-hide">
                     {quickPrompts.map((p, idx) => (
                       <button

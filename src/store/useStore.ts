@@ -131,6 +131,77 @@ interface State {
   editPreviousMessage: (messageId: string, newContent: string) => Promise<void>
 }
 
+export function normalizeCompletedDates(completedDates: any): string[] {
+  // Console logging in development
+  if (process.env.NODE_ENV !== "production") {
+    console.log("completedDates:", completedDates);
+    console.log("Array?", Array.isArray(completedDates));
+  }
+
+  if (completedDates === null || completedDates === undefined) {
+    return [];
+  }
+
+  // If it's already an array, make sure each element is a string
+  if (Array.isArray(completedDates)) {
+    return completedDates.map(item => (item !== null && item !== undefined ? String(item) : "")).filter(Boolean);
+  }
+
+  // If it's a Set
+  if (completedDates instanceof Set) {
+    return Array.from(completedDates).map(item => (item !== null && item !== undefined ? String(item) : "")).filter(Boolean);
+  }
+
+  // If it's a string, try parsing it as JSON or split by comma
+  if (typeof completedDates === "string") {
+    const trimmed = completedDates.trim();
+    if (!trimmed) return [];
+    
+    // Check if it looks like JSON array or object
+    if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        return normalizeCompletedDates(parsed);
+      } catch (e) {
+        // Fall back to splitting or wrapping
+      }
+    }
+
+    if (trimmed.includes(",")) {
+      return trimmed.split(",").map(item => item.trim()).filter(Boolean);
+    }
+
+    return [trimmed];
+  }
+
+  // If it's an object (but not null, not Array, not Set)
+  if (typeof completedDates === "object") {
+    // If it has Symbol.iterator (like Map values, custom iterables)
+    if (typeof completedDates[Symbol.iterator] === "function") {
+      try {
+        return Array.from(completedDates).map(item => (item !== null && item !== undefined ? String(item) : "")).filter(Boolean);
+      } catch (e) {
+        // Fall back
+      }
+    }
+
+    const keys = Object.keys(completedDates);
+    if (keys.length === 0) return [];
+
+    // Check if keys are numeric indices, e.g., { "0": "2026-07-13", "1": "2026-07-12" }
+    const isNumericKeys = keys.every(key => !isNaN(Number(key)));
+    if (isNumericKeys) {
+      return Object.values(completedDates).map(item => (item !== null && item !== undefined ? String(item) : "")).filter(Boolean);
+    }
+
+    // Map/dictionary of dates to booleans, e.g., { "2026-07-13": true, "2026-07-12": false }
+    return keys.filter(key => completedDates[key] === true || completedDates[key] === "true");
+  }
+
+  // Fallback for number or other primitive types
+  return [String(completedDates)];
+}
+
 export const useStore = create<State>((set, get) => ({
   firebaseUser: null,
   user: null,
@@ -218,60 +289,7 @@ export const useStore = create<State>((set, get) => ({
          }
 
          // Defensive programming for completedDates
-         const rawCompletedDates = baseHabit.completedDates;
-
-         // Console logging during development
-         if (process.env.NODE_ENV !== "production") {
-            console.log("Development Logging for completedDates:");
-            console.log("- completedDates value:", rawCompletedDates);
-            console.log("- typeof completedDates:", typeof rawCompletedDates);
-            console.log("- Array.isArray(completedDates):", Array.isArray(rawCompletedDates));
-         }
-
-         let safeCompletedDates: any[] = [];
-         if (Array.isArray(rawCompletedDates)) {
-            safeCompletedDates = rawCompletedDates;
-         } else if (rawCompletedDates !== null && rawCompletedDates !== undefined) {
-            if (typeof rawCompletedDates === "object") {
-               // If the backend returns an object instead of an array, handle it correctly
-               const keys = Object.keys(rawCompletedDates);
-               const isNumericKeys = keys.every(key => !isNaN(Number(key)));
-               if (isNumericKeys && keys.length > 0) {
-                  // e.g. { "0": "2026-07-13", "1": "2026-07-12" } -> array of dates
-                  safeCompletedDates = Object.values(rawCompletedDates);
-               } else {
-                  // e.g. { "2026-07-13": true, "2026-07-12": false } -> array of completed dates
-                  safeCompletedDates = keys.filter(key => rawCompletedDates[key] === true || rawCompletedDates[key] === "true");
-               }
-            } else if (typeof rawCompletedDates === "string") {
-               // Handle serialized JSON string or a single date string
-               try {
-                  const parsed = JSON.parse(rawCompletedDates);
-                  if (Array.isArray(parsed)) {
-                     safeCompletedDates = parsed;
-                  } else if (parsed && typeof parsed === "object") {
-                     const keys = Object.keys(parsed);
-                     const isNumericKeys = keys.every(key => !isNaN(Number(key)));
-                     if (isNumericKeys && keys.length > 0) {
-                        safeCompletedDates = Object.values(parsed);
-                     } else {
-                        safeCompletedDates = keys.filter(key => parsed[key] === true || parsed[key] === "true");
-                     }
-                  } else {
-                     safeCompletedDates = [rawCompletedDates];
-                  }
-               } catch (e) {
-                  if (rawCompletedDates.trim() !== "") {
-                     safeCompletedDates = [rawCompletedDates];
-                  }
-               }
-            } else {
-               // Fallback for primitive non-null values
-               safeCompletedDates = [rawCompletedDates];
-            }
-         }
-
-         baseHabit.completedDates = safeCompletedDates;
+         baseHabit.completedDates = normalizeCompletedDates(baseHabit.completedDates);
          return baseHabit;
       });
 

@@ -13,7 +13,9 @@ export function EditHabitModal({ habit, onClose }: EditHabitModalProps) {
   const { editHabit, deleteHabit } = useStore();
   const [name, setName] = useState(habit.name || "");
   const [repeatType, setRepeatType] = useState<"every_day" | "weekdays" | "weekends" | "custom_days">(habit.repeatType || "every_day");
-  const [customDays, setCustomDays] = useState<string[]>(habit.customDays || []);
+  const [customDays, setCustomDays] = useState<string[]>(() => {
+    return Array.isArray(habit.customDays) ? habit.customDays : [];
+  });
   const [difficulty, setDifficulty] = useState(habit.difficulty || "Medium");
   const [notes, setNotes] = useState(habit.notes || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
