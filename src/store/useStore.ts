@@ -273,7 +273,25 @@ export const useStore = create<State>((set, get) => ({
       };
       
       const currentUser = auth.currentUser;
-      const enrichedHabits = (habitsData || []).map((h: any) => {
+      let habitsArray: any[] = [];
+      if (Array.isArray(habitsData)) {
+        habitsArray = habitsData;
+      } else if (habitsData && typeof habitsData === "object") {
+        if (Array.isArray((habitsData as any).habits)) {
+          habitsArray = (habitsData as any).habits;
+        } else if (Array.isArray((habitsData as any).data)) {
+          habitsArray = (habitsData as any).data;
+        }
+      }
+
+      if (!Array.isArray(habitsArray)) {
+        console.log("habitsData is not an array:", habitsData);
+        console.log("typeof habitsData:", typeof habitsData);
+        console.log("Array.isArray(habitsData):", Array.isArray(habitsData));
+        habitsArray = [];
+      }
+
+      const enrichedHabits = habitsArray.map((h: any) => {
          let baseHabit = { ...h };
          if (currentUser && h.name) {
             const key = `habit_meta_${currentUser.uid}_${h.name}`;
@@ -422,15 +440,21 @@ export const useStore = create<State>((set, get) => ({
 
   sendChat: async (message: string) => {
     const { user, habits } = get();
+    if (!Array.isArray(habits)) {
+      console.log("habits in sendChat:", habits);
+      console.log("typeof habits:", typeof habits);
+      console.log("Array.isArray(habits):", Array.isArray(habits));
+    }
+    const safeHabits = Array.isArray(habits) ? habits : [];
     
     const contextData = {
       name: user?.name || "Achiever",
       level: user?.level || 1,
       streak: user?.streak || 0,
-      habits: (habits || []).map(h => ({
-        name: h.name,
-        completedToday: !!h.completedToday,
-        completed: !!h.completedToday
+      habits: safeHabits.map(h => ({
+        name: h ? h.name : "",
+        completedToday: h ? !!h.completedToday : false,
+        completed: h ? !!h.completedToday : false
       }))
     };
 
@@ -468,18 +492,44 @@ export const useStore = create<State>((set, get) => ({
     try {
       set({ chatLoading: true })
       const data = await apiRequest("/api/conversations")
-      set({ chatSessions: data || [] })
+      
+      let sessionsArray: any[] = []
+      if (Array.isArray(data)) {
+        sessionsArray = data
+      } else if (data && typeof data === 'object') {
+        if (Array.isArray((data as any).conversations)) {
+          sessionsArray = (data as any).conversations
+        } else if (Array.isArray((data as any).sessions)) {
+          sessionsArray = (data as any).sessions
+        } else if (Array.isArray((data as any).data)) {
+          sessionsArray = (data as any).data
+        }
+      }
+
+      if (!Array.isArray(sessionsArray)) {
+        console.log("data from api/conversations is not an array:", data);
+        console.log("typeof data:", typeof data);
+        console.log("Array.isArray(data):", Array.isArray(data));
+        sessionsArray = []
+      }
+
+      set({ chatSessions: sessionsArray })
       
       const currentActiveId = get().activeChatId
-      const sessions = data || []
+      const sessions = sessionsArray
       
       if (!currentActiveId && sessions.length > 0) {
         const sorted = [...sessions].sort((a, b) => {
-          if (a.is_pinned && !b.is_pinned) return -1
-          if (!a.is_pinned && b.is_pinned) return 1
-          return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+          if (a && b) {
+            if (a.is_pinned && !b.is_pinned) return -1
+            if (!a.is_pinned && b.is_pinned) return 1
+            return new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime()
+          }
+          return 0
         })
-        await get().selectSession(sorted[0].id)
+        if (sorted[0] && sorted[0].id) {
+          await get().selectSession(sorted[0].id)
+        }
       }
     } catch (err: any) {
       console.error("fetchSessions error:", err)
@@ -521,7 +571,28 @@ export const useStore = create<State>((set, get) => ({
     try {
       set({ chatLoading: true })
       const messages = await apiRequest(`/api/chats?conversationId=${id}`)
-      set({ chatMessages: messages || [] })
+      
+      let messagesArray: any[] = []
+      if (Array.isArray(messages)) {
+        messagesArray = messages
+      } else if (messages && typeof messages === 'object') {
+        if (Array.isArray((messages as any).messages)) {
+          messagesArray = (messages as any).messages
+        } else if (Array.isArray((messages as any).chats)) {
+          messagesArray = (messages as any).chats
+        } else if (Array.isArray((messages as any).data)) {
+          messagesArray = (messages as any).data
+        }
+      }
+
+      if (!Array.isArray(messagesArray)) {
+        console.log("messages from api/chats is not an array:", messages);
+        console.log("typeof messages:", typeof messages);
+        console.log("Array.isArray(messages):", Array.isArray(messages));
+        messagesArray = []
+      }
+
+      set({ chatMessages: messagesArray })
     } catch (err: any) {
       console.error("selectSession error:", err)
       toast.error("Failed to load messages")
@@ -531,11 +602,19 @@ export const useStore = create<State>((set, get) => ({
   },
 
   deleteSession: async (id: string) => {
+    const sessions = get().chatSessions;
+    if (!Array.isArray(sessions)) {
+      console.log("chatSessions in deleteSession:", sessions);
+      console.log("typeof chatSessions:", typeof sessions);
+      console.log("Array.isArray:", Array.isArray(sessions));
+    }
+    const safeSessions = Array.isArray(sessions) ? sessions : [];
+
     const isDeletingActive = get().activeChatId === id
     const isTemp = id === 'temp_new'
 
     if (isTemp) {
-      const updatedSessions = get().chatSessions.filter(s => s.id !== 'temp_new')
+      const updatedSessions = safeSessions.filter(s => s && s.id !== 'temp_new')
       set({
         chatSessions: updatedSessions,
         activeChatId: updatedSessions.length > 0 ? updatedSessions[0].id : null
@@ -553,7 +632,7 @@ export const useStore = create<State>((set, get) => ({
       await apiRequest(`/api/conversation/${id}`, "DELETE")
       toast.success("Conversation deleted")
       
-      const updatedSessions = get().chatSessions.filter(s => s.id !== id)
+      const updatedSessions = safeSessions.filter(s => s && s.id !== id)
       set({ chatSessions: updatedSessions })
 
       if (isDeletingActive) {
@@ -576,15 +655,23 @@ export const useStore = create<State>((set, get) => ({
   renameSession: async (id: string, title: string) => {
     if (!title.trim()) return
 
+    const sessions = get().chatSessions;
+    if (!Array.isArray(sessions)) {
+      console.log("chatSessions in renameSession:", sessions);
+      console.log("typeof chatSessions:", typeof sessions);
+      console.log("Array.isArray:", Array.isArray(sessions));
+    }
+    const safeSessions = Array.isArray(sessions) ? sessions : [];
+
     if (id === 'temp_new') {
       set({
-        chatSessions: get().chatSessions.map(s => s.id === 'temp_new' ? { ...s, title } : s)
+        chatSessions: safeSessions.map(s => s && s.id === 'temp_new' ? { ...s, title } : s)
       })
       return
     }
 
     try {
-      const session = get().chatSessions.find(s => s.id === id)
+      const session = safeSessions.find(s => s && s.id === id)
       const isPinnedValue = session ? session.is_pinned : false
 
       await apiRequest(`/api/conversation/${id}`, "PUT", {
@@ -595,7 +682,7 @@ export const useStore = create<State>((set, get) => ({
       })
 
       set({
-        chatSessions: get().chatSessions.map(s => s.id === id ? { ...s, title } : s)
+        chatSessions: safeSessions.map(s => s && s.id === id ? { ...s, title } : s)
       })
     } catch (err: any) {
       console.error("renameSession error:", err)
@@ -604,20 +691,28 @@ export const useStore = create<State>((set, get) => ({
   },
 
   pinSession: async (id: string) => {
+    const sessions = get().chatSessions;
+    if (!Array.isArray(sessions)) {
+      console.log("chatSessions in pinSession:", sessions);
+      console.log("typeof chatSessions:", typeof sessions);
+      console.log("Array.isArray:", Array.isArray(sessions));
+    }
+    const safeSessions = Array.isArray(sessions) ? sessions : [];
+
     if (id === 'temp_new') {
       set({
-        chatSessions: get().chatSessions.map(s => s.id === 'temp_new' ? { ...s, is_pinned: !s.is_pinned } : s)
+        chatSessions: safeSessions.map(s => s && s.id === 'temp_new' ? { ...s, is_pinned: !s.is_pinned } : s)
       })
       return
     }
 
-    const session = get().chatSessions.find(s => s.id === id)
+    const session = safeSessions.find(s => s && s.id === id)
     if (!session) return
 
     const newPinState = !session.is_pinned
 
     set({
-      chatSessions: get().chatSessions.map(s => s.id === id ? { ...s, is_pinned: newPinState } : s)
+      chatSessions: safeSessions.map(s => s && s.id === id ? { ...s, is_pinned: newPinState } : s)
     })
 
     try {
@@ -630,7 +725,7 @@ export const useStore = create<State>((set, get) => ({
     } catch (err: any) {
       console.error("pinSession error:", err)
       set({
-        chatSessions: get().chatSessions.map(s => s.id === id ? { ...s, is_pinned: session.is_pinned } : s)
+        chatSessions: safeSessions.map(s => s && s.id === id ? { ...s, is_pinned: session.is_pinned } : s)
       })
       toast.error("Failed to pin conversation")
     }
@@ -654,14 +749,21 @@ export const useStore = create<State>((set, get) => ({
       chatLoading: true
     })
 
+    if (!Array.isArray(habits)) {
+      console.log("habits in sendChatMessage:", habits);
+      console.log("typeof habits:", typeof habits);
+      console.log("Array.isArray(habits):", Array.isArray(habits));
+    }
+    const safeHabits = Array.isArray(habits) ? habits : [];
+
     const contextData = {
       name: user?.name || "Achiever",
       level: user?.level || 1,
       streak: user?.streak || 0,
-      habits: (habits || []).map(h => ({
-        name: h.name,
-        completedToday: !!h.completedToday,
-        completed: !!h.completedToday
+      habits: safeHabits.map(h => ({
+        name: h ? h.name : "",
+        completedToday: h ? !!h.completedToday : false,
+        completed: h ? !!h.completedToday : false
       }))
     }
 
@@ -752,14 +854,21 @@ export const useStore = create<State>((set, get) => ({
     })
 
     const { user, habits } = get()
+    if (!Array.isArray(habits)) {
+      console.log("habits in regenerateMessage:", habits);
+      console.log("typeof habits:", typeof habits);
+      console.log("Array.isArray(habits):", Array.isArray(habits));
+    }
+    const safeHabits = Array.isArray(habits) ? habits : [];
+
     const contextData = {
       name: user?.name || "Achiever",
       level: user?.level || 1,
       streak: user?.streak || 0,
-      habits: (habits || []).map(h => ({
-        name: h.name,
-        completedToday: !!h.completedToday,
-        completed: !!h.completedToday
+      habits: safeHabits.map(h => ({
+        name: h ? h.name : "",
+        completedToday: h ? !!h.completedToday : false,
+        completed: h ? !!h.completedToday : false
       }))
     }
 
@@ -817,14 +926,21 @@ export const useStore = create<State>((set, get) => ({
     })
 
     const { user, habits } = get()
+    if (!Array.isArray(habits)) {
+      console.log("habits in editPreviousMessage:", habits);
+      console.log("typeof habits:", typeof habits);
+      console.log("Array.isArray(habits):", Array.isArray(habits));
+    }
+    const safeHabits = Array.isArray(habits) ? habits : [];
+
     const contextData = {
       name: user?.name || "Achiever",
       level: user?.level || 1,
       streak: user?.streak || 0,
-      habits: (habits || []).map(h => ({
-        name: h.name,
-        completedToday: !!h.completedToday,
-        completed: !!h.completedToday
+      habits: safeHabits.map(h => ({
+        name: h ? h.name : "",
+        completedToday: h ? !!h.completedToday : false,
+        completed: h ? !!h.completedToday : false
       }))
     }
 

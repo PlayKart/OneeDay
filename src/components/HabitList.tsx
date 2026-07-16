@@ -21,9 +21,22 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
   });
 
   const safeHabits = Array.isArray(habits) ? habits : [];
+  if (!Array.isArray(habits)) {
+    console.log("habits in HabitList:", habits);
+    console.log("typeof habits:", typeof habits);
+    console.log("Array.isArray:", Array.isArray(habits));
+  }
   const displayHabits = previewMode 
     ? safeHabits.filter(h => h && !h.completedToday && isHabitScheduledForToday(h)).slice(0, 5) 
     : safeHabits;
+
+  if (!Array.isArray(displayHabits)) {
+    console.log("displayHabits:", displayHabits);
+    console.log("typeof displayHabits:", typeof displayHabits);
+    console.log("Array.isArray:", Array.isArray(displayHabits));
+  }
+
+  const guardedDisplayHabits = Array.isArray(displayHabits) ? displayHabits : [];
 
   return (
     <>
@@ -35,7 +48,7 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
       )}
 
       <div className="grid grid-cols-1 gap-3">
-        {(displayHabits || []).map((habit) => {
+        {guardedDisplayHabits.map((habit) => {
           const isToday = isHabitScheduledForToday(habit);
           return (
           <motion.div 

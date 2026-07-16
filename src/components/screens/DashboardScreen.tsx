@@ -25,8 +25,14 @@ export function DashboardScreen() {
   if (!user) return null;
 
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-  const todaysHabits = habits.filter(isHabitScheduledForToday);
-  const completedToday = habits.filter(h => h.completedToday).length; 
+  const safeHabits = Array.isArray(habits) ? habits : [];
+  if (!Array.isArray(habits)) {
+    console.log("habits in DashboardScreen:", habits);
+    console.log("typeof habits:", typeof habits);
+    console.log("Array.isArray:", Array.isArray(habits));
+  }
+  const todaysHabits = safeHabits.filter(isHabitScheduledForToday);
+  const completedToday = safeHabits.filter(h => h && h.completedToday).length; 
   const totalHabits = todaysHabits.length;
   const completionPercentage = totalHabits === 0 ? 0 : Math.round((completedToday / totalHabits) * 100);
 

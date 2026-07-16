@@ -172,7 +172,13 @@ export const AICoach = () => {
   };
 
   const handleDeleteMessageLocal = (msgId: string) => {
-    const updated = chatMessages.filter(m => m.id !== msgId);
+    if (!Array.isArray(chatMessages)) {
+      console.log("chatMessages in handleDeleteMessageLocal:", chatMessages);
+      console.log("typeof chatMessages:", typeof chatMessages);
+      console.log("Array.isArray:", Array.isArray(chatMessages));
+    }
+    const safeMsgs = Array.isArray(chatMessages) ? chatMessages : [];
+    const updated = safeMsgs.filter(m => m && m.id !== msgId);
     useStore.setState({ chatMessages: updated });
     toast.success("Message deleted");
   };
@@ -184,12 +190,18 @@ export const AICoach = () => {
   };
 
   const handleExportChat = () => {
-    if (chatMessages.length === 0) {
+    if (!Array.isArray(chatMessages)) {
+      console.log("chatMessages in handleExportChat:", chatMessages);
+      console.log("typeof chatMessages:", typeof chatMessages);
+      console.log("Array.isArray:", Array.isArray(chatMessages));
+    }
+    const safeMsgs = Array.isArray(chatMessages) ? chatMessages : [];
+    if (safeMsgs.length === 0) {
       toast.error("No messages to export");
       return;
     }
-    const text = chatMessages
-      .map(m => `### ${m.role === 'user' ? 'User' : 'OneDay Coach'}\n\n${m.content}\n\n`)
+    const text = safeMsgs
+      .map(m => m ? `### ${m.role === 'user' ? 'User' : 'OneDay Coach'}\n\n${m.content}\n\n` : "")
       .join('---\n\n');
     const blob = new Blob([`# OneDay Coaching Log\n\n${text}`], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
@@ -244,6 +256,11 @@ export const AICoach = () => {
   };
 
   // Filter and sort conversations
+  if (!Array.isArray(chatSessions)) {
+    console.log("chatSessions in AICoach:", chatSessions);
+    console.log("typeof chatSessions:", typeof chatSessions);
+    console.log("Array.isArray:", Array.isArray(chatSessions));
+  }
   const safeChatSessions = Array.isArray(chatSessions) ? chatSessions : [];
   const sortedSessions = [...safeChatSessions].sort((a, b) => {
     if (a && b) {
@@ -254,13 +271,35 @@ export const AICoach = () => {
     return 0;
   });
 
+  if (!Array.isArray(sortedSessions)) {
+    console.log("sortedSessions in AICoach:", sortedSessions);
+    console.log("typeof sortedSessions:", typeof sortedSessions);
+    console.log("Array.isArray:", Array.isArray(sortedSessions));
+  }
   const filteredSessions = sortedSessions.filter(session => 
     session && typeof session.title === "string" && session.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  if (!Array.isArray(habits)) {
+    console.log("habits in AICoach:", habits);
+    console.log("typeof habits:", typeof habits);
+    console.log("Array.isArray:", Array.isArray(habits));
+  }
   const safeHabits = Array.isArray(habits) ? habits : [];
   const totalHabits = safeHabits.length;
+  
+  if (!Array.isArray(safeHabits)) {
+    console.log("safeHabits in AICoach:", safeHabits);
+    console.log("typeof safeHabits:", typeof safeHabits);
+    console.log("Array.isArray:", Array.isArray(safeHabits));
+  }
   const completedToday = safeHabits.filter(h => h && h.completedToday).length;
+
+  if (!Array.isArray(chatMessages)) {
+    console.log("chatMessages in AICoach:", chatMessages);
+    console.log("typeof chatMessages:", typeof chatMessages);
+    console.log("Array.isArray:", Array.isArray(chatMessages));
+  }
   const safeChatMessages = Array.isArray(chatMessages) ? chatMessages : [];
 
   const quickPrompts = [

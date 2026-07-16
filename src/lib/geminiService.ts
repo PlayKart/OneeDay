@@ -8,10 +8,17 @@ export async function generateQuote(streak: number, habits: Habit[]): Promise<st
      return streak >= 7 ? "You're ahead of 99%. Don't slow down." : "One day broke. Don't let two.";
   }
 
+  const safeHabits = Array.isArray(habits) ? habits : [];
+  if (!Array.isArray(habits)) {
+    console.log("habits in generateQuote:", habits);
+    console.log("typeof habits:", typeof habits);
+    console.log("Array.isArray:", Array.isArray(habits));
+  }
+
   const prompt = `You are an elite, stoic productivity AI coach. 
 Generate ONE intense, premium motivational quote (maximum 12 words) for a user.
 Their current daily streak is ${streak}.
-Their current active habits are: ${habits.map(h => h.name).join(", ") || "None yet"}.
+Their current active habits are: ${safeHabits.map(h => h ? h.name : "").filter(Boolean).join(", ") || "None yet"}.
 Focus on discipline, building their specific system, and consistency. 
 Do not be cheesy. No emojis. Be sharp and direct. Just the quote text.`;
 
