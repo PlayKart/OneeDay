@@ -5,6 +5,7 @@ import { useStore, Habit } from '../store/useStore';
 import { toast } from 'react-hot-toast';
 import { isHabitScheduledForToday, getScheduledDaysMessage } from '../lib/habitUtils';
 import { EditHabitModal } from './EditHabitModal';
+import { getHabitIconComponent, getHabitColorTheme } from '../lib/habitIcons';
 
 export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) => {
   const { habits, completeHabit, undoHabit, loading } = useStore();
@@ -50,6 +51,9 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
       <div className="grid grid-cols-1 gap-3">
         {guardedDisplayHabits.map((habit) => {
           const isToday = isHabitScheduledForToday(habit);
+          const IconComp = getHabitIconComponent(habit.icon, habit.name);
+          const colorTheme = getHabitColorTheme(habit.category, habit.name);
+
           return (
           <motion.div 
             layout
@@ -60,16 +64,21 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
                 : 'bg-white/[0.03] border-white/5 hover:bg-white/[0.08] hover:border-white/20'
             }`}
           >
-            <div className="flex flex-col gap-1.5">
-              <h4 className={`font-bold transition-all text-sm ${habit.completedToday ? 'text-slate-500' : 'text-white'}`}>
-                {habit.name}
-              </h4>
-              <p className={`text-[10px] font-bold uppercase tracking-widest ${habit.completedToday ? 'text-green-500/50' : 'text-slate-600'}`}>
-                {habit.completedToday ? 'Completed' : (isToday ? 'Scheduled Today' : getScheduledDaysMessage(habit))}
-              </p>
+            <div className="flex items-center gap-3.5 min-w-0 pr-2">
+              <div className={`w-11 h-11 rounded-2xl ${colorTheme.bg} border ${colorTheme.border} flex items-center justify-center ${colorTheme.text} shrink-0 transition-all duration-300 shadow-md ${habit.completedToday ? 'opacity-50 grayscale' : colorTheme.glow}`}>
+                <IconComp size={20} />
+              </div>
+              <div className="flex flex-col gap-1 min-w-0">
+                <h4 className={`font-bold transition-all text-sm truncate ${habit.completedToday ? 'text-slate-500 line-through' : 'text-white'}`}>
+                  {habit.name}
+                </h4>
+                <p className={`text-[10px] font-bold uppercase tracking-widest truncate ${habit.completedToday ? 'text-green-500/50' : 'text-slate-500'}`}>
+                  {habit.completedToday ? 'Completed' : (isToday ? 'Scheduled Today' : getScheduledDaysMessage(habit))}
+                </p>
+              </div>
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <button 
                 onClick={async () => {
                   if (!isToday && !habit.completedToday) {

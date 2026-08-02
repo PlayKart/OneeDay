@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Calendar, Flag, Bell, AlignLeft, Check, Trash } from "lucide-react";
 import { useStore, Habit } from "../store/useStore";
+import { HabitIconPicker } from "./HabitIconPicker";
 
 interface EditHabitModalProps {
   habit: Habit;
@@ -18,6 +19,8 @@ export function EditHabitModal({ habit, onClose }: EditHabitModalProps) {
   });
   const [difficulty, setDifficulty] = useState(habit.difficulty || "Medium");
   const [notes, setNotes] = useState(habit.notes || "");
+  const [selectedIcon, setSelectedIcon] = useState(habit.icon || "dumbbell");
+  const [selectedColor, setSelectedColor] = useState(habit.category || "emerald");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -54,7 +57,9 @@ export function EditHabitModal({ habit, onClose }: EditHabitModalProps) {
         repeatType,
         customDays: repeatType === "custom_days" ? customDays : [],
         difficulty,
-        notes
+        notes,
+        icon: selectedIcon,
+        category: selectedColor
       });
       onClose();
     } catch (e) {
@@ -105,7 +110,7 @@ export function EditHabitModal({ habit, onClose }: EditHabitModalProps) {
           </div>
         </div>
 
-        <div className="overflow-y-auto space-y-8 pb-8 scrollbar-hide flex-1">
+        <div className="overflow-y-auto space-y-6 pb-8 scrollbar-hide flex-1">
            {/* Name */}
            <div>
              <input 
@@ -117,6 +122,14 @@ export function EditHabitModal({ habit, onClose }: EditHabitModalProps) {
                autoFocus
              />
            </div>
+
+           {/* Habitify Icon & Color Picker */}
+           <HabitIconPicker
+             selectedIcon={selectedIcon}
+             selectedColor={selectedColor}
+             onSelectIcon={setSelectedIcon}
+             onSelectColor={setSelectedColor}
+           />
 
            {/* Repeat Schedule */}
            <div className="space-y-3">

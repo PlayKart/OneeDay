@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { motion } from "motion/react";
 import { X, Calendar, Flag, Bell, AlignLeft, Check } from "lucide-react";
 import { useStore } from "../store/useStore";
+import { HabitIconPicker } from "./HabitIconPicker";
 
 interface CreateHabitModalProps {
   onClose: () => void;
@@ -15,6 +16,8 @@ export function CreateHabitModal({ onClose }: CreateHabitModalProps) {
   const [customDays, setCustomDays] = useState<string[]>([]);
   const [difficulty, setDifficulty] = useState("Medium");
   const [notes, setNotes] = useState("");
+  const [selectedIcon, setSelectedIcon] = useState("dumbbell");
+  const [selectedColor, setSelectedColor] = useState("emerald");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -50,7 +53,9 @@ export function CreateHabitModal({ onClose }: CreateHabitModalProps) {
         repeatType,
         customDays: repeatType === "custom_days" ? customDays : [],
         difficulty,
-        notes
+        notes,
+        icon: selectedIcon,
+        category: selectedColor
       });
       onClose();
     } catch (e) {
@@ -83,7 +88,7 @@ export function CreateHabitModal({ onClose }: CreateHabitModalProps) {
           </button>
         </div>
 
-        <div className="overflow-y-auto space-y-8 pb-8 scrollbar-hide flex-1">
+        <div className="overflow-y-auto space-y-6 pb-8 scrollbar-hide flex-1">
            {/* Name */}
            <div>
              <input 
@@ -95,6 +100,14 @@ export function CreateHabitModal({ onClose }: CreateHabitModalProps) {
                autoFocus
              />
            </div>
+
+           {/* Habitify Icon & Color Picker */}
+           <HabitIconPicker
+             selectedIcon={selectedIcon}
+             selectedColor={selectedColor}
+             onSelectIcon={setSelectedIcon}
+             onSelectColor={setSelectedColor}
+           />
 
            {/* Repeat Schedule */}
            <div className="space-y-3">
