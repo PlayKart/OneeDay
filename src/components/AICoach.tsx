@@ -502,7 +502,7 @@ export const AICoach = () => {
 
               {/* Bottom Large Rounded + New Chat Button */}
               <button
-                onClick={createSession}
+                onClick={() => createSession()}
                 className="w-full py-4 rounded-2xl border border-white bg-black hover:bg-white hover:text-black text-xs font-extrabold uppercase tracking-widest text-white transition-all cursor-pointer active:scale-98"
               >
                 + New Chat
