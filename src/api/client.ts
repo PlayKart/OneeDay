@@ -65,10 +65,26 @@ apiClient.interceptors.response.use(
       console.warn("Network error or timeout on request:", originalRequest?.url);
     }
 
-    // Standardize error message
+    // Standardize error message & log Supabase / Backend errors
     const responseData = error.response?.data as any;
-    const serverMessage = responseData?.error || responseData?.message || error.message || "An unexpected error occurred";
-    return Promise.reject(new Error(serverMessage));
+    console.error("API / Supabase Error Response:", error.response?.status, responseData || error.message);
+
+    let serverMessage = "An unexpected error occurred";
+    if (responseData) {
+      if (typeof responseData.error === "object" && responseData.error?.message) {
+        serverMessage = responseData.error.message;
+      } else if (typeof responseData.error === "string") {
+        serverMessage = responseData.error;
+      } else if (responseData.message) {
+        serverMessage = responseData.message;
+      }
+    } else if (error.message) {
+      serverMessage = error.message;
+    }
+
+    const err = new Error(serverMessage);
+    (err as any).response = error.response;
+    return Promise.reject(err);
   }
 );
 

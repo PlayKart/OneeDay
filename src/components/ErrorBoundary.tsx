@@ -24,9 +24,25 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("Uncaught Error Boundary catch:", error, errorInfo);
+
+    // Check for dynamic import chunk failure
+    const msg = error?.message || "";
+    if (
+      msg.includes("Failed to fetch dynamically imported module") ||
+      msg.includes("Importing a module script failed") ||
+      msg.includes("error loading dynamically imported module")
+    ) {
+      const reloadKey = "vite_chunk_reload_attempts";
+      if (!sessionStorage.getItem(reloadKey)) {
+        sessionStorage.setItem(reloadKey, "true");
+        window.location.reload();
+      }
+    }
   }
 
   public handleReset = () => {
+    sessionStorage.removeItem("vite_chunk_reload_attempts");
+    sessionStorage.removeItem("vite_preload_reloaded");
     this.setState({ hasError: false, error: null });
     window.location.reload();
   };

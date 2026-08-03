@@ -21,8 +21,18 @@ export const habitService = {
   },
 
   async createHabit(habitData: Partial<Habit>): Promise<Habit> {
+    // 1. Validate required fields
+    if (!habitData.name || !habitData.name.trim()) {
+      throw new Error("Habit name is required");
+    }
+
+    if (habitData.repeatType === "custom_days" && (!habitData.customDays || habitData.customDays.length === 0)) {
+      throw new Error("At least one custom day must be selected");
+    }
+
+    // 2. Prepare payload matching both snake_case and camelCase
     const payload = {
-      name: habitData.name,
+      name: habitData.name.trim(),
       repeatType: habitData.repeatType || "every_day",
       repeat_type: habitData.repeatType || "every_day",
       customDays: habitData.customDays || [],
@@ -34,17 +44,53 @@ export const habitService = {
       reminderTime: habitData.reminderTime || "",
       reminder_time: habitData.reminderTime || "",
     };
-    console.log("Posting POST /api/habits payload:", payload);
 
-    const res = await apiClient.post<Habit | { habit: Habit }>("/api/habits", payload);
+    // 3. Log incoming request payload
+    console.log("POST /api/habits request payload:", payload);
 
-    const h: any = (res.data as any)?.habit || res.data;
+    let res: any;
+    try {
+      res = await apiClient.post("/api/habits", payload);
+    } catch (err: any) {
+      if (err?.response?.status === 404 || err?.message?.includes("404")) {
+        console.warn("POST /api/habits returned 404, falling back to POST /api/habit");
+        res = await apiClient.post("/api/habit", payload);
+      } else {
+        console.error("Supabase / API POST error:", err);
+        throw err;
+      }
+    }
+
+    const body = res.data;
+    if (body && body.success === false) {
+      const errMsg = body.error?.message || (typeof body.error === "string" ? body.error : "Failed to create habit");
+      console.error("Supabase error response:", body.error || errMsg);
+      throw new Error(errMsg);
+    }
+
+    let h: any;
+    if (body?.success && body?.data) {
+      h = body.data.habit || body.data;
+    } else if (body?.data) {
+      h = body.data.habit || body.data;
+    } else if (body?.habit) {
+      h = body.habit;
+    } else {
+      h = body;
+    }
+
     return {
-      ...h,
-      completedToday: Boolean(h.completedToday || h.completed_today),
-      completedDates: normalizeCompletedDates(h.completedDates || h.completed_dates),
-      repeatType: h.repeatType || h.repeat_type || "every_day",
-      customDays: safeArray(h.customDays || h.custom_days),
+      id: h?.id || h?._id || `habit_${Date.now()}`,
+      name: h?.name || payload.name,
+      completedToday: Boolean(h?.completedToday || h?.completed_today),
+      completedDates: normalizeCompletedDates(h?.completedDates || h?.completed_dates),
+      repeatType: h?.repeatType || h?.repeat_type || payload.repeatType,
+      customDays: safeArray(h?.customDays || h?.custom_days || payload.customDays),
+      difficulty: h?.difficulty || payload.difficulty,
+      notes: h?.notes ?? payload.notes,
+      icon: h?.icon || payload.icon,
+      category: h?.category || payload.category,
+      reminderTime: h?.reminderTime || h?.reminder_time || payload.reminderTime,
     };
   },
 
@@ -62,17 +108,52 @@ export const habitService = {
       reminderTime: habitData.reminderTime,
       reminder_time: habitData.reminderTime,
     };
-    console.log(`Posting PUT /api/habits/${habitId} payload:`, payload);
 
-    const res = await apiClient.put<Habit | { habit: Habit }>(`/api/habits/${habitId}`, payload);
+    console.log(`PUT /api/habits/${habitId} request payload:`, payload);
 
-    const h: any = (res.data as any)?.habit || res.data;
+    let res: any;
+    try {
+      res = await apiClient.put(`/api/habits/${habitId}`, payload);
+    } catch (err: any) {
+      if (err?.response?.status === 404 || err?.message?.includes("404")) {
+        console.warn(`PUT /api/habits/${habitId} returned 404, falling back to PUT /api/habit/${habitId}`);
+        res = await apiClient.put(`/api/habit/${habitId}`, payload);
+      } else {
+        console.error("Supabase / API PUT error:", err);
+        throw err;
+      }
+    }
+
+    const body = res.data;
+    if (body && body.success === false) {
+      const errMsg = body.error?.message || (typeof body.error === "string" ? body.error : "Failed to update habit");
+      console.error("Supabase error response:", body.error || errMsg);
+      throw new Error(errMsg);
+    }
+
+    let h: any;
+    if (body?.success && body?.data) {
+      h = body.data.habit || body.data;
+    } else if (body?.data) {
+      h = body.data.habit || body.data;
+    } else if (body?.habit) {
+      h = body.habit;
+    } else {
+      h = body;
+    }
+
     return {
-      ...h,
-      completedToday: Boolean(h.completedToday || h.completed_today),
-      completedDates: normalizeCompletedDates(h.completedDates || h.completed_dates),
-      repeatType: h.repeatType || h.repeat_type || "every_day",
-      customDays: safeArray(h.customDays || h.custom_days),
+      id: h?.id || habitId,
+      name: h?.name || payload.name,
+      completedToday: Boolean(h?.completedToday || h?.completed_today),
+      completedDates: normalizeCompletedDates(h?.completedDates || h?.completed_dates),
+      repeatType: h?.repeatType || h?.repeat_type || payload.repeatType,
+      customDays: safeArray(h?.customDays || h?.custom_days || payload.customDays),
+      difficulty: h?.difficulty || payload.difficulty,
+      notes: h?.notes ?? payload.notes,
+      icon: h?.icon || payload.icon,
+      category: h?.category || payload.category,
+      reminderTime: h?.reminderTime || h?.reminder_time || payload.reminderTime,
     };
   },
 
