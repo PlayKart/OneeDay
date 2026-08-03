@@ -66,7 +66,8 @@ apiClient.interceptors.response.use(
     }
 
     // Standardize error message
-    const serverMessage = (error.response?.data as any)?.error || error.message || "An unexpected error occurred";
+    const responseData = error.response?.data as any;
+    const serverMessage = responseData?.error || responseData?.message || error.message || "An unexpected error occurred";
     return Promise.reject(new Error(serverMessage));
   }
 );

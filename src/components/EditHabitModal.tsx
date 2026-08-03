@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { motion, AnimatePresence } from "motion/react";
-import { X, Calendar, Flag, Bell, AlignLeft, Check, Trash } from "lucide-react";
+import { motion } from "motion/react";
+import { X, Calendar, Flag, AlignLeft, Check, Trash } from "lucide-react";
 import { useStore, Habit } from "../store/useStore";
 import { HabitIconPicker } from "./HabitIconPicker";
+import { toast } from "react-hot-toast";
 
 interface EditHabitModalProps {
   habit: Habit;
@@ -11,7 +12,7 @@ interface EditHabitModalProps {
 }
 
 export function EditHabitModal({ habit, onClose }: EditHabitModalProps) {
-  const { editHabit, deleteHabit } = useStore();
+  const { editHabit, deleteHabit, refreshFromBackend } = useStore();
   const [name, setName] = useState(habit.name || "");
   const [repeatType, setRepeatType] = useState<"every_day" | "weekdays" | "weekends" | "custom_days">(habit.repeatType || "every_day");
   const [customDays, setCustomDays] = useState<string[]>(() => {
@@ -48,22 +49,48 @@ export function EditHabitModal({ habit, onClose }: EditHabitModalProps) {
     );
   };
 
-  const handleSave = async () => {
-    if (!name.trim()) return;
+  const handleSave = async (e?: React.SyntheticEvent) => {
+    if (e) e.preventDefault();
+    if (isSubmitting || isDeleting) return;
+
+    // Validate fields
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      toast.error("Please enter a habit name.");
+      return;
+    }
+
+    if (repeatType === "custom_days" && (!customDays || customDays.length === 0)) {
+      toast.error("Please select at least one day for custom schedule.");
+      return;
+    }
+
+    const payload = {
+      name: trimmedName,
+      repeatType,
+      customDays: repeatType === "custom_days" ? customDays : [],
+      difficulty,
+      notes: notes.trim(),
+      icon: selectedIcon,
+      category: selectedColor
+    };
+
+    console.log("Update Habit Request Payload:", payload);
     setIsSubmitting(true);
+
     try {
-      await editHabit(habit.id, {
-        name: name.trim(),
-        repeatType,
-        customDays: repeatType === "custom_days" ? customDays : [],
-        difficulty,
-        notes,
-        icon: selectedIcon,
-        category: selectedColor
-      });
+      await editHabit(habit.id, payload);
+      await refreshFromBackend();
+      toast.success("Habit updated successfully!");
       onClose();
-    } catch (e) {
-      console.error(e);
+    } catch (err: any) {
+      console.error("Failed to update habit:", err);
+      const errorMessage = err?.response?.data?.error 
+        || err?.response?.data?.message 
+        || err?.message 
+        || "Failed to update habit";
+      toast.error(errorMessage);
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -73,9 +100,17 @@ export function EditHabitModal({ habit, onClose }: EditHabitModalProps) {
       setIsDeleting(true);
       try {
         await deleteHabit(habit.id);
+        await refreshFromBackend();
+        toast.success("Habit deleted successfully!");
         onClose();
-      } catch (e) {
-        console.error(e);
+      } catch (err: any) {
+        console.error("Failed to delete habit:", err);
+        const errorMessage = err?.response?.data?.error 
+          || err?.response?.data?.message 
+          || err?.message 
+          || "Failed to delete habit";
+        toast.error(errorMessage);
+      } finally {
         setIsDeleting(false);
       }
     }
@@ -91,7 +126,8 @@ export function EditHabitModal({ habit, onClose }: EditHabitModalProps) {
         onClick={onClose}
       />
       
-      <motion.div
+      <motion.form
+        onSubmit={handleSave}
         initial={{ y: "100%", opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: "100%", opacity: 0 }}
@@ -101,10 +137,10 @@ export function EditHabitModal({ habit, onClose }: EditHabitModalProps) {
         <div className="flex justify-between items-center mb-6 shrink-0">
           <h2 className="text-xl font-bold tracking-tighter">Edit Habit</h2>
           <div className="flex gap-2">
-            <button onClick={handleDelete} className="p-2 bg-red-500/10 rounded-full hover:bg-red-500/20 text-red-500 transition-colors">
+            <button type="button" onClick={handleDelete} disabled={isDeleting} className="p-2 bg-red-500/10 rounded-full hover:bg-red-500/20 text-red-500 transition-colors disabled:opacity-50">
               <Trash size={20} />
             </button>
-            <button onClick={onClose} className="p-2 bg-white/5 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors">
+            <button type="button" onClick={onClose} className="p-2 bg-white/5 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors">
               <X size={20} />
             </button>
           </div>
@@ -141,6 +177,7 @@ export function EditHabitModal({ habit, onClose }: EditHabitModalProps) {
              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                {(["every_day", "weekdays", "weekends", "custom_days"] as const).map(type => (
                  <button
+                   type="button"
                    key={type}
                    onClick={() => setRepeatType(type)}
                    className={`p-3 rounded-xl border text-xs font-bold transition-all ${
@@ -164,6 +201,7 @@ export function EditHabitModal({ habit, onClose }: EditHabitModalProps) {
                    const isSelected = customDays.includes(id);
                    return (
                      <button
+                       type="button"
                        key={id}
                        onClick={() => handleToggleDay(id)}
                        className={`flex-1 aspect-square rounded-full flex items-center justify-center text-xs font-bold border transition-all ${
@@ -189,6 +227,7 @@ export function EditHabitModal({ habit, onClose }: EditHabitModalProps) {
              <div className="flex gap-2">
                 {["Easy", "Medium", "Hard", "Elite"].map(level => (
                   <button
+                    type="button"
                     key={level}
                     onClick={() => setDifficulty(level)}
                     className={`flex-1 py-3 rounded-xl border text-xs font-bold transition-all ${
@@ -221,12 +260,16 @@ export function EditHabitModal({ habit, onClose }: EditHabitModalProps) {
 
         <div className="mt-4 shrink-0 pt-4 border-t border-white/10 pb-8 sm:pb-0">
           <button 
-            disabled={!name.trim() || isSubmitting || isDeleting || (repeatType === 'custom_days' && customDays.length === 0)}
+            type="submit"
             onClick={handleSave}
+            disabled={isSubmitting || isDeleting}
             className="w-full bg-white text-black font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-slate-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
              {isSubmitting ? (
-                <div className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                  <span>Saving...</span>
+                </div>
              ) : (
                 <>
                   <Check size={20} />
@@ -235,7 +278,7 @@ export function EditHabitModal({ habit, onClose }: EditHabitModalProps) {
              )}
           </button>
         </div>
-      </motion.div>
+      </motion.form>
     </div>
   );
 

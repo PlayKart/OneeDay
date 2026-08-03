@@ -21,16 +21,22 @@ export const habitService = {
   },
 
   async createHabit(habitData: Partial<Habit>): Promise<Habit> {
-    const res = await apiClient.post<Habit | { habit: Habit }>("/api/habits", {
+    const payload = {
       name: habitData.name,
       repeatType: habitData.repeatType || "every_day",
+      repeat_type: habitData.repeatType || "every_day",
       customDays: habitData.customDays || [],
+      custom_days: habitData.customDays || [],
       difficulty: habitData.difficulty || "Medium",
       notes: habitData.notes || "",
       icon: habitData.icon || "dumbbell",
       category: habitData.category || "emerald",
       reminderTime: habitData.reminderTime || "",
-    });
+      reminder_time: habitData.reminderTime || "",
+    };
+    console.log("Posting POST /api/habits payload:", payload);
+
+    const res = await apiClient.post<Habit | { habit: Habit }>("/api/habits", payload);
 
     const h: any = (res.data as any)?.habit || res.data;
     return {
@@ -43,16 +49,22 @@ export const habitService = {
   },
 
   async updateHabit(habitId: string, habitData: Partial<Habit>): Promise<Habit> {
-    const res = await apiClient.put<Habit | { habit: Habit }>(`/api/habits/${habitId}`, {
+    const payload = {
       name: habitData.name,
       repeatType: habitData.repeatType,
+      repeat_type: habitData.repeatType,
       customDays: habitData.customDays,
+      custom_days: habitData.customDays,
       difficulty: habitData.difficulty,
       notes: habitData.notes,
       icon: habitData.icon,
       category: habitData.category,
       reminderTime: habitData.reminderTime,
-    });
+      reminder_time: habitData.reminderTime,
+    };
+    console.log(`Posting PUT /api/habits/${habitId} payload:`, payload);
+
+    const res = await apiClient.put<Habit | { habit: Habit }>(`/api/habits/${habitId}`, payload);
 
     const h: any = (res.data as any)?.habit || res.data;
     return {

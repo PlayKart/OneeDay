@@ -1,16 +1,17 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion } from "motion/react";
-import { X, Calendar, Flag, Bell, AlignLeft, Check } from "lucide-react";
+import { X, Calendar, Flag, AlignLeft, Check } from "lucide-react";
 import { useStore } from "../store/useStore";
 import { HabitIconPicker } from "./HabitIconPicker";
+import { toast } from "react-hot-toast";
 
 interface CreateHabitModalProps {
   onClose: () => void;
 }
 
 export function CreateHabitModal({ onClose }: CreateHabitModalProps) {
-  const { addHabit } = useStore();
+  const { addHabit, refreshFromBackend } = useStore();
   const [name, setName] = useState("");
   const [repeatType, setRepeatType] = useState<"every_day" | "weekdays" | "weekends" | "custom_days">("every_day");
   const [customDays, setCustomDays] = useState<string[]>([]);
@@ -44,22 +45,59 @@ export function CreateHabitModal({ onClose }: CreateHabitModalProps) {
     );
   };
 
-  const handleSave = async () => {
-    if (!name.trim()) return;
+  const handleSave = async (e?: React.SyntheticEvent) => {
+    if (e) e.preventDefault();
+    if (isSubmitting) return;
+
+    // Requirement 2: Validate all required fields before submitting
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      toast.error("Please enter a habit name.");
+      return;
+    }
+
+    if (repeatType === "custom_days" && (!customDays || customDays.length === 0)) {
+      toast.error("Please select at least one day for custom schedule.");
+      return;
+    }
+
+    const payload = {
+      name: trimmedName,
+      repeatType,
+      customDays: repeatType === "custom_days" ? customDays : [],
+      difficulty,
+      notes: notes.trim(),
+      icon: selectedIcon,
+      category: selectedColor
+    };
+
+    // Requirement 3: Log the request payload before sending
+    console.log("Create Habit Request Payload:", payload);
+
+    // Requirement 5: Show loading state
     setIsSubmitting(true);
+
     try {
-      await addHabit({
-        name: name.trim(),
-        repeatType,
-        customDays: repeatType === "custom_days" ? customDays : [],
-        difficulty,
-        notes,
-        icon: selectedIcon,
-        category: selectedColor
-      });
+      // Requirement 4 & 10: Call backend endpoint via store
+      await addHabit(payload);
+
+      // Requirement 8: Refresh habits list after successful save
+      await refreshFromBackend();
+
+      // Requirement 6: Success toast notification
+      toast.success("Habit saved successfully!");
+
+      // Requirement 9: Close modal only after successful response
       onClose();
-    } catch (e) {
-      console.error(e);
+    } catch (err: any) {
+      console.error("Failed to create habit:", err);
+      // Requirement 7: Display exact backend error message
+      const errorMessage = err?.response?.data?.error 
+        || err?.response?.data?.message 
+        || err?.message 
+        || "Failed to create habit";
+      toast.error(errorMessage);
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -74,7 +112,8 @@ export function CreateHabitModal({ onClose }: CreateHabitModalProps) {
         onClick={onClose}
       />
       
-      <motion.div
+      <motion.form
+        onSubmit={handleSave}
         initial={{ y: "100%", opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: "100%", opacity: 0 }}
@@ -83,7 +122,7 @@ export function CreateHabitModal({ onClose }: CreateHabitModalProps) {
       >
         <div className="flex justify-between items-center mb-6 shrink-0">
           <h2 className="text-xl font-bold tracking-tighter">New Habit</h2>
-          <button onClick={onClose} className="p-2 bg-white/5 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors">
+          <button type="button" onClick={onClose} className="p-2 bg-white/5 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors">
             <X size={20} />
           </button>
         </div>
@@ -119,6 +158,7 @@ export function CreateHabitModal({ onClose }: CreateHabitModalProps) {
              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                {(["every_day", "weekdays", "weekends", "custom_days"] as const).map(type => (
                  <button
+                   type="button"
                    key={type}
                    onClick={() => setRepeatType(type)}
                    className={`p-3 rounded-xl border text-xs font-bold transition-all ${
@@ -142,6 +182,7 @@ export function CreateHabitModal({ onClose }: CreateHabitModalProps) {
                    const isSelected = customDays.includes(id);
                    return (
                      <button
+                       type="button"
                        key={id}
                        onClick={() => handleToggleDay(id)}
                        className={`flex-1 aspect-square rounded-full flex items-center justify-center text-xs font-bold border transition-all ${
@@ -167,6 +208,7 @@ export function CreateHabitModal({ onClose }: CreateHabitModalProps) {
              <div className="flex gap-2">
                 {["Easy", "Medium", "Hard", "Elite"].map(level => (
                   <button
+                    type="button"
                     key={level}
                     onClick={() => setDifficulty(level)}
                     className={`flex-1 py-3 rounded-xl border text-xs font-bold transition-all ${
@@ -198,13 +240,18 @@ export function CreateHabitModal({ onClose }: CreateHabitModalProps) {
         </div>
 
         <div className="mt-4 shrink-0 pt-4 border-t border-white/10 pb-8 sm:pb-0">
+          {/* Requirement 1: Verify Save button's onClick calls handleSave */}
           <button 
-            disabled={!name.trim() || isSubmitting || (repeatType === 'custom_days' && customDays.length === 0)}
+            type="submit"
             onClick={handleSave}
+            disabled={isSubmitting}
             className="w-full bg-white text-black font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-slate-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
              {isSubmitting ? (
-                <div className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                  <span>Saving...</span>
+                </div>
              ) : (
                 <>
                   <Check size={20} />
@@ -213,7 +260,7 @@ export function CreateHabitModal({ onClose }: CreateHabitModalProps) {
              )}
           </button>
         </div>
-      </motion.div>
+      </motion.form>
     </div>
   );
 
