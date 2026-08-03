@@ -136,19 +136,24 @@ export default function App() {
   // Uses firebaseUser (not backend `user`) so a backend failure never
   // kicks an authenticated user back to the login screen.
   if (!firebaseUser) {
+    console.log("[App Guard] No authenticated Firebase user. Rendering LandingScreen.");
     return (
       <Suspense fallback={
         <div className="min-h-screen bg-[#050505] flex items-center justify-center font-sans">
           <div className="w-12 h-12 border-2 border-white/5 border-t-white rounded-full animate-spin" />
         </div>
       }>
-        <LandingScreen onLoginSuccess={() => {}} />
+        <LandingScreen onLoginSuccess={() => {
+          console.log("[App Guard] Login success callback fired. Navigating to dashboard.");
+          useStore.getState().setActiveTab("dashboard");
+        }} />
       </Suspense>
     );
   }
 
   // ── 3. Firebase user exists but backend data not yet loaded ───────────────
   if (!user) {
+    console.log("[App Guard] Firebase user present (UID:", firebaseUser.uid, "). Loading backend user data...");
     // Backend error — show retry screen instead of silently looping
     if (backendError) {
       return (

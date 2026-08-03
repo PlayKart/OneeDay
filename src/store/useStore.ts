@@ -2,7 +2,7 @@
 
 import { create } from 'zustand';
 import { auth } from '../lib/firebase';
-import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import { onAuthStateChanged, User as FirebaseUser, getRedirectResult } from 'firebase/auth';
 import { dashboardService } from '../services/dashboardService';
 import { habitService } from '../services/habitService';
 import { chatService } from '../services/chatService';
@@ -41,6 +41,7 @@ interface StoreState {
   chatLoading: boolean;
 
   // Actions
+  setFirebaseUser: (fbUser: FirebaseUser | null) => void;
   setActiveTab: (tab: TabState) => void;
   refreshFromBackend: () => Promise<void>;
   addHabit: (habitData: Partial<Habit>) => Promise<void>;
@@ -67,12 +68,33 @@ interface StoreState {
 }
 
 export const useStore = create<StoreState>((set, get) => {
-  // Listen to Auth state changes and boot store sync
+  // 1. Process potential redirect results from signInWithRedirect
+  getRedirectResult(auth)
+    .then((result) => {
+      if (result && result.user) {
+        console.log("[Auth Step - Redirect] Successful redirect login. User UID:", result.user.uid);
+      }
+    })
+    .catch((err) => {
+      console.warn("[Auth Step - Redirect Warning] Error handling redirect result:", err);
+    });
+
+  // 2. Listen to Auth state changes and boot store sync
   onAuthStateChanged(auth, async (fbUser) => {
+    console.log("[Auth Step - Listener] onAuthStateChanged fired:", fbUser ? `UID: ${fbUser.uid}, Email: ${fbUser.email}` : "No user logged in");
     set({ firebaseUser: fbUser, initialized: true });
+    
     if (fbUser) {
-      get().refreshFromBackend();
+      try {
+        const token = await fbUser.getIdToken();
+        console.log("[Auth Step - Token] Firebase ID token retrieved on auth state change (length:", token?.length || 0, ")");
+      } catch (tokenErr) {
+        console.warn("[Auth Step - Token Warning] Failed to retrieve ID token on auth state change:", tokenErr);
+      }
+      console.log("[Auth Step - Sync] Fetching dashboard data from backend...");
+      await get().refreshFromBackend();
     } else {
+      console.log("[Auth Step - Reset] Clearing store state on logout.");
       set({ user: null, habits: [], chatSessions: [], chatMessages: [] });
     }
   });
@@ -92,14 +114,23 @@ export const useStore = create<StoreState>((set, get) => {
     chatMessages: [],
     chatLoading: false,
 
+    setFirebaseUser: (fbUser) => {
+      console.log("[Zustand Store] setFirebaseUser called:", fbUser ? fbUser.uid : null);
+      set({ firebaseUser: fbUser, initialized: true });
+    },
+
     setActiveTab: (tab) => set({ activeTab: tab }),
 
     refreshFromBackend: async () => {
-      if (!auth.currentUser) return;
+      if (!auth.currentUser) {
+        console.warn("[Auth Step - Sync Skipped] No auth.currentUser present.");
+        return;
+      }
       set({ loading: true, backendError: null });
 
       try {
         const data = await dashboardService.fetchDashboardData();
+        console.log("[Auth Step - Sync Success] Backend data loaded successfully for user:", data.user?.name);
         set({
           user: data.user,
           habits: safeArray(data.habits),
@@ -110,7 +141,7 @@ export const useStore = create<StoreState>((set, get) => {
         // Concurrently load chat sessions
         get().fetchSessions();
       } catch (err: any) {
-        console.error("refreshFromBackend error:", err);
+        console.error("[Auth Step - Sync Error] refreshFromBackend failed:", err);
         set({
           backendError: err.message || "Failed to load dashboard data",
           loading: false,

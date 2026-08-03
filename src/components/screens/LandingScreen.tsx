@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { signInWithPopup, GoogleAuthProvider, signInAnonymously } from "firebase/auth";
+import { signInWithPopup, signInWithRedirect, GoogleAuthProvider, signInAnonymously } from "firebase/auth";
 import { auth } from "../../lib/firebase";
-import { User, Check, Shield } from "lucide-react";
+import { useStore } from "../../store/useStore";
+import { User, Loader2, Check, Shield } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { PrivacyPage } from "../PrivacyPage";
 import { TermsPage } from "../TermsPage";
@@ -14,9 +15,13 @@ interface LandingScreenProps {
 export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [view, setView] = useState<"landing" | "privacy" | "terms">("landing");
-  const [isChecked, setIsChecked] = useState(() => {
-    return localStorage.getItem("oneday_policy_accepted_v1") === "true";
-  });
+  const [isChecked, setIsChecked] = useState(false);
+  const [authLoading, setAuthLoading] = useState(false);
+
+  const openAuthModal = () => {
+    setIsChecked(false);
+    setShowAuthModal(true);
+  };
 
   const handleBack = () => {
     setView("landing");
@@ -56,18 +61,62 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
       toast.error("Please agree to the Terms and Privacy Policy.");
       return;
     }
+    if (authLoading) return;
+
+    setAuthLoading(true);
+    console.log("[Auth Step 1] Initializing GoogleAuthProvider...");
     try {
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-      localStorage.setItem("oneday_policy_accepted_v1", "true");
-      onLoginSuccess();
-    } catch (error: any) {
-      console.error("Login failed:", error);
-      if (error.code === 'auth/unauthorized-domain') {
-         toast.error(`Please add ${window.location.hostname} to your Firebase authorized domains.`);
-      } else {
-         toast.error("LOGIN FAILED. RETRY.");
+      provider.setCustomParameters({ prompt: "select_account" });
+
+      console.log("[Auth Step 2] Invoking signInWithPopup...");
+      const credential = await signInWithPopup(auth, provider);
+      console.log("[Auth Step 3] Verified UserCredential received from Firebase:", credential);
+
+      if (!credential || !credential.user) {
+        throw new Error("No user credential returned from Firebase.");
       }
+
+      const fbUser = credential.user;
+      console.log("[Auth Step 4] Authenticated User UID:", fbUser.uid, "| Email:", fbUser.email);
+
+      console.log("[Auth Step 5] Retrieving Firebase ID token...");
+      const token = await fbUser.getIdToken(true);
+      console.log("[Auth Step 6] Firebase ID token retrieved successfully (length:", token.length, ")");
+
+      localStorage.setItem("oneday_policy_accepted_v1", "true");
+
+      console.log("[Auth Step 7] Updating Zustand store with firebaseUser and setting activeTab to dashboard...");
+      useStore.getState().setFirebaseUser(fbUser);
+      useStore.getState().setActiveTab("dashboard");
+
+      console.log("[Auth Step 8] Synchronizing user profile & dashboard data from backend...");
+      await useStore.getState().refreshFromBackend();
+
+      console.log("[Auth Step 9] Login flow completed successfully.");
+      setShowAuthModal(false);
+      onLoginSuccess();
+      toast.success("Welcome back!");
+    } catch (error: any) {
+      console.error("[Auth Step Error] Google Sign-In failed:", error);
+      if (error.code === "auth/unauthorized-domain") {
+        toast.error(`Please add ${window.location.hostname} to your Firebase authorized domains.`);
+      } else if (error.code === "auth/popup-blocked") {
+        toast.error("Popup blocked by browser. Attempting redirect login...");
+        try {
+          const provider = new GoogleAuthProvider();
+          await signInWithRedirect(auth, provider);
+        } catch (redirectErr: any) {
+          console.error("[Auth Step Error] Redirect login failed:", redirectErr);
+          toast.error(redirectErr.message || "Redirect login failed.");
+        }
+      } else if (error.code === "auth/popup-closed-by-user") {
+        toast.error("Sign-in cancelled.");
+      } else {
+        toast.error(error.message || "Google Login failed. Please retry.");
+      }
+    } finally {
+      setAuthLoading(false);
     }
   };
 
@@ -76,13 +125,42 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
       toast.error("Please agree to the Terms and Privacy Policy.");
       return;
     }
+    if (authLoading) return;
+
+    setAuthLoading(true);
+    console.log("[Auth Step 1] Initiating Anonymous Guest Sign-In...");
     try {
-      await signInAnonymously(auth);
+      const credential = await signInAnonymously(auth);
+      console.log("[Auth Step 2] Verified Anonymous UserCredential received:", credential);
+
+      if (!credential || !credential.user) {
+        throw new Error("No guest user credential returned from Firebase.");
+      }
+
+      const fbUser = credential.user;
+      console.log("[Auth Step 3] Guest User UID:", fbUser.uid);
+
+      console.log("[Auth Step 4] Retrieving Firebase ID token...");
+      const token = await fbUser.getIdToken(true);
+      console.log("[Auth Step 5] Guest ID token retrieved (length:", token.length, ")");
+
       localStorage.setItem("oneday_policy_accepted_v1", "true");
+
+      console.log("[Auth Step 6] Saving guest user in Zustand store...");
+      useStore.getState().setFirebaseUser(fbUser);
+      useStore.getState().setActiveTab("dashboard");
+
+      console.log("[Auth Step 7] Fetching guest profile from backend...");
+      await useStore.getState().refreshFromBackend();
+
+      setShowAuthModal(false);
       onLoginSuccess();
-    } catch (error) {
-      console.error("Guest login failed:", error);
-      toast.error("GUEST LOGIN FAILED.");
+      toast.success("Welcome, Guest!");
+    } catch (error: any) {
+      console.error("[Auth Step Error] Guest login failed:", error);
+      toast.error(error.message || "GUEST LOGIN FAILED.");
+    } finally {
+      setAuthLoading(false);
     }
   };
 
@@ -120,7 +198,7 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
           </div>
 
           <button 
-            onClick={() => setShowAuthModal(true)}
+            onClick={openAuthModal}
             className="bg-white text-black px-6 py-2.5 rounded-full text-sm font-bold tracking-tight hover:bg-slate-200 transition-all transform hover:scale-105 cursor-pointer"
           >
             Start Now
@@ -160,7 +238,7 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
               className="pt-8"
             >
               <button 
-                onClick={() => setShowAuthModal(true)}
+                onClick={openAuthModal}
                 className="bg-white text-black px-12 py-5 rounded-full text-lg font-bold tracking-tight hover:bg-slate-200 transition-all transform hover:scale-105 shadow-[0_0_40px_rgba(255,255,255,0.15)] cursor-pointer"
               >
                 Start Your Journey
@@ -440,24 +518,32 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
               <div className="space-y-4">
                 <button 
                   onClick={handleGoogleLogin}
-                  disabled={!isChecked}
+                  disabled={!isChecked || authLoading}
                   className="w-full bg-white text-black font-bold py-4 rounded-2xl flex items-center justify-center gap-3 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-sm tracking-tight cursor-pointer"
                 >
-                  <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#000000"/>
-                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#000000"/>
-                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#000000"/>
-                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#000000"/>
-                  </svg>
-                  Continue with Google
+                  {authLoading ? (
+                    <Loader2 size={20} className="animate-spin text-black" />
+                  ) : (
+                    <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#000000"/>
+                      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#000000"/>
+                      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#000000"/>
+                      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#000000"/>
+                    </svg>
+                  )}
+                  {authLoading ? "Authenticating..." : "Continue with Google"}
                 </button>
                 <button 
                   onClick={handleGuestLogin}
-                  disabled={!isChecked}
+                  disabled={!isChecked || authLoading}
                   className="w-full bg-white/5 border border-white/10 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-3 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-sm tracking-tight cursor-pointer"
                 >
-                  <User size={20} />
-                  Continue as Guest
+                  {authLoading ? (
+                    <Loader2 size={20} className="animate-spin text-white" />
+                  ) : (
+                    <User size={20} />
+                  )}
+                  {authLoading ? "Authenticating..." : "Continue as Guest"}
                 </button>
               </div>
             </motion.div>
