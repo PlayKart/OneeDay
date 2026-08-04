@@ -335,29 +335,13 @@ export const useStore = create<StoreState>((set, get) => {
     },
 
     createSession: async (title) => {
-      try {
-        const newSession = await chatService.createSession(title);
-        set((state) => ({
-          chatSessions: [newSession, ...state.chatSessions],
-          activeChatId: newSession.id,
-          chatMessages: [],
-        }));
-        return newSession.id;
-      } catch (e) {
-        const fallbackId = `conv_${Date.now()}`;
-        const fallbackSession: ChatSession = {
-          id: fallbackId,
-          title: title || "New Coaching Session",
-          isPinned: false,
-          createdAt: new Date().toISOString(),
-        };
-        set((state) => ({
-          chatSessions: [fallbackSession, ...state.chatSessions],
-          activeChatId: fallbackId,
-          chatMessages: [],
-        }));
-        return fallbackId;
-      }
+      const newSession = await chatService.createSession(title);
+      set((state) => ({
+        chatSessions: [newSession, ...state.chatSessions],
+        activeChatId: newSession.id,
+        chatMessages: [],
+      }));
+      return newSession.id;
     },
 
     selectSession: async (id) => {
@@ -418,12 +402,38 @@ export const useStore = create<StoreState>((set, get) => {
     sendChatMessage: async (messageText) => {
       let activeId = get().activeChatId;
       if (!activeId) {
-        activeId = await get().createSession();
+        try {
+          activeId = await get().createSession();
+        } catch (createErr: any) {
+          console.error("[AI Coach] Auto session creation failed:", createErr);
+          const errMsg = createErr?.response?.data?.error || createErr?.message || "Failed to create session";
+          const tempAssistantMsgId = `assistant_${Date.now()}`;
+          const userMsg: ChatMessage = {
+            id: `user_${Date.now()}`,
+            sessionId: "",
+            role: "user",
+            content: messageText,
+            createdAt: new Date().toISOString(),
+          };
+          const placeholderMsg: ChatMessage = {
+            id: tempAssistantMsgId,
+            sessionId: "",
+            role: "assistant",
+            content: `⚠️ ${errMsg}`,
+            createdAt: new Date().toISOString(),
+            isStreaming: false,
+          };
+          set((state) => ({
+            chatMessages: [...state.chatMessages, userMsg, placeholderMsg],
+            chatLoading: false,
+          }));
+          return;
+        }
       }
 
       const userMsg: ChatMessage = {
         id: `user_${Date.now()}`,
-        conversationId: activeId,
+        sessionId: activeId,
         role: "user",
         content: messageText,
         createdAt: new Date().toISOString(),
@@ -432,7 +442,7 @@ export const useStore = create<StoreState>((set, get) => {
       const tempAssistantMsgId = `assistant_${Date.now()}`;
       const placeholderMsg: ChatMessage = {
         id: tempAssistantMsgId,
-        conversationId: activeId,
+        sessionId: activeId,
         role: "assistant",
         content: "...",
         createdAt: new Date().toISOString(),

@@ -52,7 +52,7 @@ export interface ChatSession {
 
 export interface ChatMessage {
   id: string;
-  conversationId?: string;
+  sessionId?: string;
   role: "user" | "assistant";
   content: string;
   createdAt?: string;

@@ -28,69 +28,66 @@ export const chatService = {
   },
 
   async createSession(title?: string): Promise<ChatSession> {
-    try {
-      const res = await apiClient.post<ChatSession | { conversation: ChatSession }>("/api/conversations", {
-        title: title || "New Coaching Session",
-      });
-      const s: any = (res.data as any)?.conversation || res.data;
-      return {
-        id: s.id || `conv_${Date.now()}`,
-        title: s.title || title || "New Coaching Session",
-        isPinned: Boolean(s.isPinned || s.is_pinned),
-        isArchived: Boolean(s.isArchived || s.is_archived),
-        createdAt: s.createdAt || s.created_at || new Date().toISOString(),
-        updatedAt: s.updatedAt || s.updated_at || new Date().toISOString(),
-      };
-    } catch (e) {
-      return {
-        id: `conv_${Date.now()}`,
-        title: title || "New Coaching Session",
-        isPinned: false,
-        isArchived: false,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+    const endpoint = "/api/chat/session";
+    const method = "POST";
+    const payload = { title: title || "New Coaching Session" };
+
+    console.log("[AI Coach / Session Create] Endpoint:", `${BACKEND_URL}${endpoint}`);
+    console.log("[AI Coach / Session Create] Method:", method);
+    console.log("[AI Coach / Session Create] Request payload:", payload);
+
+    const res = await apiClient.post(endpoint, payload);
+    console.log("[AI Coach / Session Create] Response:", res.data);
+
+    const rawData = res.data;
+    const sessionData = rawData?.data || rawData?.session || rawData;
+    const uuid = sessionData?.id || sessionData?.sessionId || sessionData?.uuid;
+
+    if (!uuid) {
+      throw new Error("Failed to create chat session: No database UUID returned by backend.");
     }
+
+    console.log("[AI Coach / Session Created] Backend session UUID:", uuid);
+
+    return {
+      id: uuid,
+      title: sessionData?.title || title || "New Coaching Session",
+      isPinned: Boolean(sessionData?.isPinned || sessionData?.is_pinned),
+      isArchived: Boolean(sessionData?.isArchived || sessionData?.is_archived),
+      createdAt: sessionData?.createdAt || sessionData?.created_at || new Date().toISOString(),
+      updatedAt: sessionData?.updatedAt || sessionData?.updated_at || new Date().toISOString(),
+    };
   },
 
-  async getMessages(_conversationId: string): Promise<ChatMessage[]> {
+  async getMessages(_sessionId: string): Promise<ChatMessage[]> {
     return [];
   },
 
-  async sendMessage(conversationId: string, message: string): Promise<{ reply: string; messages?: ChatMessage[] }> {
-    const endpoint = "/api/chat";
-    const method = "POST";
-    const user = auth.currentUser;
-    let token: string | null = null;
-    if (user) {
-      try {
-        token = await user.getIdToken();
-      } catch (err) {
-        console.warn("Failed to retrieve Firebase ID token:", err);
-      }
+  async sendMessage(sessionId: string, message: string): Promise<{ reply: string; messages?: ChatMessage[] }> {
+    let targetSessionId = sessionId;
+
+    if (!targetSessionId) {
+      console.log("[AI Coach] No session exists. Automatically creating a session before sending message...");
+      const newSession = await this.createSession();
+      targetSessionId = newSession.id;
     }
 
-    const localDate = new Date().toISOString().split("T")[0];
+    const endpoint = "/api/chat";
+    const method = "POST";
     const fullUrl = `${BACKEND_URL}${endpoint}`;
+
     const payload = {
       message,
-      conversationId,
-      conversation_id: conversationId,
-    };
-    const headers = {
-      "Content-Type": "application/json",
-      "Authorization": token ? `Bearer ${token}` : "None",
-      "x-local-date": localDate,
+      sessionId: targetSessionId,
     };
 
-    console.log("[AI Coach / Chat Request] Endpoint:", fullUrl);
-    console.log("[AI Coach / Chat Request] Method:", method);
-    console.log("[AI Coach / Chat Request] Headers:", headers);
-    console.log("[AI Coach / Chat Request] Payload:", payload);
+    console.log("Current session:", targetSessionId);
+    console.log("Backend session:", targetSessionId);
+    console.log("Request payload:", payload);
 
     try {
       const res = await apiClient.post(endpoint, payload);
-      console.log("[AI Coach / Chat Response] Status:", res.status, "Response Data:", res.data);
+      console.log("Response:", res.data);
 
       const body = res.data;
       if (body && body.success === false) {

@@ -452,7 +452,7 @@ export const AICoach = () => {
                                 </h3>
                               )}
                               <p className="text-[11px] text-slate-500 mt-1 line-clamp-1">
-                                {session.id === 'temp_new' ? 'Unsaved conversation' : 'Resume coaching chat history...'}
+                                Resume coaching chat history...
                               </p>
                             </div>
                             <span className="text-[9px] text-slate-500 shrink-0 mt-0.5">
