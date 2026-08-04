@@ -194,10 +194,30 @@ export const useChatStore = create<ChatState>((set, get) => ({
         get().renameSession(activeId, truncatedTitle);
       }
     } catch (e: any) {
+      console.error("[AI Coach] sendChatMessage failed:", e);
+
+      let errorMessage = "An unknown error occurred";
+      if (e?.response?.data) {
+        const data = e.response.data;
+        if (typeof data.error === "object" && data.error?.message) {
+          errorMessage = data.error.message;
+        } else if (typeof data.error === "string") {
+          errorMessage = data.error;
+        } else if (data.message) {
+          errorMessage = data.message;
+        } else if (data.details) {
+          errorMessage = typeof data.details === "string" ? data.details : JSON.stringify(data.details);
+        } else {
+          errorMessage = typeof data === "string" ? data : JSON.stringify(data);
+        }
+      } else if (e?.message) {
+        errorMessage = e.message;
+      }
+
       set((state) => ({
         chatMessages: state.chatMessages.map((m) =>
           m.id === tempAssistantMsgId
-            ? { ...m, content: "⚠️ Could not connect to AI Coach. Please try again.", isStreaming: false }
+            ? { ...m, content: `⚠️ ${errorMessage}`, isStreaming: false }
             : m
         ),
         chatLoading: false,

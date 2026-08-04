@@ -53,28 +53,13 @@ export const chatService = {
     }
   },
 
-  async getMessages(conversationId: string): Promise<ChatMessage[]> {
-    try {
-      const res = await apiClient.get<ChatMessage[] | { messages: ChatMessage[] }>(
-        `/api/conversations/${conversationId}/messages`
-      );
-      const list = Array.isArray(res.data)
-        ? res.data
-        : (res.data as any)?.messages || [];
-      return safeArray<any>(list).map((m) => ({
-        id: m.id || `msg_${Date.now()}_${Math.random()}`,
-        conversationId,
-        role: m.role === "assistant" || m.role === "ai" ? "assistant" : "user",
-        content: m.content || "",
-        createdAt: m.createdAt || m.created_at || new Date().toISOString(),
-      }));
-    } catch (e) {
-      console.warn(`Failed to fetch messages for conversation ${conversationId}:`, e);
-      return [];
-    }
+  async getMessages(_conversationId: string): Promise<ChatMessage[]> {
+    return [];
   },
 
   async sendMessage(conversationId: string, message: string): Promise<{ reply: string; messages?: ChatMessage[] }> {
+    const endpoint = "/api/chat";
+    const method = "POST";
     const user = auth.currentUser;
     let token: string | null = null;
     if (user) {
@@ -86,7 +71,7 @@ export const chatService = {
     }
 
     const localDate = new Date().toISOString().split("T")[0];
-    const fullUrl = `${BACKEND_URL}/api/chat`;
+    const fullUrl = `${BACKEND_URL}${endpoint}`;
     const payload = {
       message,
       conversationId,
@@ -98,45 +83,38 @@ export const chatService = {
       "x-local-date": localDate,
     };
 
-    console.log("[AI Coach / Chat Request] API URL:", fullUrl);
-    console.log("[AI Coach / Chat Request] Request body:", payload);
+    console.log("[AI Coach / Chat Request] Endpoint:", fullUrl);
+    console.log("[AI Coach / Chat Request] Method:", method);
     console.log("[AI Coach / Chat Request] Headers:", headers);
-    console.log("[AI Coach / Chat Request] Firebase token:", token);
-    console.log("[AI Coach / Chat Request] x-local-date:", localDate);
+    console.log("[AI Coach / Chat Request] Payload:", payload);
 
-    let res: any;
     try {
-      res = await apiClient.post("/api/chat", payload);
-      console.log(`[AI Coach / Chat Response] Status: ${res.status}, Data:`, res.data);
-    } catch (err: any) {
-      if (err?.response?.status === 404) {
-        console.warn(`[AI Coach] /api/chat returned 404, attempting fallback to /api/conversations/${conversationId}/messages`);
-        res = await apiClient.post(`/api/conversations/${conversationId}/messages`, payload);
-        console.log(`[AI Coach / Chat Fallback Response] Status: ${res.status}, Data:`, res.data);
-      } else {
-        console.error(`[AI Coach / Chat Error] HTTP Status: ${err?.response?.status}, Error:`, err?.response?.data || err.message);
-        throw err;
+      const res = await apiClient.post(endpoint, payload);
+      console.log("[AI Coach / Chat Response] Status:", res.status, "Response Data:", res.data);
+
+      const body = res.data;
+      if (body && body.success === false) {
+        const errMsg = body.error?.message || (typeof body.error === "string" ? body.error : "Backend returned an error");
+        console.error("[AI Coach] Backend error response:", body);
+        throw new Error(errMsg);
       }
+
+      const replyText =
+        body?.reply ||
+        body?.response ||
+        body?.message ||
+        body?.content ||
+        (typeof body === "string" ? body : "I am your AI Coach. Keep pushing your limits.");
+
+      return {
+        reply: replyText,
+        messages: body?.messages ? safeArray(body.messages) : undefined,
+      };
+    } catch (err: any) {
+      const errorData = err?.response?.data || err.message;
+      console.error("[AI Coach / Chat Error] Endpoint:", fullUrl, "Method:", method, "Status:", err?.response?.status, "Error:", errorData);
+      throw err;
     }
-
-    const body = res.data;
-    if (body && body.success === false) {
-      const errMsg = body.error?.message || (typeof body.error === "string" ? body.error : "Backend returned an error");
-      console.error("[AI Coach] Backend error response:", body);
-      throw new Error(errMsg);
-    }
-
-    const replyText =
-      body?.reply ||
-      body?.response ||
-      body?.message ||
-      body?.content ||
-      (typeof body === "string" ? body : "I am your AI Coach. Keep pushing your limits.");
-
-    return {
-      reply: replyText,
-      messages: body?.messages ? safeArray(body.messages) : undefined,
-    };
   },
 
   async renameSession(conversationId: string, title: string): Promise<void> {
