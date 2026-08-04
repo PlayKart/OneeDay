@@ -205,22 +205,60 @@ export const habitService = {
 
   async completeHabit(habitId: string): Promise<any> {
     const today = new Date().toISOString().split("T")[0];
-    console.log(`POST /api/habits/${habitId}/complete with date ${today}...`);
-    const res = await apiClient.post(`/api/habits/${habitId}/complete`, {
-      date: today,
-    });
-    console.log(`POST /api/habits/${habitId}/complete response:`, res.data);
-    return res.data;
+    const payload = { habitId, habit_id: habitId, date: today };
+    console.log(`[Habit Service] Request payload for complete (habitId: ${habitId}):`, payload);
+
+    let res: any;
+    try {
+      res = await apiClient.post(`/api/habits/${habitId}/complete`, payload);
+      console.log(`[Habit Service] POST /api/habits/${habitId}/complete HTTP status: ${res.status}, response:`, res.data);
+    } catch (err: any) {
+      if (err?.response?.status === 404 || err?.message?.includes("404")) {
+        console.warn(`[Habit Service] POST /api/habits/${habitId}/complete returned 404, attempting fallback to POST /api/complete`);
+        res = await apiClient.post(`/api/complete`, payload);
+        console.log(`[Habit Service] POST /api/complete HTTP status: ${res.status}, response:`, res.data);
+      } else {
+        console.error(`[Habit Service] Complete API call failed. HTTP Status: ${err?.response?.status}, Error:`, err?.response?.data || err.message);
+        throw err;
+      }
+    }
+
+    const body = res.data;
+    if (body && body.success === false) {
+      const errMsg = body.error?.message || (typeof body.error === "string" ? body.error : "Failed to complete habit on server");
+      console.error("[Habit Service] Backend returned success: false response:", body);
+      throw new Error(errMsg);
+    }
+    return body;
   },
 
   async undoHabit(habitId: string): Promise<any> {
     const today = new Date().toISOString().split("T")[0];
-    console.log(`POST /api/habits/${habitId}/undo with date ${today}...`);
-    const res = await apiClient.post(`/api/habits/${habitId}/undo`, {
-      date: today,
-    });
-    console.log(`POST /api/habits/${habitId}/undo response:`, res.data);
-    return res.data;
+    const payload = { habitId, habit_id: habitId, date: today };
+    console.log(`[Habit Service] Request payload for undo (habitId: ${habitId}):`, payload);
+
+    let res: any;
+    try {
+      res = await apiClient.post(`/api/habits/${habitId}/undo`, payload);
+      console.log(`[Habit Service] POST /api/habits/${habitId}/undo HTTP status: ${res.status}, response:`, res.data);
+    } catch (err: any) {
+      if (err?.response?.status === 404 || err?.message?.includes("404")) {
+        console.warn(`[Habit Service] POST /api/habits/${habitId}/undo returned 404, attempting fallback to POST /api/undo`);
+        res = await apiClient.post(`/api/undo`, payload);
+        console.log(`[Habit Service] POST /api/undo HTTP status: ${res.status}, response:`, res.data);
+      } else {
+        console.error(`[Habit Service] Undo API call failed. HTTP Status: ${err?.response?.status}, Error:`, err?.response?.data || err.message);
+        throw err;
+      }
+    }
+
+    const body = res.data;
+    if (body && body.success === false) {
+      const errMsg = body.error?.message || (typeof body.error === "string" ? body.error : "Failed to undo habit on server");
+      console.error("[Habit Service] Backend returned success: false response:", body);
+      throw new Error(errMsg);
+    }
+    return body;
   },
 };
 

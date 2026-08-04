@@ -214,56 +214,75 @@ export const useStore = create<StoreState>((set, get) => {
     },
 
     completeHabit: async (habitId) => {
-      const today = new Date().toISOString().split("T")[0];
-      set((state) => ({
-        habits: state.habits.map((h) =>
-          h.id === habitId
-            ? {
-                ...h,
-                completedToday: true,
-                completedDates: h.completedDates?.includes(today)
-                  ? h.completedDates
-                  : [...(h.completedDates || []), today],
-              }
-            : h
-        ),
-      }));
-
+      console.log(`[useStore] Initiating completeHabit for habitId: ${habitId}...`);
       try {
         const res = await habitService.completeHabit(habitId);
-        if (res?.user) {
-          set({ user: res.user });
+        
+        if (res && res.success === false) {
+          const errMsg = res?.error?.message || "Backend returned success: false for habit completion";
+          console.error(`[useStore] Complete habit failed:`, errMsg);
+          throw new Error(errMsg);
         }
+
+        console.log(`[useStore] Complete habit succeeded on backend. Updating local state for habit ${habitId}`);
+        const today = new Date().toISOString().split("T")[0];
+
+        set((state) => ({
+          habits: state.habits.map((h) =>
+            h.id === habitId
+              ? {
+                  ...h,
+                  completedToday: true,
+                  completedDates: h.completedDates?.includes(today)
+                    ? h.completedDates
+                    : [...(h.completedDates || []), today],
+                }
+              : h
+          ),
+          user: res?.user ? res.user : state.user,
+        }));
+
+        // Refresh from backend to sync full state (XP, streaks, habit records)
         await get().refreshFromBackend();
-      } catch (e) {
-        console.warn("Complete habit failed on server, refreshing store:", e);
+      } catch (e: any) {
+        console.error(`[useStore] completeHabit error:`, e);
         await get().refreshFromBackend();
+        throw e;
       }
     },
 
     undoHabit: async (habitId) => {
-      const today = new Date().toISOString().split("T")[0];
-      set((state) => ({
-        habits: state.habits.map((h) =>
-          h.id === habitId
-            ? {
-                ...h,
-                completedToday: false,
-                completedDates: (h.completedDates || []).filter((d) => d !== today),
-              }
-            : h
-        ),
-      }));
-
+      console.log(`[useStore] Initiating undoHabit for habitId: ${habitId}...`);
       try {
         const res = await habitService.undoHabit(habitId);
-        if (res?.user) {
-          set({ user: res.user });
+
+        if (res && res.success === false) {
+          const errMsg = res?.error?.message || "Backend returned success: false for habit undo";
+          console.error(`[useStore] Undo habit failed:`, errMsg);
+          throw new Error(errMsg);
         }
+
+        console.log(`[useStore] Undo habit succeeded on backend. Updating local state for habit ${habitId}`);
+        const today = new Date().toISOString().split("T")[0];
+
+        set((state) => ({
+          habits: state.habits.map((h) =>
+            h.id === habitId
+              ? {
+                  ...h,
+                  completedToday: false,
+                  completedDates: (h.completedDates || []).filter((d) => d !== today),
+                }
+              : h
+          ),
+          user: res?.user ? res.user : state.user,
+        }));
+
         await get().refreshFromBackend();
-      } catch (e) {
-        console.warn("Undo habit failed on server, refreshing store:", e);
+      } catch (e: any) {
+        console.error(`[useStore] undoHabit error:`, e);
         await get().refreshFromBackend();
+        throw e;
       }
     },
 
