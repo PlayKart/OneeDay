@@ -1,6 +1,8 @@
 // src/services/chatService.ts
 
 import { apiClient } from "../api/client";
+import { auth } from "../lib/firebase";
+import { BACKEND_URL } from "../constants";
 import { ChatSession, ChatMessage } from "../types";
 import { safeArray } from "../utils";
 
@@ -73,18 +75,67 @@ export const chatService = {
   },
 
   async sendMessage(conversationId: string, message: string): Promise<{ reply: string; messages?: ChatMessage[] }> {
-    const res = await apiClient.post(`/api/conversations/${conversationId}/messages`, {
+    const user = auth.currentUser;
+    let token: string | null = null;
+    if (user) {
+      try {
+        token = await user.getIdToken();
+      } catch (err) {
+        console.warn("Failed to retrieve Firebase ID token:", err);
+      }
+    }
+
+    const localDate = new Date().toISOString().split("T")[0];
+    const fullUrl = `${BACKEND_URL}/api/chat`;
+    const payload = {
       message,
-    });
+      conversationId,
+      conversation_id: conversationId,
+    };
+    const headers = {
+      "Content-Type": "application/json",
+      "Authorization": token ? `Bearer ${token}` : "None",
+      "x-local-date": localDate,
+    };
+
+    console.log("[AI Coach / Chat Request] API URL:", fullUrl);
+    console.log("[AI Coach / Chat Request] Request body:", payload);
+    console.log("[AI Coach / Chat Request] Headers:", headers);
+    console.log("[AI Coach / Chat Request] Firebase token:", token);
+    console.log("[AI Coach / Chat Request] x-local-date:", localDate);
+
+    let res: any;
+    try {
+      res = await apiClient.post("/api/chat", payload);
+      console.log(`[AI Coach / Chat Response] Status: ${res.status}, Data:`, res.data);
+    } catch (err: any) {
+      if (err?.response?.status === 404) {
+        console.warn(`[AI Coach] /api/chat returned 404, attempting fallback to /api/conversations/${conversationId}/messages`);
+        res = await apiClient.post(`/api/conversations/${conversationId}/messages`, payload);
+        console.log(`[AI Coach / Chat Fallback Response] Status: ${res.status}, Data:`, res.data);
+      } else {
+        console.error(`[AI Coach / Chat Error] HTTP Status: ${err?.response?.status}, Error:`, err?.response?.data || err.message);
+        throw err;
+      }
+    }
+
+    const body = res.data;
+    if (body && body.success === false) {
+      const errMsg = body.error?.message || (typeof body.error === "string" ? body.error : "Backend returned an error");
+      console.error("[AI Coach] Backend error response:", body);
+      throw new Error(errMsg);
+    }
+
     const replyText =
-      res.data?.reply ||
-      res.data?.response ||
-      res.data?.content ||
-      (typeof res.data === "string" ? res.data : "I am your AI Coach. Keep pushing your limits.");
-    
+      body?.reply ||
+      body?.response ||
+      body?.message ||
+      body?.content ||
+      (typeof body === "string" ? body : "I am your AI Coach. Keep pushing your limits.");
+
     return {
       reply: replyText,
-      messages: res.data?.messages ? safeArray(res.data.messages) : undefined,
+      messages: body?.messages ? safeArray(body.messages) : undefined,
     };
   },
 
