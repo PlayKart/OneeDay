@@ -155,6 +155,7 @@ export const useStore = create<StoreState>((set, get) => {
         id: tempId,
         name: habitData.name || "New Habit",
         completedToday: false,
+        completedDates: [],
         repeatType: habitData.repeatType || "every_day",
         customDays: habitData.customDays || [],
         icon: habitData.icon || "dumbbell",
@@ -170,6 +171,7 @@ export const useStore = create<StoreState>((set, get) => {
         set((state) => ({
           habits: state.habits.map((h) => (h.id === tempId ? created : h)),
         }));
+        await get().refreshFromBackend();
       } catch (e) {
         set((state) => ({ habits: state.habits.filter((h) => h.id !== tempId) }));
         throw e;
@@ -187,6 +189,7 @@ export const useStore = create<StoreState>((set, get) => {
         set((state) => ({
           habits: state.habits.map((h) => (h.id === habitId ? updated : h)),
         }));
+        await get().refreshFromBackend();
       } catch (e) {
         if (original) {
           set((state) => ({
@@ -203,6 +206,7 @@ export const useStore = create<StoreState>((set, get) => {
 
       try {
         await habitService.deleteHabit(habitId);
+        await get().refreshFromBackend();
       } catch (e) {
         if (original) set((state) => ({ habits: [...state.habits, original] }));
         throw e;
@@ -230,8 +234,10 @@ export const useStore = create<StoreState>((set, get) => {
         if (res?.user) {
           set({ user: res.user });
         }
+        await get().refreshFromBackend();
       } catch (e) {
-        console.warn("Optimistic complete stored:", e);
+        console.warn("Complete habit failed on server, refreshing store:", e);
+        await get().refreshFromBackend();
       }
     },
 
@@ -254,19 +260,23 @@ export const useStore = create<StoreState>((set, get) => {
         if (res?.user) {
           set({ user: res.user });
         }
+        await get().refreshFromBackend();
       } catch (e) {
-        console.warn("Optimistic undo stored:", e);
+        console.warn("Undo habit failed on server, refreshing store:", e);
+        await get().refreshFromBackend();
       }
     },
 
     freezeStreak: async (days) => {
       const updatedUser = await userService.freezeStreak(days);
       set({ user: updatedUser });
+      await get().refreshFromBackend();
     },
 
     deactivateFreeze: async () => {
       const updatedUser = await userService.deactivateFreeze();
       set({ user: updatedUser });
+      await get().refreshFromBackend();
     },
 
     sendChat: async (messageText) => {
@@ -285,6 +295,7 @@ export const useStore = create<StoreState>((set, get) => {
           ? { ...state.user, xp: 0, streak: 0, level: 1, levelProgress: 0 }
           : null,
       }));
+      await get().refreshFromBackend();
     },
 
     deleteAccount: async () => {

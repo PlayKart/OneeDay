@@ -6,18 +6,46 @@ import { safeArray, normalizeCompletedDates } from "../utils";
 
 export const habitService = {
   async getHabits(): Promise<Habit[]> {
+    console.log("[Habit Service] Fetching GET /api/habits...");
     const res = await apiClient.get<Habit[] | { habits: Habit[] }>("/api/habits");
     const rawList = Array.isArray(res.data)
       ? res.data
       : (res.data as any)?.habits || [];
-    
-    return safeArray<any>(rawList).map((h) => ({
-      ...h,
-      completedToday: Boolean(h.completedToday || h.completed_today),
-      completedDates: normalizeCompletedDates(h.completedDates || h.completed_dates),
-      repeatType: h.repeatType || h.repeat_type || "every_day",
-      customDays: safeArray(h.customDays || h.custom_days),
-    }));
+
+    const today = new Date().toISOString().split("T")[0];
+
+    const habits = safeArray<any>(rawList).map((h) => {
+      const completedDates = normalizeCompletedDates(h.completedDates || h.completed_dates || h.completed);
+      
+      const rawCompletedToday = h.completedToday ?? h.completed_today;
+      const isCompletedTodayByField = rawCompletedToday !== undefined && rawCompletedToday !== null
+        ? Boolean(rawCompletedToday === true || rawCompletedToday === "true" || rawCompletedToday === 1)
+        : false;
+
+      const isCompletedTodayByDates = completedDates.includes(today);
+      const finalCompletedToday = isCompletedTodayByField || isCompletedTodayByDates;
+
+      const finalCompletedDates = finalCompletedToday && !completedDates.includes(today)
+        ? [...completedDates, today]
+        : completedDates;
+
+      return {
+        id: String(h.id || h._id),
+        name: String(h.name || "Untitled Habit"),
+        completedToday: finalCompletedToday,
+        completedDates: finalCompletedDates,
+        repeatType: h.repeatType || h.repeat_type || "every_day",
+        customDays: safeArray<string>(h.customDays || h.custom_days),
+        difficulty: h.difficulty || "Medium",
+        notes: h.notes || "",
+        icon: h.icon || "dumbbell",
+        category: h.category || "emerald",
+        reminderTime: h.reminderTime || h.reminder_time || "",
+      };
+    });
+
+    console.log("[Habit Service] Received habits from GET /api/habits:", habits);
+    return habits;
   },
 
   async createHabit(habitData: Partial<Habit>): Promise<Habit> {
@@ -45,7 +73,6 @@ export const habitService = {
       reminder_time: habitData.reminderTime || "",
     };
 
-    // 3. Log incoming request payload
     console.log("POST /api/habits request payload:", payload);
 
     let res: any;
@@ -56,7 +83,7 @@ export const habitService = {
         console.warn("POST /api/habits returned 404, falling back to POST /api/habit");
         res = await apiClient.post("/api/habit", payload);
       } else {
-        console.error("Supabase / API POST error:", err);
+        console.error("API POST error:", err);
         throw err;
       }
     }
@@ -64,7 +91,7 @@ export const habitService = {
     const body = res.data;
     if (body && body.success === false) {
       const errMsg = body.error?.message || (typeof body.error === "string" ? body.error : "Failed to create habit");
-      console.error("Supabase error response:", body.error || errMsg);
+      console.error("API error response:", body.error || errMsg);
       throw new Error(errMsg);
     }
 
@@ -79,13 +106,20 @@ export const habitService = {
       h = body;
     }
 
+    const today = new Date().toISOString().split("T")[0];
+    const completedDates = normalizeCompletedDates(h?.completedDates || h?.completed_dates);
+    const rawCompletedToday = h?.completedToday ?? h?.completed_today;
+    const finalCompletedToday = rawCompletedToday !== undefined && rawCompletedToday !== null
+      ? Boolean(rawCompletedToday === true || rawCompletedToday === "true" || rawCompletedToday === 1)
+      : completedDates.includes(today);
+
     return {
-      id: h?.id || h?._id || `habit_${Date.now()}`,
+      id: String(h?.id || h?._id || `habit_${Date.now()}`),
       name: h?.name || payload.name,
-      completedToday: Boolean(h?.completedToday || h?.completed_today),
-      completedDates: normalizeCompletedDates(h?.completedDates || h?.completed_dates),
+      completedToday: finalCompletedToday,
+      completedDates: finalCompletedToday && !completedDates.includes(today) ? [...completedDates, today] : completedDates,
       repeatType: h?.repeatType || h?.repeat_type || payload.repeatType,
-      customDays: safeArray(h?.customDays || h?.custom_days || payload.customDays),
+      customDays: safeArray<string>(h?.customDays || h?.custom_days || payload.customDays),
       difficulty: h?.difficulty || payload.difficulty,
       notes: h?.notes ?? payload.notes,
       icon: h?.icon || payload.icon,
@@ -119,7 +153,7 @@ export const habitService = {
         console.warn(`PUT /api/habits/${habitId} returned 404, falling back to PUT /api/habit/${habitId}`);
         res = await apiClient.put(`/api/habit/${habitId}`, payload);
       } else {
-        console.error("Supabase / API PUT error:", err);
+        console.error("API PUT error:", err);
         throw err;
       }
     }
@@ -127,7 +161,7 @@ export const habitService = {
     const body = res.data;
     if (body && body.success === false) {
       const errMsg = body.error?.message || (typeof body.error === "string" ? body.error : "Failed to update habit");
-      console.error("Supabase error response:", body.error || errMsg);
+      console.error("API error response:", body.error || errMsg);
       throw new Error(errMsg);
     }
 
@@ -142,13 +176,20 @@ export const habitService = {
       h = body;
     }
 
+    const today = new Date().toISOString().split("T")[0];
+    const completedDates = normalizeCompletedDates(h?.completedDates || h?.completed_dates);
+    const rawCompletedToday = h?.completedToday ?? h?.completed_today;
+    const finalCompletedToday = rawCompletedToday !== undefined && rawCompletedToday !== null
+      ? Boolean(rawCompletedToday === true || rawCompletedToday === "true" || rawCompletedToday === 1)
+      : completedDates.includes(today);
+
     return {
-      id: h?.id || habitId,
+      id: String(h?.id || habitId),
       name: h?.name || payload.name,
-      completedToday: Boolean(h?.completedToday || h?.completed_today),
-      completedDates: normalizeCompletedDates(h?.completedDates || h?.completed_dates),
+      completedToday: finalCompletedToday,
+      completedDates: finalCompletedToday && !completedDates.includes(today) ? [...completedDates, today] : completedDates,
       repeatType: h?.repeatType || h?.repeat_type || payload.repeatType,
-      customDays: safeArray(h?.customDays || h?.custom_days || payload.customDays),
+      customDays: safeArray<string>(h?.customDays || h?.custom_days || payload.customDays),
       difficulty: h?.difficulty || payload.difficulty,
       notes: h?.notes ?? payload.notes,
       icon: h?.icon || payload.icon,
@@ -158,20 +199,28 @@ export const habitService = {
   },
 
   async deleteHabit(habitId: string): Promise<void> {
+    console.log(`DELETE /api/habits/${habitId}...`);
     await apiClient.delete(`/api/habits/${habitId}`);
   },
 
   async completeHabit(habitId: string): Promise<any> {
+    const today = new Date().toISOString().split("T")[0];
+    console.log(`POST /api/habits/${habitId}/complete with date ${today}...`);
     const res = await apiClient.post(`/api/habits/${habitId}/complete`, {
-      date: new Date().toISOString().split("T")[0],
+      date: today,
     });
+    console.log(`POST /api/habits/${habitId}/complete response:`, res.data);
     return res.data;
   },
 
   async undoHabit(habitId: string): Promise<any> {
+    const today = new Date().toISOString().split("T")[0];
+    console.log(`POST /api/habits/${habitId}/undo with date ${today}...`);
     const res = await apiClient.post(`/api/habits/${habitId}/undo`, {
-      date: new Date().toISOString().split("T")[0],
+      date: today,
     });
+    console.log(`POST /api/habits/${habitId}/undo response:`, res.data);
     return res.data;
   },
 };
+
