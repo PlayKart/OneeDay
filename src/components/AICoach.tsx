@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { useStore, ChatSession, ChatMessage } from '../store/useStore';
 import { toast } from 'react-hot-toast';
+import { MonolithLogo } from './MonolithLogo';
 
 export const AICoach = () => {
   const {
@@ -169,13 +170,13 @@ export const AICoach = () => {
       return;
     }
     const text = safeMsgs
-      .map(m => m ? `### ${m.role === 'user' ? 'User' : 'OneDay Coach'}\n\n${m.content}\n\n` : "")
+      .map(m => m ? `### ${m.role === 'user' ? 'User' : 'Monolith AI Coach'}\n\n${m.content}\n\n` : "")
       .join('---\n\n');
-    const blob = new Blob([`# OneDay Coaching Log\n\n${text}`], { type: 'text/markdown' });
+    const blob = new Blob([`# Monolith Coaching Log\n\n${text}`], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `OneDay_Coaching_Log_${activeChatId || 'session'}.md`;
+    a.download = `Monolith_Coaching_Log_${activeChatId || 'session'}.md`;
     a.click();
     setMenuOpen(false);
     toast.success("Chat history exported (.md)");
@@ -256,7 +257,7 @@ export const AICoach = () => {
         >
           <Menu size={18} />
         </button>
-        <span className="text-xs font-black tracking-widest uppercase text-white">OneDay AI Coach</span>
+        <span className="text-xs font-black tracking-widest uppercase text-white">Monolith AI Coach</span>
         <button
           onClick={handleStartNewChat}
           className="p-2 -mr-2 rounded-lg text-slate-400 hover:text-white transition-colors"
@@ -478,7 +479,7 @@ export const AICoach = () => {
             <User size={14} className="text-white" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold text-white truncate">{user?.name || 'OneDay Executioner'}</p>
+            <p className="text-xs font-bold text-white truncate">{user?.name || 'Monolith Executioner'}</p>
             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Level {user?.level || 1} • {user?.streak || 0}d streak</p>
           </div>
         </div>
@@ -585,9 +586,9 @@ export const AICoach = () => {
             </div>
           ) : safeChatMessages.length === 0 ? (
             /* EMPTY STATE: "What are we conquering today?" */
-            <div className="max-w-xl mx-auto text-center py-16 md:py-24 flex flex-col items-center justify-center">
-              <div className="w-16 h-16 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center mb-6 shadow-2xl">
-                <Bot size={28} className="text-white" />
+            <div className="max-w-xl mx-auto text-center py-16 md:py-24 flex flex-col items-center justify-center select-none">
+              <div className="mb-6">
+                <MonolithLogo size={64} />
               </div>
               <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight mb-2 text-white">What are we conquering today?</h2>
               <p className="text-slate-400 text-xs md:text-sm leading-relaxed max-w-sm mb-8">
@@ -776,7 +777,7 @@ export const AICoach = () => {
                     handleSend(e);
                   }
                 }}
-                placeholder={chatLoading ? "Coach is generating strategy..." : "Message your OneDay AI Coach..."}
+                placeholder={chatLoading ? "Coach is generating strategy..." : "Message your Monolith AI Coach..."}
                 disabled={chatLoading}
                 className="flex-1 bg-transparent border-0 outline-none text-white text-sm placeholder:text-slate-500 focus:ring-0 focus:outline-none resize-none py-2 px-1 max-h-48 overflow-y-auto scrollbar-hide leading-relaxed"
               />

@@ -1,7 +1,6 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  Flame, 
   Snowflake,
   Plus,
   Send,
@@ -21,6 +20,7 @@ import { Toaster, toast } from 'react-hot-toast';
 import { HabitList } from './components/HabitList';
 import { AICoach } from './components/AICoach';
 import { MotivationalQuote } from './components/MotivationalQuote';
+import { MonolithLogo } from './components/MonolithLogo';
 
 // Lazy loading the heavy screen components for improved SEO, fast initial content paint (FCP), and minimal layout shift
 const DashboardScreen = lazy(() => import('./components/screens/DashboardScreen').then(m => ({ default: m.DashboardScreen })));
@@ -94,12 +94,12 @@ export default function App() {
              className="flex flex-col items-center z-10"
           >
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.8 }}
-              className="w-24 h-24 bg-white/10 rounded-3xl flex items-center justify-center mb-8 shadow-[0_0_50px_rgba(255,255,255,0.05)] border border-white/5"
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+              className="mb-8 animate-pulse-slow"
             >
-              <Flame size={48} className="text-white" />
+              <MonolithLogo size={96} />
             </motion.div>
             
             <motion.h1
@@ -212,8 +212,8 @@ export default function App() {
           animate={{ opacity: 1, scale: 1 }}
           className="flex flex-col items-center gap-6"
         >
-          <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center animate-pulse">
-            <Flame size={32} className="text-white/50" />
+          <div className="animate-pulse">
+            <MonolithLogo size={64} />
           </div>
           <div className="flex flex-col items-center gap-2">
             <h2 className="text-xl font-bold tracking-tight">Syncing Discipline...</h2>

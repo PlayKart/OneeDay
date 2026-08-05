@@ -7,6 +7,7 @@ import { User, Loader2, Check, Shield } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { PrivacyPage } from "../PrivacyPage";
 import { TermsPage } from "../TermsPage";
+import { MonolithLogo } from "../MonolithLogo";
 
 interface LandingScreenProps {
   onLoginSuccess: () => void;
@@ -189,7 +190,10 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
       {/* SEMANTIC HEADER & NAV */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#000000]/80 backdrop-blur-xl border-b border-white/5 h-20 flex items-center px-6 md:px-12">
         <nav className="max-w-7xl mx-auto w-full flex justify-between items-center" aria-label="Main Navigation">
-          <div className="text-xl font-extrabold tracking-tighter">OneDay</div>
+          <div className="flex items-center gap-3 select-none">
+            <MonolithLogo size={36} />
+            <span className="text-xl font-extrabold tracking-tighter text-white">OneDay</span>
+          </div>
           
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-400">
             <button onClick={() => scrollToSection("features")} className="hover:text-white transition-colors cursor-pointer">Features</button>
@@ -483,9 +487,12 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               className="relative bg-[#0a0a0a] border border-white/10 rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl space-y-8"
             >
-              <div className="text-center space-y-2">
-                <h3 className="text-3xl font-extrabold tracking-tight">Welcome</h3>
-                <p className="text-slate-500 font-medium">Log in to continue your journey.</p>
+              <div className="flex flex-col items-center gap-4 text-center pb-2 select-none">
+                <MonolithLogo size={64} />
+                <div className="space-y-1 mt-2">
+                  <h3 className="text-2xl font-black tracking-[0.25em] text-white">ONE DAY</h3>
+                  <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Protocol Login</p>
+                </div>
               </div>
 
               {/* CHECKBOX AND AGREEMENT */}
