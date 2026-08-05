@@ -9,21 +9,56 @@ import { safeArray } from "../utils";
 export const chatService = {
   async getSessions(): Promise<ChatSession[]> {
     try {
-      const res = await apiClient.get<ChatSession[] | { conversations: ChatSession[] }>("/api/conversations");
-      const list = Array.isArray(res.data)
-        ? res.data
-        : (res.data as any)?.conversations || (res.data as any)?.sessions || [];
-      return safeArray<any>(list).map((s) => ({
-        id: s.id,
-        title: s.title || "New Conversation",
+      console.log("[chatService] Requesting GET /api/chat/sessions");
+      const res = await apiClient.get<any>("/api/chat/sessions");
+      console.log("[chatService] GET /api/chat/sessions response:", res.data);
+      const rawData = res.data;
+      const list = Array.isArray(rawData)
+        ? rawData
+        : rawData?.data || rawData?.sessions || rawData?.conversations || [];
+
+      const mapped = safeArray<any>(list).map((s) => ({
+        id: s.id || s.sessionId || s.uuid,
+        title: s.title || "New Coaching Session",
         isPinned: Boolean(s.isPinned || s.is_pinned),
         isArchived: Boolean(s.isArchived || s.is_archived),
         createdAt: s.createdAt || s.created_at || new Date().toISOString(),
-        updatedAt: s.updatedAt || s.updated_at || new Date().toISOString(),
+        updatedAt: s.updatedAt || s.updated_at || s.createdAt || s.created_at || new Date().toISOString(),
       }));
+
+      // Sort sessions by updated_at / updatedAt DESC
+      mapped.sort((a, b) => {
+        const timeA = new Date(a.updatedAt || a.createdAt).getTime();
+        const timeB = new Date(b.updatedAt || b.createdAt).getTime();
+        return timeB - timeA;
+      });
+
+      return mapped;
     } catch (e) {
-      console.warn("Failed to fetch sessions from endpoint, returning default:", e);
-      return [];
+      console.warn("Failed to fetch sessions from /api/chat/sessions, attempting fallback /api/conversations:", e);
+      try {
+        const res = await apiClient.get<any>("/api/conversations");
+        const list = Array.isArray(res.data)
+          ? res.data
+          : res.data?.data || res.data?.conversations || res.data?.sessions || [];
+        const mapped = safeArray<any>(list).map((s) => ({
+          id: s.id || s.sessionId || s.uuid,
+          title: s.title || "New Coaching Session",
+          isPinned: Boolean(s.isPinned || s.is_pinned),
+          isArchived: Boolean(s.isArchived || s.is_archived),
+          createdAt: s.createdAt || s.created_at || new Date().toISOString(),
+          updatedAt: s.updatedAt || s.updated_at || s.createdAt || s.created_at || new Date().toISOString(),
+        }));
+        mapped.sort((a, b) => {
+          const timeA = new Date(a.updatedAt || a.createdAt).getTime();
+          const timeB = new Date(b.updatedAt || b.createdAt).getTime();
+          return timeB - timeA;
+        });
+        return mapped;
+      } catch (err) {
+        console.error("Failed to fetch sessions from fallback endpoint:", err);
+        return [];
+      }
     }
   },
 
@@ -59,8 +94,32 @@ export const chatService = {
     };
   },
 
-  async getMessages(_sessionId: string): Promise<ChatMessage[]> {
-    return [];
+  async getMessages(sessionId: string): Promise<ChatMessage[]> {
+    if (!sessionId) return [];
+    try {
+      console.log(`[chatService] Requesting GET /api/chat/messages/${sessionId}`);
+      const res = await apiClient.get(`/api/chat/messages/${sessionId}`);
+      console.log(`[chatService] GET /api/chat/messages/${sessionId} response:`, res.data);
+      const rawData = res.data;
+      const list = Array.isArray(rawData)
+        ? rawData
+        : rawData?.data || rawData?.messages || [];
+      
+      const mapped = safeArray<any>(list).map((m) => ({
+        id: m.id || `msg_${Date.now()}_${Math.random()}`,
+        sessionId: sessionId,
+        role: (m.role === "user" ? "user" : "assistant") as "user" | "assistant",
+        content: m.content || m.message || m.text || "",
+        createdAt: m.createdAt || m.created_at || new Date().toISOString(),
+      }));
+
+      mapped.sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
+
+      return mapped;
+    } catch (e) {
+      console.error(`Failed to fetch messages for session ${sessionId}:`, e);
+      return [];
+    }
   },
 
   async sendMessage(sessionId: string, message: string): Promise<{ reply: string; messages?: ChatMessage[] }> {

@@ -36,20 +36,27 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   fetchSessions: async () => {
     try {
+      console.log("[chatStore] Fetching chat sessions from backend...");
       const sessions = await chatService.getSessions();
+      console.log(`[chatStore] Loaded ${sessions.length} sessions:`, sessions);
       set({ chatSessions: safeArray(sessions) });
 
-      // Auto select first session if none active
-      if (sessions.length > 0 && !get().activeChatId) {
-        get().selectSession(sessions[0].id);
+      if (sessions.length > 0) {
+        const savedActiveId = localStorage.getItem("activeChatId") || get().activeChatId;
+        const targetSession = sessions.find((s) => s.id === savedActiveId) || sessions[0];
+        if (targetSession) {
+          console.log(`[chatStore] Restoring/selecting session ${targetSession.id}`);
+          await get().selectSession(targetSession.id);
+        }
       }
     } catch (e) {
-      console.warn("Failed to fetch chat sessions:", e);
+      console.warn("[chatStore] fetchSessions failed:", e);
     }
   },
 
   createSession: async (title) => {
     const newSession = await chatService.createSession(title);
+    localStorage.setItem("activeChatId", newSession.id);
     set((state) => ({
       chatSessions: [newSession, ...state.chatSessions],
       activeChatId: newSession.id,
@@ -59,25 +66,42 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   selectSession: async (id: string) => {
+    if (!id) return;
+    localStorage.setItem("activeChatId", id);
     set({ activeChatId: id, chatLoading: true });
     try {
       const msgs = await chatService.getMessages(id);
+      console.log(`[chatStore] Loaded ${msgs.length} messages for session ${id}:`, msgs);
       set({ chatMessages: safeArray(msgs), chatLoading: false });
     } catch (e) {
-      set({ chatMessages: [], chatLoading: false });
+      console.error(`[chatStore] selectSession failed for ${id}:`, e);
+      set({ chatLoading: false });
     }
   },
 
   deleteSession: async (id: string) => {
+    const currentActiveId = get().activeChatId;
     set((state) => {
       const remaining = state.chatSessions.filter((s) => s.id !== id);
-      const nextActive = state.activeChatId === id ? (remaining[0]?.id || null) : state.activeChatId;
+      const nextActive = currentActiveId === id ? (remaining[0]?.id || null) : currentActiveId;
+      if (nextActive) {
+        localStorage.setItem("activeChatId", nextActive);
+      } else {
+        localStorage.removeItem("activeChatId");
+      }
       return {
         chatSessions: remaining,
         activeChatId: nextActive,
-        chatMessages: state.activeChatId === id ? [] : state.chatMessages,
+        chatMessages: currentActiveId === id ? [] : state.chatMessages,
       };
     });
+
+    if (currentActiveId === id) {
+      const remaining = get().chatSessions;
+      if (remaining.length > 0) {
+        await get().selectSession(remaining[0].id);
+      }
+    }
 
     try {
       await chatService.deleteSession(id);
