@@ -58,7 +58,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
           await get().selectSession(targetSession.id);
         }
       } else {
-        set({ activeChatId: null, chatMessages: [], chatLoading: false });
+        console.log("[chatStore] No sessions found, auto-creating first session silently.");
+        await get().createSession("New Chat");
       }
     } catch (e) {
       console.warn("[chatStore] fetchSessions failed:", e);
