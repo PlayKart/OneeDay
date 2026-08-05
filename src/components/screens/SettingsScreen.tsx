@@ -5,7 +5,6 @@ import { signOut } from "firebase/auth";
 import { LogOut, User as UserIcon, Shield, Trash2, ShieldCheck, ChevronRight, X, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "react-hot-toast";
-import { MonolithLogo } from "../MonolithLogo";
 
 export function SettingsScreen() {
   const { user, firebaseUser, freezeStreak, deactivateFreeze } = useStore();
@@ -63,17 +62,7 @@ export function SettingsScreen() {
         </p>
       </header>
 
-      {/* Brand Showcase Card */}
-      <div className="relative overflow-hidden rounded-[24px] border border-white/10 bg-white/[0.02] p-8 text-center backdrop-blur-md shadow-2xl flex flex-col items-center gap-4 select-none">
-        {/* Decorative backdrop light */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-48 bg-white/5 rounded-full blur-[40px] pointer-events-none" />
-        
-        <MonolithLogo size={72} />
-        <div className="relative z-10 space-y-1 mt-2">
-          <h2 className="text-lg font-black tracking-[0.2em] text-white">MONOLITH PROTOCOL</h2>
-          <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Active System Framework</p>
-        </div>
-      </div>
+
 
       {/* Account Section */}
       <section className="space-y-4">
