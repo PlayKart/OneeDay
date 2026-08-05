@@ -301,9 +301,12 @@ export const AICoach = () => {
   const safeChatMessages = Array.isArray(chatMessages) ? chatMessages : [];
 
   const quickPrompts = [
-    { label: "🔍 Audit neglected habits", text: "Audit my neglected habits today." },
-    { label: "🔥 Keep streak alive", text: "Push me to keep my streak alive!" },
-    { label: "📊 Assess my progress", text: "Assess my progress today." }
+    { label: "Build Discipline", text: "Help me build rock-solid discipline today." },
+    { label: "Study", text: "Help me design an effective study revision plan." },
+    { label: "Workout", text: "Give me an intense workout routine for today." },
+    { label: "Cricket", text: "Give me mental and physical tips for cricket practice." },
+    { label: "Productivity", text: "How can I double my focus and productivity today?" },
+    { label: "Motivation", text: "Give me a direct, no-nonsense motivational push." }
   ];
 
   return (
@@ -499,7 +502,9 @@ export const AICoach = () => {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  deleteSession(session.id);
+                                  if (window.confirm("Are you sure you want to delete this conversation?")) {
+                                    deleteSession(session.id);
+                                  }
                                 }}
                                 className="p-1 hover:bg-white/10 rounded text-slate-500 hover:text-red-400 transition-colors"
                               >
@@ -608,7 +613,7 @@ export const AICoach = () => {
 
                       <button
                         onClick={() => {
-                          if (activeChatId) {
+                          if (activeChatId && window.confirm("Are you sure you want to delete this conversation?")) {
                             deleteSession(activeChatId);
                             handleBackToSplit();
                           }
@@ -709,22 +714,22 @@ export const AICoach = () => {
                 </div>
               ) : safeChatMessages.length === 0 ? (
                 /* Empty / Welcome prompts state */
-                <div className="max-w-xl mx-auto text-center py-20 flex flex-col items-center justify-center">
-                  <div className="w-14 h-14 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center mb-6">
-                    <Bot size={24} className="text-white" />
+                <div className="max-w-xl mx-auto text-center py-16 md:py-24 flex flex-col items-center justify-center">
+                  <div className="w-16 h-16 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center mb-6 shadow-2xl">
+                    <Bot size={28} className="text-white" />
                   </div>
-                  <h2 className="text-xl font-black tracking-tight mb-2">Discipline Starts Today</h2>
-                  <p className="text-slate-400 text-xs leading-relaxed max-w-sm mb-8">
-                    Your performance telemetry is active. Report progress, audit routines, or seek strategic accountability.
+                  <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight mb-2 text-white">What are we conquering today?</h2>
+                  <p className="text-slate-400 text-xs md:text-sm leading-relaxed max-w-sm mb-8">
+                    I remember every conversation separately.
                   </p>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 w-full max-w-md">
                     {quickPrompts.map((p, idx) => (
                       <button
                         key={idx}
                         onClick={() => handleChipClick(p.text)}
                         disabled={chatLoading}
-                        className="text-[11px] font-bold p-3.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-all cursor-pointer text-center disabled:opacity-50"
+                        className="text-xs font-bold p-3.5 rounded-xl bg-[#0F0F0F] hover:bg-white hover:text-black border border-white/10 text-slate-300 transition-all cursor-pointer text-center disabled:opacity-50 active:scale-95 shadow-md"
                       >
                         {p.label}
                       </button>

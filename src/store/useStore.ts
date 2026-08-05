@@ -329,12 +329,18 @@ export const useStore = create<StoreState>((set, get) => {
       try {
         console.log("[useStore] Fetching chat sessions from backend...");
         const sessions = await chatService.getSessions();
-        console.log(`[useStore] Loaded ${sessions.length} sessions:`, sessions);
-        set({ chatSessions: safeArray(sessions) });
+        const safeArr = safeArray(sessions) as ChatSession[];
+        const sorted = [...safeArr].sort((a: any, b: any) => {
+          const timeA = new Date(a.updated_at || a.created_at || 0).getTime();
+          const timeB = new Date(b.updated_at || b.created_at || 0).getTime();
+          return timeB - timeA;
+        });
 
-        if (sessions.length > 0) {
+        set({ chatSessions: sorted });
+
+        if (sorted.length > 0) {
           const savedActiveId = localStorage.getItem("activeChatId") || get().activeChatId;
-          const targetSession = sessions.find((s) => s.id === savedActiveId) || sessions[0];
+          const targetSession = sorted.find((s) => s.id === savedActiveId) || sorted[0];
           if (targetSession) {
             console.log(`[useStore] Restoring/selecting session ${targetSession.id}`);
             await get().selectSession(targetSession.id);
@@ -508,15 +514,18 @@ export const useStore = create<StoreState>((set, get) => {
           chatLoading: false,
         }));
 
-        // Title Auto Update logic
+        // Title Auto Update logic (Max 3 words, ChatGPT style)
         const currentSession = get().chatSessions.find((s) => s.id === activeId);
         let targetTitle = res.title;
 
-        if (!targetTitle && (isNewSession || !currentSession || currentSession.title === "New Chat" || currentSession.title === "New Conversation" || currentSession.title === "New Coaching Session")) {
-          const trimmed = messageText.trim();
-          let generated = trimmed.length > 28 ? trimmed.substring(0, 28) + "..." : trimmed;
-          if (generated) {
-            targetTitle = generated.charAt(0).toUpperCase() + generated.slice(1);
+        if (!targetTitle || targetTitle === "New Chat" || targetTitle === "New Conversation" || targetTitle === "New Coaching Session") {
+          const cleanText = messageText.trim().replace(/[^\w\s]/gi, '');
+          const words = cleanText.split(/\s+/).filter(Boolean);
+          if (words.length > 0) {
+            const threeWords = words.slice(0, 3).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+            targetTitle = threeWords.length <= 28 ? threeWords : "New Chat";
+          } else {
+            targetTitle = "New Chat";
           }
         }
 
