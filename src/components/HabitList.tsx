@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Check, Loader2, MoreVertical } from 'lucide-react';
+import { Plus, Check, Loader2, MoreVertical, Pencil, Trash2, RotateCcw } from 'lucide-react';
 import { useStore, Habit } from '../store/useStore';
 import { toast } from 'react-hot-toast';
 import { isHabitScheduledForToday, getScheduledDaysMessage } from '../lib/habitUtils';
@@ -8,9 +8,15 @@ import { EditHabitModal } from './EditHabitModal';
 import { getHabitIconComponent, getHabitColorTheme } from '../lib/habitIcons';
 
 export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) => {
-  const { habits, completeHabit, undoHabit, loading } = useStore();
+  const { habits, completeHabit, undoHabit, deleteHabit, refreshFromBackend, loading } = useStore();
   
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
+  const [activeDropdownId, setActiveDropdownId] = useState<string | null>(null);
+  const [deleteConfirmationHabit, setDeleteConfirmationHabit] = useState<Habit | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     title: string;
@@ -20,6 +26,64 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
     title: "",
     action: async () => {}
   });
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setActiveDropdownId(null);
+        setDeleteConfirmationHabit(null);
+      }
+    };
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setActiveDropdownId(null);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const handleConfirmDelete = async (habit: Habit) => {
+    setIsDeleting(true);
+    try {
+      await deleteHabit(habit.id);
+      await refreshFromBackend();
+      toast.success("Habit deleted successfully.");
+      setDeleteConfirmationHabit(null);
+    } catch (err: any) {
+      console.error("Failed to delete habit:", err);
+      const errorMessage =
+        err?.response?.data?.error ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Failed to delete habit";
+      toast.error(errorMessage);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleUndoCompletion = async (habit: Habit) => {
+    try {
+      await undoHabit(habit.id);
+      await refreshFromBackend();
+      toast.success("Completion undone.");
+    } catch (err: any) {
+      console.error("Failed to undo habit completion:", err);
+      const errorMessage =
+        err?.response?.data?.error ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Failed to undo completion";
+      toast.error(errorMessage);
+    }
+  };
 
   const safeHabits = Array.isArray(habits) ? habits : [];
   if (!Array.isArray(habits)) {
@@ -93,9 +157,10 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
                       action: async () => {
                         try {
                           await undoHabit(habit.id);
-                          toast.success("HABIT UNDONE");
-                        } catch (e) {
-                          toast.error("COMMUNICATIONS ERROR");
+                          toast.success("Completion undone.");
+                        } catch (e: any) {
+                          const errorMessage = e?.response?.data?.error || e?.message || "Failed to undo completion";
+                          toast.error(errorMessage);
                         }
                       }
                     });
@@ -107,8 +172,9 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
                         try {
                           await completeHabit(habit.id);
                           toast.success("HABIT COMPLETED +10 XP");
-                        } catch (e) {
-                          toast.error("COMMUNICATIONS ERROR");
+                        } catch (e: any) {
+                          const errorMessage = e?.response?.data?.error || e?.message || "Failed to complete habit";
+                          toast.error(errorMessage);
                         }
                       }
                     });
@@ -124,12 +190,83 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
                 <Check size={16} className={habit.completedToday ? '' : (isToday ? 'group-hover:text-white/20' : 'text-white/10')} />
               </button>
               
-              <button
-                onClick={() => setEditingHabit(habit)}
-                className="w-10 h-10 flex items-center justify-center translate-x-2 text-slate-500 hover:text-white transition-colors"
-              >
-                <MoreVertical size={16} />
-              </button>
+              <div className="relative">
+                <button
+                  type="button"
+                  aria-label={`Options menu for ${habit.name}`}
+                  aria-expanded={activeDropdownId === habit.id}
+                  aria-haspopup="true"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveDropdownId(prev => prev === habit.id ? null : habit.id);
+                  }}
+                  className="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-white transition-colors rounded-xl focus:outline-none focus:ring-2 focus:ring-white/20"
+                >
+                  <MoreVertical size={16} />
+                </button>
+
+                <AnimatePresence>
+                  {activeDropdownId === habit.id && (
+                    <motion.div
+                      ref={dropdownRef}
+                      initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                      transition={{ duration: 0.12 }}
+                      className="absolute right-0 top-11 z-50 min-w-[170px] bg-[#121212] border border-white/10 rounded-xl p-1.5 shadow-2xl backdrop-blur-xl"
+                      role="menu"
+                      aria-label="Habit options"
+                    >
+                      <button
+                        type="button"
+                        role="menuitem"
+                        tabIndex={0}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveDropdownId(null);
+                          setEditingHabit(habit);
+                        }}
+                        className="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-slate-200 hover:text-white hover:bg-white/10 transition-colors flex items-center gap-2.5 focus:outline-none focus:bg-white/10"
+                      >
+                        <Pencil size={14} className="text-slate-400 shrink-0" />
+                        <span>Edit Habit</span>
+                      </button>
+
+                      {habit.completedToday && (
+                        <button
+                          type="button"
+                          role="menuitem"
+                          tabIndex={0}
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            setActiveDropdownId(null);
+                            await handleUndoCompletion(habit);
+                          }}
+                          className="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 transition-colors flex items-center gap-2.5 focus:outline-none focus:bg-amber-500/10"
+                        >
+                          <RotateCcw size={14} className="text-amber-400 shrink-0" />
+                          <span>Undo Completion</span>
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        role="menuitem"
+                        tabIndex={0}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveDropdownId(null);
+                          setDeleteConfirmationHabit(habit);
+                        }}
+                        className="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors flex items-center gap-2.5 focus:outline-none focus:bg-red-500/10"
+                      >
+                        <Trash2 size={14} className="text-red-400 shrink-0" />
+                        <span>Delete Habit</span>
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
           </motion.div>
         )})}
@@ -148,6 +285,56 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
        {editingHabit && (
           <EditHabitModal habit={editingHabit} onClose={() => setEditingHabit(null)} />
        )}
+    </AnimatePresence>
+
+    {/* Delete Habit Confirmation Modal */}
+    <AnimatePresence>
+      {deleteConfirmationHabit && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-habit-modal-title"
+          aria-describedby="delete-habit-modal-desc"
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="bg-[#111] p-6 rounded-2xl border border-white/10 max-w-sm w-full shadow-2xl relative"
+          >
+            <h3 id="delete-habit-modal-title" className="text-lg font-bold text-white text-center leading-snug">
+              Delete Habit?
+            </h3>
+            <p id="delete-habit-modal-desc" className="text-xs text-slate-400 text-center mt-2 mb-6">
+              This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setDeleteConfirmationHabit(null)}
+                className="flex-1 py-3 focus:outline-none rounded-xl bg-white/5 text-white font-bold hover:bg-white/10 transition-all uppercase tracking-wider text-xs border border-white/10 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => handleConfirmDelete(deleteConfirmationHabit)}
+                className="flex-1 py-3 focus:outline-none rounded-xl bg-red-600 text-white font-bold hover:bg-red-500 transition-all uppercase tracking-wider text-xs shadow-lg shadow-red-600/20 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isDeleting ? (
+                  <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                ) : (
+                  "Delete"
+                )}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </AnimatePresence>
     
     {/* Custom Confirm Modal */}
