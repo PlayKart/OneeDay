@@ -2,17 +2,29 @@ import { useState, useEffect } from "react";
 import { useStore } from "../../store/useStore";
 import { auth } from "../../lib/firebase";
 import { signOut } from "firebase/auth";
-import { LogOut, User as UserIcon, Shield, Trash2, ShieldCheck, ChevronRight, X, Sparkles } from "lucide-react";
+import { LogOut, User as UserIcon, Shield, Trash2, ShieldCheck, ChevronRight, X, Sparkles, AlertTriangle, ArrowLeft } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "react-hot-toast";
+import { PrivacyPage } from "../PrivacyPage";
+import { TermsPage } from "../TermsPage";
 
 export function SettingsScreen() {
-  const { user, firebaseUser, freezeStreak, deactivateFreeze } = useStore();
+  const { user, firebaseUser, freezeStreak, deactivateFreeze, resetProgress, deleteAccount } = useStore();
   const [showFreezeConfirm, setShowFreezeConfirm] = useState(false);
   const [freezeDays, setFreezeDays] = useState(7);
   const [activating, setActivating] = useState(false);
   const [confirmDeactivate, setConfirmDeactivate] = useState(false);
   const [deactivating, setDeactivating] = useState(false);
+
+  // In-app navigation view for Privacy Policy & Terms & Conditions
+  const [settingsView, setSettingsView] = useState<"main" | "privacy" | "terms">("main");
+
+  // Confirmation dialogs state
+  const [confirmSignOut, setConfirmSignOut] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Reset the "Confirm" timer for settings shield deactivation after 3 seconds
   useEffect(() => {
@@ -23,9 +35,9 @@ export function SettingsScreen() {
     return () => clearTimeout(timer);
   }, [confirmDeactivate]);
 
-  if (!user) return null;
+  if (!user && settingsView === "main") return null;
 
-  const isFrozen = user.freeze_until && new Date(user.freeze_until) > new Date();
+  const isFrozen = user?.freeze_until && new Date(user.freeze_until) > new Date();
 
   const handleActivateShield = async () => {
     try {
@@ -35,9 +47,46 @@ export function SettingsScreen() {
       toast.success(`Streak frozen for ${freezeDays} days!`);
     } catch (e: any) {
       console.error("Streak freeze activation failed", e);
-      toast.error("Failed to activate streak shield.");
+      toast.error(e?.message || "Failed to activate streak shield.");
     } finally {
       setActivating(false);
+    }
+  };
+
+  const handleSignOutConfirm = async () => {
+    try {
+      await signOut(auth);
+      setConfirmSignOut(false);
+      toast.success("Successfully signed out.");
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to sign out.");
+    }
+  };
+
+  const handleResetConfirm = async () => {
+    try {
+      setResetting(true);
+      await resetProgress();
+      setConfirmReset(false);
+      toast.success("Progress reset successfully.");
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to reset progress.");
+    } finally {
+      setResetting(false);
+    }
+  };
+
+  const handleDeleteAccountConfirm = async () => {
+    try {
+      setDeleting(true);
+      await deleteAccount();
+      await signOut(auth);
+      setConfirmDelete(false);
+      toast.success("Account deleted successfully.");
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to delete account.");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -47,6 +96,36 @@ export function SettingsScreen() {
     day: 'numeric',
     year: 'numeric'
   });
+
+  if (settingsView === "privacy") {
+    return (
+      <div className="p-6 md:p-8 max-w-3xl mx-auto space-y-8">
+        <button
+          onClick={() => setSettingsView("main")}
+          className="group flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm font-bold tracking-tight cursor-pointer"
+        >
+          <ArrowLeft size={16} className="transform group-hover:-translate-x-1 transition-transform" />
+          Back to Settings
+        </button>
+        <PrivacyPage onBack={() => setSettingsView("main")} />
+      </div>
+    );
+  }
+
+  if (settingsView === "terms") {
+    return (
+      <div className="p-6 md:p-8 max-w-3xl mx-auto space-y-8">
+        <button
+          onClick={() => setSettingsView("main")}
+          className="group flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm font-bold tracking-tight cursor-pointer"
+        >
+          <ArrowLeft size={16} className="transform group-hover:-translate-x-1 transition-transform" />
+          Back to Settings
+        </button>
+        <TermsPage onBack={() => setSettingsView("main")} />
+      </div>
+    );
+  }
 
   return (
     <motion.div 
@@ -62,8 +141,6 @@ export function SettingsScreen() {
         </p>
       </header>
 
-
-
       {/* Account Section */}
       <section className="space-y-4">
         <h2 className="text-[10px] font-black tracking-widest uppercase text-slate-500 ml-2">Account</h2>
@@ -78,17 +155,17 @@ export function SettingsScreen() {
                   )}
                </div>
                <div>
-                 <div className="font-bold text-sm">{user.name || "Guest"}</div>
+                 <div className="font-bold text-sm">{user?.name || "Guest"}</div>
                  <div className="text-[10px] text-slate-500">{firebaseUser?.email || "Anonymous Account"}</div>
                </div>
             </div>
             <div className="text-[10px] font-bold uppercase tracking-wider bg-white/10 px-3 py-1 rounded-full text-slate-300">
-               Level {user.level}
+               Level {user?.level || 1}
             </div>
           </div>
           <button 
-             onClick={() => signOut(auth)}
-             className="w-full p-4 flex items-center justify-between text-slate-300 hover:bg-white/5 transition-colors group"
+             onClick={() => setConfirmSignOut(true)}
+             className="w-full p-4 flex items-center justify-between text-slate-300 hover:bg-white/5 transition-colors group cursor-pointer"
           >
              <div className="flex items-center gap-3">
                <LogOut size={16} className="text-red-400 group-hover:text-red-300" />
@@ -117,7 +194,7 @@ export function SettingsScreen() {
                  </div>
                  <div className="text-xs text-slate-500 mt-1">
                    {isFrozen 
-                     ? `Protected until ${new Date(user.freeze_until || "").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
+                     ? `Protected until ${new Date(user?.freeze_until || "").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
                      : "Temporarily pause your activity with a flexible freeze (1 to 10 days) without losing your streak."}
                  </div>
                </div>
@@ -134,8 +211,8 @@ export function SettingsScreen() {
                       await deactivateFreeze();
                       toast.success("Streak Shield deactivated! Progression resumed.");
                       setConfirmDeactivate(false);
-                    } catch (e) {
-                      toast.error("Failed to deactivate streak shield.");
+                    } catch (e: any) {
+                      toast.error(e?.message || "Failed to deactivate streak shield.");
                     } finally {
                       setDeactivating(false);
                     }
@@ -171,32 +248,192 @@ export function SettingsScreen() {
       <section className="space-y-4">
         <h2 className="text-[10px] font-black tracking-widest uppercase text-slate-500 ml-2">Data & Privacy</h2>
         <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden divide-y divide-white/5">
-          <SettingRow icon={Trash2} label="Reset Progress" danger onClick={() => {
-            if (confirm("Are you sure you want to reset all your progress?")) {
-              useStore.getState().resetProgress().catch(console.error);
-            }
-          }} />
-          <SettingRow icon={Trash2} label="Delete Account" danger onClick={() => {
-            if (confirm("Are you sure you want to delete your account forever?")) {
-              useStore.getState().deleteAccount().catch(console.error);
-            }
-          }} />
+          <SettingRow icon={Trash2} label="Reset Progress" danger onClick={() => setConfirmReset(true)} />
+          <SettingRow icon={Trash2} label="Delete Account" danger onClick={() => setConfirmDelete(true)} />
         </div>
       </section>
 
       {/* About Section */}
-      <section className="space-y-4 opacity-60">
-        <h2 className="text-[10px] font-black tracking-widest uppercase text-slate-500 ml-2">About</h2>
+      <section className="space-y-4 opacity-75">
+        <h2 className="text-[10px] font-black tracking-widest uppercase text-slate-500 ml-2">About & Legal</h2>
         <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden divide-y divide-white/5">
-          <SettingRow icon={ShieldCheck} label="Privacy Policy" />
-          <div className="p-4 flex items-center justify-between text-slate-300">
-             <span className="text-sm font-bold">Version</span>
-             <span className="text-xs font-mono text-slate-500">1.0.0</span>
-          </div>
+          <button
+            onClick={() => setSettingsView("privacy")}
+            className="w-full p-4 flex items-center justify-between text-slate-300 hover:bg-white/5 transition-colors group cursor-pointer"
+          >
+            <div className="flex items-center gap-3">
+              <ShieldCheck size={16} className="text-slate-400 group-hover:text-white transition-colors" />
+              <span className="text-sm font-bold">Privacy Policy</span>
+            </div>
+            <ChevronRight size={16} className="text-white/20 group-hover:text-white/60 transition-colors" />
+          </button>
+          <button
+            onClick={() => setSettingsView("terms")}
+            className="w-full p-4 flex items-center justify-between text-slate-300 hover:bg-white/5 transition-colors group cursor-pointer"
+          >
+            <div className="flex items-center gap-3">
+              <ShieldCheck size={16} className="text-slate-400 group-hover:text-white transition-colors" />
+              <span className="text-sm font-bold">Terms & Conditions</span>
+            </div>
+            <ChevronRight size={16} className="text-white/20 group-hover:text-white/60 transition-colors" />
+          </button>
         </div>
       </section>
       
       <div className="h-12" /> {/* Spacer for scroll padding */}
+
+      {/* 1. SIGN OUT CONFIRMATION MODAL */}
+      <AnimatePresence>
+        {confirmSignOut && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/80 backdrop-blur-md"
+              onClick={() => setConfirmSignOut(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="relative bg-[#0c0c0c] border border-white/10 rounded-[2rem] p-8 max-w-sm w-full shadow-2xl space-y-6 z-10 text-center"
+            >
+              <div className="w-12 h-12 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center mx-auto text-white">
+                <LogOut size={22} />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-black tracking-tight text-white">Sign Out?</h3>
+                <p className="text-slate-400 text-xs leading-relaxed">
+                  Are you sure you want to sign out of OneDay?
+                </p>
+              </div>
+              <div className="flex flex-col gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={handleSignOutConfirm}
+                  className="w-full bg-white text-black font-extrabold py-3 rounded-xl text-xs uppercase tracking-wider hover:bg-slate-200 transition-all cursor-pointer"
+                >
+                  Sign Out
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmSignOut(false)}
+                  className="w-full bg-white/5 text-slate-400 border border-white/5 font-extrabold py-3 rounded-xl text-xs uppercase tracking-wider hover:bg-white/10 hover:text-white transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* 2. RESET PROGRESS CONFIRMATION MODAL */}
+      <AnimatePresence>
+        {confirmReset && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/80 backdrop-blur-md"
+              onClick={() => { if (!resetting) setConfirmReset(false); }}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="relative bg-[#0c0c0c] border border-red-500/25 rounded-[2rem] p-8 max-w-sm w-full shadow-[0_0_50px_rgba(239,68,68,0.15)] space-y-6 z-10 text-center"
+            >
+              <div className="w-12 h-12 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-center mx-auto text-red-400">
+                <AlertTriangle size={22} />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-black tracking-tight text-white">Reset All Progress?</h3>
+                <p className="text-slate-400 text-xs leading-relaxed">
+                  This will reset your XP, streaks, level, and statistics back to zero. This action cannot be undone.
+                </p>
+              </div>
+              <div className="flex flex-col gap-2 pt-2">
+                <button
+                  type="button"
+                  disabled={resetting}
+                  onClick={handleResetConfirm}
+                  className="w-full bg-red-500 text-white font-extrabold py-3 rounded-xl text-xs uppercase tracking-wider hover:bg-red-600 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {resetting ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    "Reset Progress"
+                  )}
+                </button>
+                <button
+                  type="button"
+                  disabled={resetting}
+                  onClick={() => setConfirmReset(false)}
+                  className="w-full bg-white/5 text-slate-400 border border-white/5 font-extrabold py-3 rounded-xl text-xs uppercase tracking-wider hover:bg-white/10 hover:text-white transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* 3. DELETE ACCOUNT CONFIRMATION MODAL */}
+      <AnimatePresence>
+        {confirmDelete && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/80 backdrop-blur-md"
+              onClick={() => { if (!deleting) setConfirmDelete(false); }}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="relative bg-[#0c0c0c] border border-red-500/30 rounded-[2rem] p-8 max-w-sm w-full shadow-[0_0_50px_rgba(239,68,68,0.2)] space-y-6 z-10 text-center"
+            >
+              <div className="w-12 h-12 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-center mx-auto text-red-400">
+                <Trash2 size={22} />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-black tracking-tight text-white">Delete Account?</h3>
+                <p className="text-slate-400 text-xs leading-relaxed">
+                  Permanently delete your account, habits, messages, and progression. All data will be wiped immediately.
+                </p>
+              </div>
+              <div className="flex flex-col gap-2 pt-2">
+                <button
+                  type="button"
+                  disabled={deleting}
+                  onClick={handleDeleteAccountConfirm}
+                  className="w-full bg-red-600 text-white font-extrabold py-3 rounded-xl text-xs uppercase tracking-wider hover:bg-red-700 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {deleting ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    "Delete Account"
+                  )}
+                </button>
+                <button
+                  type="button"
+                  disabled={deleting}
+                  onClick={() => setConfirmDelete(false)}
+                  className="w-full bg-white/5 text-slate-400 border border-white/5 font-extrabold py-3 rounded-xl text-xs uppercase tracking-wider hover:bg-white/10 hover:text-white transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Dynamic Confirmation Modal for Streak freezing */}
       <AnimatePresence>
@@ -227,7 +464,7 @@ export function SettingsScreen() {
                 <button
                   disabled={activating}
                   onClick={() => setShowFreezeConfirm(false)}
-                  className="p-1 rounded-full text-slate-500 hover:text-white hover:bg-white/5 transition-colors"
+                  className="p-1 rounded-full text-slate-500 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
                 >
                   <X size={18} />
                 </button>
@@ -325,7 +562,7 @@ export function SettingsScreen() {
 
 function SettingRow({ icon: Icon, label, value, danger, onClick }: { icon: any, label: string, value?: string, danger?: boolean, onClick?: () => void }) {
   return (
-    <button onClick={onClick} className={`w-full p-4 flex items-center justify-between transition-colors group ${danger ? 'hover:bg-red-500/10' : 'hover:bg-white/5'}`}>
+    <button onClick={onClick} className={`w-full p-4 flex items-center justify-between transition-colors group cursor-pointer ${danger ? 'hover:bg-red-500/10' : 'hover:bg-white/5'}`}>
        <div className="flex items-center gap-3">
          <Icon size={16} className={danger ? 'text-red-400' : 'text-slate-400'} />
          <span className={`text-sm font-bold ${danger ? 'text-red-400' : 'text-slate-300'}`}>{label}</span>
@@ -335,5 +572,5 @@ function SettingRow({ icon: Icon, label, value, danger, onClick }: { icon: any, 
          <ChevronRight size={16} className="text-white/20" />
        </div>
     </button>
-  )
+  );
 }
