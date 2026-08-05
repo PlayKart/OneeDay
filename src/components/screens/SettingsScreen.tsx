@@ -80,6 +80,8 @@ export function SettingsScreen() {
     try {
       setDeleting(true);
       await deleteAccount();
+      localStorage.clear();
+      sessionStorage.clear();
       await signOut(auth);
       setConfirmDelete(false);
       toast.success("Account deleted successfully.");
@@ -403,9 +405,9 @@ export function SettingsScreen() {
                 <Trash2 size={22} />
               </div>
               <div className="space-y-2">
-                <h3 className="text-xl font-black tracking-tight text-white">Delete Account?</h3>
+                <h3 className="text-xl font-black tracking-tight text-white">Are you sure?</h3>
                 <p className="text-slate-400 text-xs leading-relaxed">
-                  Permanently delete your account, habits, messages, and progression. All data will be wiped immediately.
+                  This action cannot be undone.
                 </p>
               </div>
               <div className="flex flex-col gap-2 pt-2">

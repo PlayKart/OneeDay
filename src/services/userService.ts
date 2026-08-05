@@ -57,10 +57,10 @@ export const userService = {
   },
 
   async resetProgress(): Promise<void> {
-    await apiClient.post("/api/reset-progress");
+    await apiClient.post("/api/reset");
   },
 
   async deleteAccount(): Promise<void> {
-    await apiClient.delete("/api/delete-account");
+    await apiClient.delete("/api/account");
   },
 };
