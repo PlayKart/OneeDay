@@ -19,7 +19,6 @@ import {
   ThumbsDown, 
   Check, 
   CornerDownLeft,
-  Paperclip,
   Share2,
   Download,
   Flame,
@@ -766,15 +765,6 @@ export const AICoach = () => {
             )}
 
             <form onSubmit={handleSend} className="relative w-full flex items-end gap-2 bg-[#0E0E0E] border border-white/10 rounded-2xl p-2 px-3 shadow-2xl focus-within:border-white/25 transition-all">
-              <button
-                type="button"
-                disabled
-                className="p-2 text-slate-600 cursor-not-allowed shrink-0 rounded-lg"
-                title="Attachments disabled"
-              >
-                <Paperclip size={15} />
-              </button>
-
               <textarea
                 ref={textareaRef}
                 rows={1}
