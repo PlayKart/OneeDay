@@ -10,6 +10,7 @@ interface ChatState {
   activeChatId: string | null;
   chatMessages: ChatMessage[];
   chatLoading: boolean;
+  sessionsLoading: boolean;
   searchQuery: string;
 
   setSearchQuery: (query: string) => void;
@@ -30,11 +31,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
   activeChatId: null,
   chatMessages: [],
   chatLoading: false,
+  sessionsLoading: false,
   searchQuery: "",
 
   setSearchQuery: (query) => set({ searchQuery: query }),
 
   fetchSessions: async () => {
+    set({ sessionsLoading: true });
     try {
       console.log("[chatStore] Fetching chat sessions from backend...");
       const sessions = await chatService.getSessions();
@@ -48,14 +51,18 @@ export const useChatStore = create<ChatState>((set, get) => ({
           console.log(`[chatStore] Restoring/selecting session ${targetSession.id}`);
           await get().selectSession(targetSession.id);
         }
+      } else {
+        set({ activeChatId: null, chatMessages: [], chatLoading: false });
       }
     } catch (e) {
       console.warn("[chatStore] fetchSessions failed:", e);
+    } finally {
+      set({ sessionsLoading: false });
     }
   },
 
   createSession: async (title) => {
-    const newSession = await chatService.createSession(title);
+    const newSession = await chatService.createSession(title || "New Chat");
     localStorage.setItem("activeChatId", newSession.id);
     set((state) => ({
       chatSessions: [newSession, ...state.chatSessions],
@@ -156,12 +163,22 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   sendChatMessage: async (messageText: string) => {
     let activeId = get().activeChatId;
+    let isNewSession = false;
+
+    // Delayed creation: create session on backend only when sending the first message
     if (!activeId) {
+      isNewSession = true;
       try {
-        activeId = await get().createSession();
+        const newSession = await chatService.createSession("New Chat");
+        activeId = newSession.id;
+        localStorage.setItem("activeChatId", activeId);
+        set((state) => ({
+          chatSessions: [newSession, ...state.chatSessions],
+          activeChatId: activeId,
+        }));
       } catch (createErr: any) {
-        console.error("[AI Coach] Auto session creation failed:", createErr);
-        const errMsg = createErr?.response?.data?.error || createErr?.message || "Failed to create session";
+        console.error("[AI Coach] Session creation failed:", createErr);
+        const errMsg = createErr?.response?.data?.error || createErr?.message || "Failed to create chat session";
         const tempAssistantMsgId = `assistant_${Date.now()}`;
         const userMsg: ChatMessage = {
           id: `user_${Date.now()}`,
@@ -221,11 +238,20 @@ export const useChatStore = create<ChatState>((set, get) => ({
         chatLoading: false,
       }));
 
-      // Update session title if first message
+      // Title Auto Update logic
       const currentSession = get().chatSessions.find((s) => s.id === activeId);
-      if (currentSession && (currentSession.title === "New Conversation" || currentSession.title === "New Coaching Session")) {
-        const truncatedTitle = messageText.length > 25 ? messageText.substring(0, 25) + "..." : messageText;
-        get().renameSession(activeId, truncatedTitle);
+      let targetTitle = res.title;
+
+      if (!targetTitle && (isNewSession || !currentSession || currentSession.title === "New Chat" || currentSession.title === "New Conversation" || currentSession.title === "New Coaching Session")) {
+        const trimmed = messageText.trim();
+        let generated = trimmed.length > 28 ? trimmed.substring(0, 28) + "..." : trimmed;
+        if (generated) {
+          targetTitle = generated.charAt(0).toUpperCase() + generated.slice(1);
+        }
+      }
+
+      if (targetTitle && currentSession?.title !== targetTitle) {
+        get().renameSession(activeId, targetTitle);
       }
     } catch (e: any) {
       console.error("[AI Coach] sendChatMessage failed:", e);

@@ -122,12 +122,12 @@ export const chatService = {
     }
   },
 
-  async sendMessage(sessionId: string, message: string): Promise<{ reply: string; messages?: ChatMessage[] }> {
+  async sendMessage(sessionId: string, message: string): Promise<{ reply: string; title?: string; messages?: ChatMessage[] }> {
     let targetSessionId = sessionId;
 
     if (!targetSessionId) {
       console.log("[AI Coach] No session exists. Automatically creating a session before sending message...");
-      const newSession = await this.createSession();
+      const newSession = await this.createSession("New Chat");
       targetSessionId = newSession.id;
     }
 
@@ -160,10 +160,14 @@ export const chatService = {
         body?.response ||
         body?.message ||
         body?.content ||
+        body?.data?.reply ||
         (typeof body === "string" ? body : "I am your AI Coach. Keep pushing your limits.");
+
+      const titleText = body?.title || body?.data?.title || body?.session?.title;
 
       return {
         reply: replyText,
+        title: titleText,
         messages: body?.messages ? safeArray(body.messages) : undefined,
       };
     } catch (err: any) {

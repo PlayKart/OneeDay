@@ -36,6 +36,7 @@ export const AICoach = () => {
     activeChatId,
     chatMessages,
     chatLoading,
+    sessionsLoading,
     fetchSessions,
     createSession,
     selectSession,
@@ -129,16 +130,13 @@ export const AICoach = () => {
 
   const handleChipClick = async (prompt: string) => {
     if (chatLoading) return;
-    
-    if (!activeChatId) {
-      createSession();
-      // wait a tiny bit to allow local state update
-      setTimeout(() => {
-        sendChatMessage(prompt);
-      }, 100);
-    } else {
-      await sendChatMessage(prompt);
-    }
+    await sendChatMessage(prompt);
+  };
+
+  const handleStartNewChat = () => {
+    useStore.setState({ activeChatId: null, chatMessages: [] });
+    localStorage.removeItem("activeChatId");
+    setViewState('fullscreen');
   };
 
   const handleRenameSave = async (id: string) => {
@@ -405,7 +403,16 @@ export const AICoach = () => {
                   )}
                 </div>
 
-                {safeChatSessions.length === 0 ? (
+                {sessionsLoading ? (
+                  <div className="space-y-2 py-2">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="p-4 rounded-2xl bg-[#0A0A0A] border border-white/5 animate-pulse space-y-2">
+                        <div className="h-3 w-3/4 bg-white/10 rounded" />
+                        <div className="h-2 w-1/2 bg-white/5 rounded" />
+                      </div>
+                    ))}
+                  </div>
+                ) : safeChatSessions.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20 text-center text-slate-600">
                     <p className="text-xs uppercase font-bold tracking-widest">No previous chats</p>
                     <p className="text-[11px] mt-1 max-w-[180px]">Start your first coaching session below</p>
@@ -448,7 +455,14 @@ export const AICoach = () => {
                               ) : (
                                 <h3 className="text-xs font-bold text-white truncate leading-tight flex items-center gap-1.5">
                                   {session.is_pinned && <Pin size={10} className="text-orange-400 fill-orange-400 shrink-0" />}
-                                  {session.title || "New Session"}
+                                  <motion.span
+                                    key={session.title || "New Chat"}
+                                    initial={{ opacity: 0.5, y: -2 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.35, ease: "easeOut" }}
+                                  >
+                                    {session.title || "New Chat"}
+                                  </motion.span>
                                 </h3>
                               )}
                               <p className="text-[11px] text-slate-500 mt-1 line-clamp-1">
@@ -502,7 +516,7 @@ export const AICoach = () => {
 
               {/* Bottom Large Rounded + New Chat Button */}
               <button
-                onClick={() => createSession()}
+                onClick={handleStartNewChat}
                 className="w-full py-4 rounded-2xl border border-white bg-black hover:bg-white hover:text-black text-xs font-extrabold uppercase tracking-widest text-white transition-all cursor-pointer active:scale-98"
               >
                 + New Chat
@@ -530,9 +544,15 @@ export const AICoach = () => {
 
               <div className="flex flex-col items-center">
                 <span className="text-[9px] uppercase tracking-widest font-bold text-slate-500">OneDay Coach Protocol</span>
-                <span className="text-xs font-extrabold text-white truncate max-w-xs mt-0.5">
-                  {safeChatSessions.find(s => s && s.id === activeChatId)?.title || "Coaching Session"}
-                </span>
+                <motion.span
+                  key={activeChatId ? (safeChatSessions.find(s => s && s.id === activeChatId)?.title || "New Chat") : "New Chat"}
+                  initial={{ opacity: 0.5, y: -2 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.35, ease: "easeOut" }}
+                  className="text-xs font-extrabold text-white truncate max-w-xs mt-0.5 inline-block"
+                >
+                  {activeChatId ? (safeChatSessions.find(s => s && s.id === activeChatId)?.title || "New Chat") : "New Chat"}
+                </motion.span>
               </div>
 
               {/* Three-Dot Dropdown Menu Container */}
@@ -671,7 +691,23 @@ export const AICoach = () => {
                 </div>
               )}
 
-              {safeChatMessages.length === 0 ? (
+              {chatLoading && safeChatMessages.length === 0 ? (
+                <div className="space-y-6 max-w-3xl mx-auto py-8">
+                  <div className="flex items-start gap-4 animate-pulse">
+                    <div className="w-7 h-7 rounded-full bg-white/10 shrink-0" />
+                    <div className="space-y-2 flex-1">
+                      <div className="h-4 bg-white/10 rounded w-3/4" />
+                      <div className="h-4 bg-white/5 rounded w-1/2" />
+                    </div>
+                  </div>
+                  <div className="flex items-start justify-end gap-4 animate-pulse">
+                    <div className="space-y-2 flex-1 items-end flex flex-col">
+                      <div className="h-4 bg-white/10 rounded w-2/3" />
+                      <div className="h-4 bg-white/5 rounded w-1/3" />
+                    </div>
+                  </div>
+                </div>
+              ) : safeChatMessages.length === 0 ? (
                 /* Empty / Welcome prompts state */
                 <div className="max-w-xl mx-auto text-center py-20 flex flex-col items-center justify-center">
                   <div className="w-14 h-14 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center mb-6">
