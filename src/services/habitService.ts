@@ -199,8 +199,28 @@ export const habitService = {
   },
 
   async deleteHabit(habitId: string): Promise<void> {
-    console.log(`DELETE /api/habits/${habitId}...`);
-    await apiClient.delete(`/api/habits/${habitId}`);
+    console.log(`[Habit Service] Requesting DELETE /api/habit/${habitId}...`);
+    let res: any;
+    try {
+      res = await apiClient.delete(`/api/habit/${habitId}`);
+      console.log(`[Habit Service] DELETE /api/habit/${habitId} status: ${res.status}, response:`, res.data);
+    } catch (err: any) {
+      if (err?.response?.status === 404 || err?.message?.includes("404")) {
+        console.warn(`[Habit Service] DELETE /api/habit/${habitId} returned 404, attempting fallback to DELETE /api/habits/${habitId}`);
+        res = await apiClient.delete(`/api/habits/${habitId}`);
+        console.log(`[Habit Service] DELETE /api/habits/${habitId} status: ${res.status}, response:`, res.data);
+      } else {
+        console.error(`[Habit Service] DELETE API call failed. HTTP Status: ${err?.response?.status}, Error:`, err?.response?.data || err.message);
+        throw err;
+      }
+    }
+
+    const body = res?.data;
+    if (body && body.success === false) {
+      const errMsg = body.error?.message || (typeof body.error === "string" ? body.error : "Failed to delete habit");
+      console.error("[Habit Service] Backend returned success: false response for delete:", body);
+      throw new Error(errMsg);
+    }
   },
 
   async completeHabit(habitId: string): Promise<any> {
