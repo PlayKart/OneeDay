@@ -33,6 +33,7 @@ import { MainLayout } from './components/MainLayout';
 import { TutorialOverlay } from './components/TutorialOverlay';
 import { TitleUnlockModal } from './components/TitleUnlockModal';
 import { TitleLossModal } from './components/TitleLossModal';
+import { OnboardingModal } from './components/OnboardingModal';
 
 const GoogleIcon = () => (
   <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
@@ -293,6 +294,13 @@ export default function App() {
         <TutorialOverlay />
         <TitleUnlockModal />
         <TitleLossModal />
+        <OnboardingModal 
+          isOpen={Boolean(user && (!user.onboarded && !localStorage.getItem("oneday_onboarded")))} 
+          onComplete={() => {
+            localStorage.setItem("oneday_onboarded", "true");
+            refreshFromBackend();
+          }} 
+        />
       </div>
     </div>
   );

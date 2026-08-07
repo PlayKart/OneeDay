@@ -10,6 +10,11 @@ export const userService = {
     return normalizeUser(res.data);
   },
 
+  async updateProfile(data: Partial<User>): Promise<User> {
+    const res = await apiClient.patch<User | { user: User }>("/api/me", data);
+    return normalizeUser(res.data);
+  },
+
   async freezeStreak(days: number): Promise<User> {
     const res = await apiClient.post<User | { user: User }>("/api/freeze-streak", { days });
     return normalizeUser(res.data);

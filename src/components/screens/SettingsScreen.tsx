@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { toast } from "react-hot-toast";
 import { PrivacyPage } from "../PrivacyPage";
 import { TermsPage } from "../TermsPage";
+import { AboutMeSection } from "../AboutMeSection";
 
 export function SettingsScreen() {
   const { user, firebaseUser, freezeStreak, deactivateFreeze, resetProgress, deleteAccount } = useStore();
@@ -142,6 +143,9 @@ export function SettingsScreen() {
           System Preferences
         </p>
       </header>
+
+      {/* About Me Section */}
+      <AboutMeSection />
 
       {/* Account Section */}
       <section className="space-y-4">

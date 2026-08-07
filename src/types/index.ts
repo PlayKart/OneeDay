@@ -17,6 +17,13 @@ export interface User {
   lastActiveDate?: string | null;
   createdAt?: string;
   updatedAt?: string;
+  dob?: string;
+  age?: number;
+  gender?: string;
+  hobbies?: string[];
+  favouriteSports?: string[];
+  reasonForJoining?: string;
+  onboarded?: boolean;
 }
 
 export interface Habit {

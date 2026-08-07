@@ -57,6 +57,7 @@ interface StoreState {
   undoHabit: (habitId: string) => Promise<void>;
   freezeStreak: (days: number) => Promise<void>;
   deactivateFreeze: () => Promise<void>;
+  updateProfile: (data: Partial<BackendUser>) => Promise<void>;
   sendChat: (message: string) => Promise<string>;
   resetProgress: () => Promise<void>;
   deleteAccount: () => Promise<void>;
@@ -438,6 +439,21 @@ export const useStore = create<StoreState>((set, get) => {
       const updatedUser = await userService.deactivateFreeze();
       set({ user: updatedUser });
       await get().refreshFromBackend();
+    },
+
+    updateProfile: async (data) => {
+      try {
+        const currentUser = get().user;
+        if (!currentUser) return;
+        const updated = await userService.updateProfile(data);
+        set({ user: { ...currentUser, ...updated, ...data } });
+        await get().refreshFromBackend();
+      } catch (e) {
+        const currentUser = get().user;
+        if (currentUser) {
+          set({ user: { ...currentUser, ...data, onboarded: true } });
+        }
+      }
     },
 
     sendChat: async (messageText) => {
