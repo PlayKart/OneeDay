@@ -67,6 +67,16 @@ export default function App() {
   const [showIntro, setShowIntro] = useState(true);
   const initialRoutePerformed = useRef(false);
 
+  // Log App mounted
+  useEffect(() => {
+    console.log("[STARTUP SEQUENCE - Mount] App mounted.");
+  }, []);
+
+  // Log Navigation/Route Changes
+  useEffect(() => {
+    console.log(`[STARTUP SEQUENCE - Navigation] Tab/Route changed to: ${activeTab}`);
+  }, [activeTab]);
+
   useEffect(() => {
     if (!firebaseUser) {
       initialRoutePerformed.current = false;
@@ -76,10 +86,10 @@ export default function App() {
     if (user && !initialRoutePerformed.current) {
       initialRoutePerformed.current = true;
       if (!hasCompletedOnboarding(user)) {
-        console.log("[App Routing] Initial load: user not onboarded. Directing to Onboarding.");
+        console.log("[STARTUP SEQUENCE - Navigation] Initial load: user not onboarded. Active tab set to dashboard (showing onboarding).");
         useStore.getState().setActiveTab("dashboard");
       } else {
-        console.log("[App Routing] Initial load: user onboarded. Directing to Dashboard.");
+        console.log("[STARTUP SEQUENCE - Navigation] Initial load: user onboarded. Active tab set to dashboard.");
         useStore.getState().setActiveTab("dashboard");
       }
     }

@@ -125,7 +125,7 @@ export const useStore = create<StoreState>((set, get) => {
 
   // 2. Listen to Auth state changes and boot store sync
   onAuthStateChanged(auth, async (fbUser) => {
-    console.log("[Auth Step - Listener] onAuthStateChanged fired:", fbUser ? `UID: ${fbUser.uid}, Email: ${fbUser.email}` : "No user logged in");
+    console.log("[STARTUP SEQUENCE - Auth] Firebase auth state received:", fbUser ? `Authenticated (UID: ${fbUser.uid})` : "Unauthenticated");
     
     if (fbUser) {
       try {
@@ -139,7 +139,7 @@ export const useStore = create<StoreState>((set, get) => {
         console.warn("[Auth Step - Token Warning] Failed to retrieve ID token on auth state change:", tokenErr);
       }
       set({ firebaseUser: fbUser, initialized: true });
-      console.log("[Auth Step - Sync] Fetching dashboard data from backend...");
+      console.log("[STARTUP SEQUENCE - Backend started] Requesting backend sync from onAuthStateChanged...");
       await get().refreshFromBackend();
     } else {
       console.log("[Auth Step - Reset] Clearing store state on logout.");
@@ -148,7 +148,7 @@ export const useStore = create<StoreState>((set, get) => {
       localStorage.removeItem("oneday_firebase_email");
       localStorage.removeItem("oneday_firebase_token");
       localStorage.removeItem("oneday_cached_user");
-      set({ firebaseUser: null, user: null, habits: [], chatSessions: [], chatMessages: [] });
+      set({ firebaseUser: null, user: null, habits: [], chatSessions: [], chatMessages: [], initialized: true });
     }
   });
 
@@ -191,14 +191,31 @@ export const useStore = create<StoreState>((set, get) => {
     setTitleLossData: (data) => set({ titleLossData: data }),
 
     refreshFromBackend: async () => {
+      if (get().loading) {
+        console.log("[STARTUP SEQUENCE - Guard] Backend request already in progress, ignoring duplicate call.");
+        return;
+      }
       if (!auth.currentUser && localStorage.getItem("oneday_session_active") !== "true") {
         console.warn("[Auth Step - Sync Skipped] No auth.currentUser and no cached session present.");
         return;
       }
+
+      console.log("[STARTUP SEQUENCE - Backend started] Backend profile request started...");
       set({ loading: true, backendError: null });
 
       try {
-        const data = await dashboardService.fetchDashboardData();
+        // 10-second timeout for dashboard service
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Connection timed out. Uplink took more than 10 seconds to respond.")), 10000)
+        );
+
+        const data = await Promise.race([
+          dashboardService.fetchDashboardData(),
+          timeoutPromise
+        ]);
+
+        console.log("[STARTUP SEQUENCE - Backend finished] Backend profile request finished successfully.");
+
         if (data) {
           const root = (data as any).data || data;
           const userObj = root?.user || root;
@@ -231,15 +248,17 @@ export const useStore = create<StoreState>((set, get) => {
           quote: data.quote,
           loading: false,
         });
+        console.log("[STARTUP SEQUENCE - Loading false] Loading state set to false (Success).");
 
         // Concurrently load chat sessions
         get().fetchSessions();
       } catch (err: any) {
-        console.error("[Auth Step - Sync Error] refreshFromBackend failed:", err);
+        console.error("[STARTUP SEQUENCE - Sync Error] refreshFromBackend failed:", err);
         set({
           backendError: err.message || "Failed to load dashboard data",
           loading: false,
         });
+        console.log("[STARTUP SEQUENCE - Loading false] Loading state set to false (Error/Timeout).");
       }
     },
 
