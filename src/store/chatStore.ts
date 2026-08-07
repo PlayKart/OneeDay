@@ -114,6 +114,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const remaining = get().chatSessions;
       if (remaining.length > 0) {
         await get().selectSession(remaining[0].id);
+      } else {
+        await get().createSession("New Chat");
       }
     }
 

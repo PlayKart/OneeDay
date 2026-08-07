@@ -275,7 +275,7 @@ export default function App() {
       <div className="orb w-[500px] h-[500px] bg-white/5 top-[-100px] right-[-100px]" />
       <div className="orb w-[400px] h-[400px] bg-white/5 bottom-[-50px] left-[-50px]" />
 
-      <div className="relative z-10 h-screen overflow-hidden">
+      <div className="relative z-10 h-[100dvh] overflow-hidden">
         <MainLayout>
           <Suspense fallback={
             <div className="flex items-center justify-center h-[50vh] w-full">

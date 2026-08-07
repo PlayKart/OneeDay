@@ -17,8 +17,8 @@ export function MainLayout({ children }: MainLayoutProps) {
   ] as const;
 
   return (
-    <div className="flex flex-col h-screen bg-[#000000] text-white">
-      <main className="flex-1 overflow-y-auto pb-24 scrollbar-hide">
+    <div className="flex flex-col h-[100dvh] bg-[#000000] text-white overflow-hidden">
+      <main className={`flex-1 min-h-0 ${activeTab === 'coach' ? 'overflow-hidden flex flex-col pb-20' : 'overflow-y-auto pb-24'} scrollbar-hide`}>
         {children}
       </main>
 

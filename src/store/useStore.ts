@@ -491,6 +491,8 @@ export const useStore = create<StoreState>((set, get) => {
         const remaining = get().chatSessions;
         if (remaining.length > 0) {
           await get().selectSession(remaining[0].id);
+        } else {
+          await get().createSession("New Chat");
         }
       }
 

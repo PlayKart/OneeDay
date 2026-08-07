@@ -66,20 +66,64 @@ export const AICoach = () => {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const prevLoadingRef = useRef(chatLoading);
+  const prevMsgCountRef = useRef(chatMessages?.length || 0);
+  const userJustSentRef = useRef(false);
 
   // Load chat sessions on mount
   useEffect(() => {
     fetchSessions();
   }, [fetchSessions]);
 
-  // Scroll to bottom on message updates
-  useEffect(() => {
+  const isNearBottom = () => {
+    if (!scrollRef.current) return true;
+    const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+    return scrollHeight - scrollTop - clientHeight < 150;
+  };
+
+  const scrollToBottom = (smooth = true) => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      scrollRef.current.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior: smooth ? 'smooth' : 'auto',
+      });
     }
+  };
+
+  // Scroll to bottom according to rules:
+  // - User sends a message
+  // - Assistant finishes streaming
+  // - User is already near bottom
+  useEffect(() => {
+    const prevLoading = prevLoadingRef.current;
+    const prevCount = prevMsgCountRef.current;
+    const currentCount = chatMessages?.length || 0;
+
+    const isNewMessage = currentCount > prevCount;
+    const finishedStreaming = prevLoading && !chatLoading;
+    const userJustSent = userJustSentRef.current;
+
+    if (userJustSent || finishedStreaming) {
+      scrollToBottom(true);
+      userJustSentRef.current = false;
+    } else if (isNewMessage || chatLoading) {
+      if (isNearBottom()) {
+        scrollToBottom(true);
+      }
+    }
+
+    prevLoadingRef.current = chatLoading;
+    prevMsgCountRef.current = currentCount;
   }, [chatMessages, chatLoading]);
+
+  // Scroll to bottom when active session changes
+  useEffect(() => {
+    scrollToBottom(false);
+  }, [activeChatId]);
 
   // Close menus when clicking outside
   useEffect(() => {
@@ -111,11 +155,15 @@ export const AICoach = () => {
     setInput('');
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
     
+    userJustSentRef.current = true;
+    scrollToBottom(true);
     await sendChatMessage(textToSend);
   };
 
   const handleChipClick = async (prompt: string) => {
     if (chatLoading) return;
+    userJustSentRef.current = true;
+    scrollToBottom(true);
     await sendChatMessage(prompt);
   };
 
@@ -247,24 +295,7 @@ export const AICoach = () => {
   ];
 
   return (
-    <div className="flex h-full w-full bg-[#070707] text-white font-sans overflow-hidden select-none relative">
-      
-      {/* MOBILE HEADER BAR */}
-      <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-white/5 bg-[#0A0A0A] absolute top-0 inset-x-0 h-14 z-30">
-        <button
-          onClick={() => setSidebarOpen(true)}
-          className="p-2 -ml-2 rounded-lg text-slate-400 hover:text-white transition-colors"
-        >
-          <Menu size={18} />
-        </button>
-        <span className="text-xs font-black tracking-widest uppercase text-white">Monolith AI Coach</span>
-        <button
-          onClick={handleStartNewChat}
-          className="p-2 -mr-2 rounded-lg text-slate-400 hover:text-white transition-colors"
-        >
-          <Plus size={18} />
-        </button>
-      </div>
+    <div className="flex h-full w-full min-h-0 bg-[#070707] text-white font-sans overflow-hidden select-none relative">
 
       {/* SIDEBAR CONTAINER (DESKTOP & MOBILE RESPONSIVE) */}
       <div
@@ -402,7 +433,7 @@ export const AICoach = () => {
                       </span>
                       
                       {/* Actions Button */}
-                      <div className="relative group-hover:block hidden">
+                      <div className={`relative ${activeSessionMenuId === session.id ? 'block' : 'group-hover:block hidden'}`}>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -419,9 +450,10 @@ export const AICoach = () => {
                             onClick={(e) => e.stopPropagation()}
                           >
                             <button
-                              onClick={async () => {
-                                await pinSession(session.id);
+                              onClick={async (e) => {
+                                e.stopPropagation();
                                 setActiveSessionMenuId(null);
+                                await pinSession(session.id);
                               }}
                               className="w-full text-left px-3 py-1.5 text-[11px] text-slate-300 hover:bg-white/5 flex items-center gap-1.5 font-bold"
                             >
@@ -429,10 +461,11 @@ export const AICoach = () => {
                               {session.is_pinned ? "Unpin" : "Pin"}
                             </button>
                             <button
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveSessionMenuId(null);
                                 setEditingSessionId(session.id);
                                 setRenameText(session.title || "New Chat");
-                                setActiveSessionMenuId(null);
                               }}
                               className="w-full text-left px-3 py-1.5 text-[11px] text-slate-300 hover:bg-white/5 flex items-center gap-1.5 font-bold"
                             >
@@ -440,9 +473,10 @@ export const AICoach = () => {
                               Rename
                             </button>
                             <button
-                              onClick={() => {
-                                toast.success("Conversation archived");
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 setActiveSessionMenuId(null);
+                                toast.success("Conversation archived");
                               }}
                               className="w-full text-left px-3 py-1.5 text-[11px] text-slate-300 hover:bg-white/5 flex items-center gap-1.5 font-bold"
                             >
@@ -450,11 +484,12 @@ export const AICoach = () => {
                               Archive
                             </button>
                             <button
-                              onClick={() => {
-                                if (window.confirm("Are you sure you want to delete this conversation?")) {
-                                  deleteSession(session.id);
-                                }
+                              onClick={async (e) => {
+                                e.stopPropagation();
                                 setActiveSessionMenuId(null);
+                                if (window.confirm("Are you sure you want to delete this conversation?")) {
+                                  await deleteSession(session.id);
+                                }
                               }}
                               className="w-full text-left px-3 py-1.5 text-[11px] text-red-400 hover:bg-red-950/20 flex items-center gap-1.5 font-bold"
                             >
@@ -495,7 +530,7 @@ export const AICoach = () => {
       )}
 
       {/* RIGHT MAIN CHAT COLUMN */}
-      <div className="flex-1 flex flex-col h-full bg-black relative pt-14 md:pt-0 overflow-hidden">
+      <div className="flex-1 min-h-0 flex flex-col h-full bg-black relative overflow-hidden">
         
         {/* CHAT HEADER */}
         <div className="p-4 border-b border-white/5 bg-black flex items-center justify-between gap-4 shrink-0 z-10 h-14">
@@ -571,8 +606,9 @@ export const AICoach = () => {
         {/* MESSAGES VIEWPORT */}
         <div
           ref={scrollRef}
-          className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 pb-36"
+          className="flex-1 min-h-0 overflow-y-auto p-4 md:p-8 space-y-6 scroll-smooth"
           id="chat-messages-scroll"
+          style={{ scrollBehavior: 'smooth' }}
         >
           {chatLoading && safeChatMessages.length === 0 ? (
             <div className="space-y-6 max-w-3xl mx-auto py-8">
@@ -745,10 +781,12 @@ export const AICoach = () => {
               </div>
             </div>
           )}
+          {/* Anchor for auto-scroll */}
+          <div ref={messagesEndRef} className="h-4 shrink-0" />
         </div>
 
         {/* BOTTOM INPUT BAR */}
-        <div className="absolute bottom-0 inset-x-0 p-4 md:p-6 bg-gradient-to-t from-black via-black/95 to-transparent pt-12 z-20">
+        <div className="shrink-0 p-3 md:p-4 bg-[#080808] border-t border-white/10 z-20 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
           <div className="max-w-2xl mx-auto w-full">
             
             {safeChatMessages.length > 0 && safeChatMessages.length < 5 && (
