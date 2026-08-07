@@ -52,6 +52,36 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (!firebaseUser) return;
+
+    let lastCheckedDate = new Date().toISOString().split("T")[0];
+
+    const checkNewDayAndRefresh = () => {
+      const currentDate = new Date().toISOString().split("T")[0];
+      if (currentDate !== lastCheckedDate) {
+        lastCheckedDate = currentDate;
+        refreshFromBackend();
+      }
+    };
+
+    const interval = setInterval(checkNewDayAndRefresh, 60000);
+
+    const handleFocus = () => {
+      checkNewDayAndRefresh();
+      refreshFromBackend();
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleFocus);
+    };
+  }, [firebaseUser, refreshFromBackend]);
+
+  useEffect(() => {
     if (!firebaseUser) {
       // Landing page sets its own titles dynamically
       return;

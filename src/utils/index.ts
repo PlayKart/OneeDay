@@ -1,6 +1,7 @@
 // src/utils/index.ts
 
 export * from "./camelCase";
+import { User } from "../types";
 
 /**
  * Ensures a value is guaranteed to be an array, preventing runtime errors like '.map is not a function'.
@@ -16,6 +17,66 @@ export function safeArray<T>(val: any): T[] {
     if (Array.isArray((val as any).messages)) return (val as any).messages;
   }
   return [];
+}
+
+/**
+ * Normalizes backend user response data into a standard User object, prioritizing backend values for streak, xp, level.
+ */
+export function normalizeUser(u: any, existingUser?: User | null): User {
+  if (!u) {
+    return existingUser || {
+      id: "me",
+      name: "User",
+      xp: 0,
+      streak: 0,
+      level: 1,
+      levelProgress: 0,
+    };
+  }
+  const rawUser = u.user || u.data?.user || u.data || u;
+
+  const rawStreak =
+    rawUser.streak ??
+    rawUser.currentStreak ??
+    rawUser.current_streak ??
+    rawUser.stats?.currentStreak ??
+    rawUser.stats?.streak ??
+    u.streak ??
+    u.currentStreak ??
+    u.current_streak;
+
+  const rawXp =
+    rawUser.xp ??
+    rawUser.experience ??
+    rawUser.stats?.xp ??
+    u.xp ??
+    u.experience;
+
+  const rawLevel =
+    rawUser.level ??
+    rawUser.stats?.level ??
+    u.level;
+
+  const rawLevelProgress =
+    rawUser.levelProgress ??
+    rawUser.level_progress ??
+    rawUser.stats?.levelProgress ??
+    u.levelProgress ??
+    u.level_progress;
+
+  return {
+    id: rawUser.id || rawUser.userId || existingUser?.id || "user_me",
+    userId: rawUser.userId || rawUser.id || existingUser?.userId,
+    name: rawUser.name || rawUser.displayName || existingUser?.name || "Striker",
+    email: rawUser.email || existingUser?.email || "",
+    xp: typeof rawXp === "number" ? rawXp : (existingUser?.xp ?? 0),
+    streak: typeof rawStreak === "number" ? rawStreak : (existingUser?.streak ?? 0),
+    level: typeof rawLevel === "number" ? rawLevel : (existingUser?.level ?? 1),
+    levelProgress: typeof rawLevelProgress === "number" ? rawLevelProgress : (existingUser?.levelProgress ?? 0),
+    freezeUntil: rawUser.freezeUntil || rawUser.freeze_until || existingUser?.freezeUntil || null,
+    freeze_until: rawUser.freeze_until || rawUser.freezeUntil || existingUser?.freeze_until || null,
+    lastActiveDate: rawUser.lastActiveDate || rawUser.last_active_date || existingUser?.lastActiveDate || null,
+  };
 }
 
 /**

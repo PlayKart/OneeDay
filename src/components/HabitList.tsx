@@ -8,12 +8,13 @@ import { EditHabitModal } from './EditHabitModal';
 import { getHabitIconComponent, getHabitColorTheme } from '../lib/habitIcons';
 
 export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) => {
-  const { habits, completeHabit, undoHabit, deleteHabit, refreshFromBackend, loading } = useStore();
+  const { habits, completeHabit, undoHabit, deleteHabit, refreshFromBackend, loading, pendingHabitIds } = useStore();
   
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
   const [activeDropdownId, setActiveDropdownId] = useState<string | null>(null);
   const [deleteConfirmationHabit, setDeleteConfirmationHabit] = useState<Habit | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isSubmittingModal, setIsSubmittingModal] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -115,6 +116,7 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
       <div className="grid grid-cols-1 gap-3">
         {guardedDisplayHabits.map((habit) => {
           const isToday = isHabitScheduledForToday(habit);
+          const isPending = pendingHabitIds?.has(habit.id);
           const IconComp = getHabitIconComponent(habit.icon, habit.name);
           const colorTheme = getHabitColorTheme(habit.category, habit.name);
 
@@ -137,7 +139,7 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
                   {habit.name}
                 </h4>
                 <p className={`text-[10px] font-bold uppercase tracking-widest truncate ${habit.completedToday ? 'text-green-500/50' : 'text-slate-500'}`}>
-                  {habit.completedToday ? 'Completed' : (isToday ? 'Scheduled Today' : getScheduledDaysMessage(habit))}
+                  {isPending ? 'Updating...' : (habit.completedToday ? 'Completed' : (isToday ? 'Scheduled Today' : getScheduledDaysMessage(habit)))}
                 </p>
               </div>
             </div>
@@ -145,6 +147,7 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
             <div className="flex items-center gap-2 shrink-0">
               <button 
                 onClick={async () => {
+                  if (isPending) return;
                   if (!isToday && !habit.completedToday) {
                     toast.error(`Dude, do it on ${getScheduledDaysMessage(habit)}. Chill !!!`);
                     return;
@@ -180,14 +183,20 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
                     });
                   }
                 }}
-                disabled={loading}
+                disabled={loading || isPending}
                 className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-                  habit.completedToday 
-                    ? 'bg-white text-black hover:bg-red-500 hover:text-white' 
-                    : (isToday ? 'bg-white/5 border border-white/10 group-hover:border-white/30 text-transparent hover:text-white' : 'bg-white/5 border border-white/5 opacity-50 cursor-not-allowed')
+                  isPending
+                    ? 'bg-white/10 text-white cursor-wait border border-white/20'
+                    : habit.completedToday 
+                      ? 'bg-white text-black hover:bg-red-500 hover:text-white' 
+                      : (isToday ? 'bg-white/5 border border-white/10 group-hover:border-white/30 text-transparent hover:text-white' : 'bg-white/5 border border-white/5 opacity-50 cursor-not-allowed')
                 }`}
               >
-                <Check size={16} className={habit.completedToday ? '' : (isToday ? 'group-hover:text-white/20' : 'text-white/10')} />
+                {isPending ? (
+                  <Loader2 size={16} className="animate-spin text-white" />
+                ) : (
+                  <Check size={16} className={habit.completedToday ? '' : (isToday ? 'group-hover:text-white/20' : 'text-white/10')} />
+                )}
               </button>
               
               <div className="relative">
@@ -350,19 +359,32 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
             <h3 className="text-lg font-bold mb-8 text-white text-center leading-snug">{confirmModal.title}</h3>
             <div className="flex gap-3">
               <button 
+                type="button"
+                disabled={isSubmittingModal}
                 onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })} 
-                className="flex-1 py-3 focus:outline-none rounded-xl bg-white/5 text-white font-bold hover:bg-white/10 transition-all uppercase tracking-wider text-xs border border-white/10"
+                className="flex-1 py-3 focus:outline-none rounded-xl bg-white/5 text-white font-bold hover:bg-white/10 transition-all uppercase tracking-wider text-xs border border-white/10 disabled:opacity-50"
               >
                 Nope
               </button>
               <button 
+                type="button"
+                disabled={isSubmittingModal}
                 onClick={async () => {
-                  await confirmModal.action();
-                  setConfirmModal({ ...confirmModal, isOpen: false });
+                  setIsSubmittingModal(true);
+                  try {
+                    await confirmModal.action();
+                    setConfirmModal({ ...confirmModal, isOpen: false });
+                  } finally {
+                    setIsSubmittingModal(false);
+                  }
                 }} 
-                className="flex-1 py-3 focus:outline-none rounded-xl bg-white text-black font-bold hover:bg-slate-200 transition-all uppercase tracking-wider text-xs"
+                className="flex-1 py-3 focus:outline-none rounded-xl bg-white text-black font-bold hover:bg-slate-200 transition-all uppercase tracking-wider text-xs disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                Yes
+                {isSubmittingModal ? (
+                  <Loader2 size={16} className="animate-spin text-black" />
+                ) : (
+                  "Yes"
+                )}
               </button>
             </div>
           </motion.div>

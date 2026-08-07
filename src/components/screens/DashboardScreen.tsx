@@ -9,9 +9,14 @@ import { toast } from "react-hot-toast";
 import { isHabitScheduledForToday } from "../../lib/habitUtils";
 
 export function DashboardScreen() {
-  const { user, habits, deactivateFreeze } = useStore();
+  const { user, habits, deactivateFreeze, refreshFromBackend } = useStore();
   const [confirmDeactivate, setConfirmDeactivate] = useState(false);
   const [unfreezing, setUnfreezing] = useState(false);
+
+  // Refresh fresh user data from backend whenever Dashboard is opened
+  useEffect(() => {
+    refreshFromBackend();
+  }, [refreshFromBackend]);
 
   // Automatically reset the "Confirm Unfreeze" button if not clicked again within 3 seconds
   useEffect(() => {
@@ -135,14 +140,14 @@ export function DashboardScreen() {
           }`}>
             <div>
               <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">
-                {isFrozen ? "Frozen Streak" : "Day Streak"}
+                {isFrozen ? "Frozen Streak" : "Streak"}
               </div>
               <div className={`text-3xl font-black ${
                 isFrozen 
                   ? "text-cyan-200 drop-shadow-[0_0_15px_rgba(6,182,212,0.4)]" 
                   : "drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]"
               }`}>
-                {user.streak}
+                {user.streak} Day Streak
               </div>
             </div>
             <div className="text-2xl opacity-90 animate-pulse-slow">

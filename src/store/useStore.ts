@@ -8,7 +8,7 @@ import { habitService } from '../services/habitService';
 import { chatService } from '../services/chatService';
 import { userService } from '../services/userService';
 import { quoteService } from '../services/quoteService';
-import { safeArray, normalizeCompletedDates } from '../utils';
+import { safeArray, normalizeCompletedDates, normalizeUser } from '../utils';
 import { apiRequest } from '../api/client';
 import { 
   User as BackendUser, 
@@ -33,6 +33,7 @@ interface StoreState {
   loading: boolean;
   backendError: string | null;
   activeTab: TabState;
+  pendingHabitIds: Set<string>;
 
   // Multi-session chat state
   chatSessions: ChatSession[];
@@ -109,6 +110,7 @@ export const useStore = create<StoreState>((set, get) => {
     loading: false,
     backendError: null,
     activeTab: "dashboard",
+    pendingHabitIds: new Set<string>(),
 
     chatSessions: [],
     activeChatId: null,
@@ -217,19 +219,20 @@ export const useStore = create<StoreState>((set, get) => {
 
     completeHabit: async (habitId) => {
       console.log(`[useStore] Initiating completeHabit for habitId: ${habitId}...`);
-      try {
-        const res = await habitService.completeHabit(habitId);
-        
-        if (res && res.success === false) {
-          const errMsg = res?.error?.message || "Backend returned success: false for habit completion";
-          console.error(`[useStore] Complete habit failed:`, errMsg);
-          throw new Error(errMsg);
-        }
+      if (get().pendingHabitIds.has(habitId)) {
+        console.warn(`[useStore] Habit ${habitId} is already updating. Ignoring duplicate complete attempt.`);
+        return;
+      }
 
-        console.log(`[useStore] Complete habit succeeded on backend. Updating local state for habit ${habitId}`);
-        const today = new Date().toISOString().split("T")[0];
+      const originalHabits = get().habits;
+      const originalUser = get().user;
+      const today = new Date().toISOString().split("T")[0];
 
-        set((state) => ({
+      set((state) => {
+        const nextPending = new Set(state.pendingHabitIds);
+        nextPending.add(habitId);
+        return {
+          pendingHabitIds: nextPending,
           habits: state.habits.map((h) =>
             h.id === habitId
               ? {
@@ -241,33 +244,76 @@ export const useStore = create<StoreState>((set, get) => {
                 }
               : h
           ),
-          user: res?.user ? res.user : state.user,
-        }));
+        };
+      });
 
-        // Refresh from backend to sync full state (XP, streaks, habit records)
+      try {
+        const res = await habitService.completeHabit(habitId);
+
+        if (res && res.success === false) {
+          const errMsg =
+            res?.error?.message ||
+            (typeof res?.error === "string" ? res.error : "Failed to complete habit on server");
+          throw new Error(errMsg);
+        }
+
+        const updatedUser = normalizeUser(res, originalUser);
+
+        set((state) => {
+          const nextPending = new Set(state.pendingHabitIds);
+          nextPending.delete(habitId);
+          return {
+            user: updatedUser,
+            pendingHabitIds: nextPending,
+          };
+        });
+
         await get().refreshFromBackend();
       } catch (e: any) {
         console.error(`[useStore] completeHabit error:`, e);
-        await get().refreshFromBackend();
-        throw e;
+
+        const rawError =
+          e?.response?.data?.error?.message ||
+          e?.response?.data?.error ||
+          e?.response?.data?.message ||
+          e?.message ||
+          "Failed to complete habit";
+
+        const cleanMessage =
+          typeof rawError === "string" && rawError !== "Unexpected Error"
+            ? rawError
+            : "Failed to complete habit on server";
+
+        set((state) => {
+          const nextPending = new Set(state.pendingHabitIds);
+          nextPending.delete(habitId);
+          return {
+            habits: originalHabits,
+            user: originalUser,
+            pendingHabitIds: nextPending,
+          };
+        });
+
+        throw new Error(cleanMessage);
       }
     },
 
     undoHabit: async (habitId) => {
       console.log(`[useStore] Initiating undoHabit for habitId: ${habitId}...`);
-      try {
-        const res = await habitService.undoHabit(habitId);
+      if (get().pendingHabitIds.has(habitId)) {
+        console.warn(`[useStore] Habit ${habitId} is already updating. Ignoring duplicate undo attempt.`);
+        return;
+      }
 
-        if (res && res.success === false) {
-          const errMsg = res?.error?.message || "Backend returned success: false for habit undo";
-          console.error(`[useStore] Undo habit failed:`, errMsg);
-          throw new Error(errMsg);
-        }
+      const originalHabits = get().habits;
+      const originalUser = get().user;
+      const today = new Date().toISOString().split("T")[0];
 
-        console.log(`[useStore] Undo habit succeeded on backend. Updating local state for habit ${habitId}`);
-        const today = new Date().toISOString().split("T")[0];
-
-        set((state) => ({
+      set((state) => {
+        const nextPending = new Set(state.pendingHabitIds);
+        nextPending.add(habitId);
+        return {
+          pendingHabitIds: nextPending,
           habits: state.habits.map((h) =>
             h.id === habitId
               ? {
@@ -277,14 +323,57 @@ export const useStore = create<StoreState>((set, get) => {
                 }
               : h
           ),
-          user: res?.user ? res.user : state.user,
-        }));
+        };
+      });
+
+      try {
+        const res = await habitService.undoHabit(habitId);
+
+        if (res && res.success === false) {
+          const errMsg =
+            res?.error?.message ||
+            (typeof res?.error === "string" ? res.error : "Failed to undo habit completion");
+          throw new Error(errMsg);
+        }
+
+        const updatedUser = normalizeUser(res, originalUser);
+
+        set((state) => {
+          const nextPending = new Set(state.pendingHabitIds);
+          nextPending.delete(habitId);
+          return {
+            user: updatedUser,
+            pendingHabitIds: nextPending,
+          };
+        });
 
         await get().refreshFromBackend();
       } catch (e: any) {
         console.error(`[useStore] undoHabit error:`, e);
-        await get().refreshFromBackend();
-        throw e;
+
+        const rawError =
+          e?.response?.data?.error?.message ||
+          e?.response?.data?.error ||
+          e?.response?.data?.message ||
+          e?.message ||
+          "Failed to undo habit completion";
+
+        const cleanMessage =
+          typeof rawError === "string" && rawError !== "Unexpected Error"
+            ? rawError
+            : "Failed to undo completion";
+
+        set((state) => {
+          const nextPending = new Set(state.pendingHabitIds);
+          nextPending.delete(habitId);
+          return {
+            habits: originalHabits,
+            user: originalUser,
+            pendingHabitIds: nextPending,
+          };
+        });
+
+        throw new Error(cleanMessage);
       }
     },
 
