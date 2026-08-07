@@ -205,21 +205,35 @@ export function CreateHabitModal({ onClose }: CreateHabitModalProps) {
                <Flag size={16} />
                <span className="text-[10px] uppercase tracking-widest font-bold">Difficulty</span>
              </div>
-             <div className="flex gap-2">
-                {["Easy", "Medium", "Hard", "Elite"].map(level => (
-                  <button
-                    type="button"
-                    key={level}
-                    onClick={() => setDifficulty(level)}
-                    className={`flex-1 py-3 rounded-xl border text-xs font-bold transition-all ${
-                      difficulty === level
-                        ? 'bg-white/10 text-white border-white/30'
-                        : 'bg-transparent border-white/5 text-slate-500 hover:bg-white/5 hover:text-slate-400'
-                    }`}
-                  >
-                    {level}
-                  </button>
-                ))}
+             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {[
+                  { level: "Easy", xp: "+20 XP", dot: "🟢", badgeBg: "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" },
+                  { level: "Medium", xp: "+40 XP", dot: "🔵", badgeBg: "bg-blue-500/10 border-blue-500/30 text-blue-400" },
+                  { level: "Hard", xp: "+60 XP", dot: "🟠", badgeBg: "bg-amber-500/10 border-amber-500/30 text-amber-400" },
+                  { level: "Elite", xp: "+80 XP", dot: "🔴", badgeBg: "bg-red-500/10 border-red-500/30 text-red-400" },
+                ].map(({ level, xp, dot, badgeBg }) => {
+                  const isSelected = difficulty === level;
+                  return (
+                    <button
+                      type="button"
+                      key={level}
+                      onClick={() => setDifficulty(level)}
+                      className={`flex flex-col items-center justify-center p-3 rounded-xl border text-xs font-bold transition-all ${
+                        isSelected
+                          ? 'bg-white/15 text-white border-white/40 shadow-md'
+                          : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span>{dot}</span>
+                        <span>{level}</span>
+                      </div>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full border ${badgeBg}`}>
+                        {xp}
+                      </span>
+                    </button>
+                  );
+                })}
              </div>
            </div>
 

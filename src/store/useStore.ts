@@ -34,6 +34,8 @@ interface StoreState {
   backendError: string | null;
   activeTab: TabState;
   pendingHabitIds: Set<string>;
+  titleUnlockData: { title: string; signature: string; level: number } | null;
+  titleLossData: { title: string; signature: string; reason?: string } | null;
 
   // Multi-session chat state
   chatSessions: ChatSession[];
@@ -45,6 +47,8 @@ interface StoreState {
   // Actions
   setFirebaseUser: (fbUser: FirebaseUser | null) => void;
   setActiveTab: (tab: TabState) => void;
+  setTitleUnlockData: (data: { title: string; signature: string; level: number } | null) => void;
+  setTitleLossData: (data: { title: string; signature: string; reason?: string } | null) => void;
   refreshFromBackend: () => Promise<void>;
   addHabit: (habitData: Partial<Habit>) => Promise<void>;
   editHabit: (habitId: string, habitData: Partial<Habit>) => Promise<void>;
@@ -111,6 +115,8 @@ export const useStore = create<StoreState>((set, get) => {
     backendError: null,
     activeTab: "dashboard",
     pendingHabitIds: new Set<string>(),
+    titleUnlockData: null,
+    titleLossData: null,
 
     chatSessions: [],
     activeChatId: null,
@@ -124,6 +130,8 @@ export const useStore = create<StoreState>((set, get) => {
     },
 
     setActiveTab: (tab) => set({ activeTab: tab }),
+    setTitleUnlockData: (data) => set({ titleUnlockData: data }),
+    setTitleLossData: (data) => set({ titleLossData: data }),
 
     refreshFromBackend: async () => {
       if (!auth.currentUser) {
@@ -134,6 +142,28 @@ export const useStore = create<StoreState>((set, get) => {
 
       try {
         const data = await dashboardService.fetchDashboardData();
+        if (data) {
+          const root = (data as any).data || data;
+          const userObj = root?.user || root;
+          if (root?.titleUnlocked || userObj?.titleUnlocked) {
+            set({
+              titleUnlockData: {
+                title: root?.title || userObj?.title || "IRON MIND",
+                signature: root?.signature || userObj?.signature || "You've proven consistency isn't luck. It's your identity.",
+                level: root?.level || userObj?.level || data.user.level || 1,
+              }
+            });
+          }
+          if (root?.titleLost || userObj?.titleLost) {
+            set({
+              titleLossData: {
+                title: root?.title || userObj?.title || "TITLE",
+                signature: root?.signature || userObj?.signature || "Every setback is temporary. Earn it back.",
+                reason: root?.reason || userObj?.reason || "Your XP dropped below the required threshold.",
+              }
+            });
+          }
+        }
         console.log(`[Streak Verification - Sync] Backend currentStreak: ${data.user.streak}, Frontend displayed streak: ${data.user.streak}`);
         set({
           user: data.user,
@@ -255,6 +285,27 @@ export const useStore = create<StoreState>((set, get) => {
             res?.error?.message ||
             (typeof res?.error === "string" ? res.error : "Failed to complete habit on server");
           throw new Error(errMsg);
+        }
+
+        const root = (res as any).data || res;
+        const userObj = root?.user || root;
+        if (root?.titleUnlocked || userObj?.titleUnlocked) {
+          set({
+            titleUnlockData: {
+              title: root?.title || userObj?.title || "IRON MIND",
+              signature: root?.signature || userObj?.signature || "You've proven consistency isn't luck. It's your identity.",
+              level: root?.level || userObj?.level || originalUser?.level || 1,
+            }
+          });
+        }
+        if (root?.titleLost || userObj?.titleLost) {
+          set({
+            titleLossData: {
+              title: root?.title || userObj?.title || "TITLE",
+              signature: root?.signature || userObj?.signature || "Every setback is temporary. Earn it back.",
+              reason: root?.reason || userObj?.reason || "Your XP dropped below the required threshold.",
+            }
+          });
         }
 
         const updatedUser = normalizeUser(res, originalUser);
