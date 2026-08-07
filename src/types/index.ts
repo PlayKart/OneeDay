@@ -9,6 +9,7 @@ export interface User {
   email?: string;
   xp: number;
   streak: number;
+  currentStreak?: number;
   level: number;
   levelProgress: number;
   freezeUntil?: string | null;

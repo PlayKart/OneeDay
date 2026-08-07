@@ -147,7 +147,7 @@ export function DashboardScreen() {
                   ? "text-cyan-200 drop-shadow-[0_0_15px_rgba(6,182,212,0.4)]" 
                   : "drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]"
               }`}>
-                {user.streak} Day Streak
+                {user.currentStreak ?? user.streak} Day Streak
               </div>
             </div>
             <div className="text-2xl opacity-90 animate-pulse-slow">

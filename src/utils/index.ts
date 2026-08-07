@@ -24,58 +24,109 @@ export function safeArray<T>(val: any): T[] {
  */
 export function normalizeUser(u: any, existingUser?: User | null): User {
   if (!u) {
-    return existingUser || {
-      id: "me",
-      name: "User",
-      xp: 0,
-      streak: 0,
-      level: 1,
-      levelProgress: 0,
-    };
+    return (
+      existingUser || {
+        id: "me",
+        name: "User",
+        xp: 0,
+        streak: 0,
+        level: 1,
+        levelProgress: 0,
+      }
+    );
   }
+
+  const objectsToCheck = [
+    u,
+    u?.data,
+    u?.user,
+    u?.data?.user,
+    u?.stats,
+    u?.data?.stats,
+    u?.user?.stats,
+    u?.data?.user?.stats,
+  ].filter((item) => item && typeof item === "object");
+
+  const findFirstNumber = (keys: string[]): number | undefined => {
+    for (const obj of objectsToCheck) {
+      for (const key of keys) {
+        if (typeof obj[key] === "number" && !isNaN(obj[key])) {
+          return obj[key];
+        }
+      }
+    }
+    return undefined;
+  };
+
+  const findFirstString = (keys: string[]): string | undefined => {
+    for (const obj of objectsToCheck) {
+      for (const key of keys) {
+        if (typeof obj[key] === "string" && obj[key].trim().length > 0) {
+          return obj[key];
+        }
+      }
+    }
+    return undefined;
+  };
+
+  const streakVal = findFirstNumber([
+    "currentStreak",
+    "current_streak",
+    "streak",
+    "currentStreaks",
+    "current_streaks",
+  ]);
+
+  const xpVal = findFirstNumber(["xp", "experience", "totalXp", "total_xp"]);
+
+  const levelVal = findFirstNumber(["level", "currentLevel", "current_level"]);
+
+  const levelProgressVal = findFirstNumber([
+    "levelProgress",
+    "level_progress",
+    "progress",
+  ]);
+
   const rawUser = u.user || u.data?.user || u.data || u;
 
-  const rawStreak =
-    rawUser.streak ??
-    rawUser.currentStreak ??
-    rawUser.current_streak ??
-    rawUser.stats?.currentStreak ??
-    rawUser.stats?.streak ??
-    u.streak ??
-    u.currentStreak ??
-    u.current_streak;
-
-  const rawXp =
-    rawUser.xp ??
-    rawUser.experience ??
-    rawUser.stats?.xp ??
-    u.xp ??
-    u.experience;
-
-  const rawLevel =
-    rawUser.level ??
-    rawUser.stats?.level ??
-    u.level;
-
-  const rawLevelProgress =
-    rawUser.levelProgress ??
-    rawUser.level_progress ??
-    rawUser.stats?.levelProgress ??
-    u.levelProgress ??
-    u.level_progress;
-
   return {
-    id: rawUser.id || rawUser.userId || existingUser?.id || "user_me",
-    userId: rawUser.userId || rawUser.id || existingUser?.userId,
-    name: rawUser.name || rawUser.displayName || existingUser?.name || "Striker",
-    email: rawUser.email || existingUser?.email || "",
-    xp: typeof rawXp === "number" ? rawXp : (existingUser?.xp ?? 0),
-    streak: typeof rawStreak === "number" ? rawStreak : (existingUser?.streak ?? 0),
-    level: typeof rawLevel === "number" ? rawLevel : (existingUser?.level ?? 1),
-    levelProgress: typeof rawLevelProgress === "number" ? rawLevelProgress : (existingUser?.levelProgress ?? 0),
-    freezeUntil: rawUser.freezeUntil || rawUser.freeze_until || existingUser?.freezeUntil || null,
-    freeze_until: rawUser.freeze_until || rawUser.freezeUntil || existingUser?.freeze_until || null,
-    lastActiveDate: rawUser.lastActiveDate || rawUser.last_active_date || existingUser?.lastActiveDate || null,
+    id:
+      findFirstString(["id", "userId", "user_id"]) ||
+      existingUser?.id ||
+      "user_me",
+    userId:
+      findFirstString(["userId", "user_id", "id"]) || existingUser?.userId,
+    name:
+      findFirstString(["name", "displayName", "display_name", "username"]) ||
+      existingUser?.name ||
+      "Striker",
+    email: findFirstString(["email"]) || existingUser?.email || "",
+    xp: typeof xpVal === "number" ? xpVal : (existingUser?.xp ?? 0),
+    streak: typeof streakVal === "number" ? streakVal : (existingUser?.streak ?? 0),
+    currentStreak: typeof streakVal === "number" ? streakVal : (existingUser?.currentStreak ?? existingUser?.streak ?? 0),
+    level: typeof levelVal === "number" ? levelVal : (existingUser?.level ?? 1),
+    levelProgress:
+      typeof levelProgressVal === "number"
+        ? levelProgressVal
+        : (existingUser?.levelProgress ?? 0),
+    freezeUntil:
+      findFirstString(["freezeUntil", "freeze_until"]) ||
+      rawUser?.freezeUntil ||
+      rawUser?.freeze_until ||
+      existingUser?.freezeUntil ||
+      null,
+    freeze_until:
+      findFirstString(["freeze_until", "freezeUntil"]) ||
+      rawUser?.freeze_until ||
+      rawUser?.freezeUntil ||
+      existingUser?.freeze_until ||
+      null,
+    lastActiveDate:
+      findFirstString(["lastActiveDate", "last_active_date"]) ||
+      rawUser?.lastActiveDate ||
+      rawUser?.last_active_date ||
+      existingUser?.lastActiveDate ||
+      null,
   };
 }
 

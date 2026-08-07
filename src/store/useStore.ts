@@ -134,7 +134,7 @@ export const useStore = create<StoreState>((set, get) => {
 
       try {
         const data = await dashboardService.fetchDashboardData();
-        console.log("[Auth Step - Sync Success] Backend data loaded successfully for user:", data.user?.name);
+        console.log(`[Streak Verification - Sync] Backend currentStreak: ${data.user.streak}, Frontend displayed streak: ${data.user.streak}`);
         set({
           user: data.user,
           habits: safeArray(data.habits),
