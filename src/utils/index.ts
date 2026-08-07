@@ -127,6 +127,15 @@ export function normalizeUser(u: any, existingUser?: User | null): User {
       rawUser?.last_active_date ||
       existingUser?.lastActiveDate ||
       null,
+    dob: rawUser?.dob || existingUser?.dob,
+    age: typeof rawUser?.age === "number" ? rawUser.age : (typeof rawUser?.age === "string" ? parseInt(rawUser.age, 10) : existingUser?.age),
+    gender: rawUser?.gender || existingUser?.gender,
+    hobbies: Array.isArray(rawUser?.hobbies) ? rawUser.hobbies : (Array.isArray(rawUser?.hobbies_list) ? rawUser.hobbies_list : existingUser?.hobbies),
+    favouriteSports: Array.isArray(rawUser?.favouriteSports) ? rawUser.favouriteSports : (Array.isArray(rawUser?.favourite_sports) ? rawUser.favourite_sports : existingUser?.favouriteSports),
+    reasonForJoining: rawUser?.reasonForJoining || rawUser?.reason_for_joining || rawUser?.reason || existingUser?.reasonForJoining,
+    onboarded: typeof rawUser?.onboarded === "boolean" ? rawUser.onboarded : (typeof rawUser?.onboarded === "string" ? rawUser.onboarded === "true" : existingUser?.onboarded),
+    nextRoute: rawUser?.nextRoute || u?.nextRoute || u?.data?.nextRoute || u?.user?.nextRoute || existingUser?.nextRoute,
+    hasCompletedOnboarding: typeof rawUser?.hasCompletedOnboarding === "boolean" ? rawUser.hasCompletedOnboarding : (typeof rawUser?.hasCompletedOnboarding === "string" ? rawUser.hasCompletedOnboarding === "true" : (typeof u?.hasCompletedOnboarding === "boolean" ? u.hasCompletedOnboarding : existingUser?.hasCompletedOnboarding)),
   };
 }
 

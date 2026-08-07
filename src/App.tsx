@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Snowflake,
@@ -44,9 +44,46 @@ const GoogleIcon = () => (
   </svg>
 );
 
+function hasCompletedOnboarding(u: any): boolean {
+  if (!u) return true; // Default to true while loading
+  
+  if (u.nextRoute === "/onboarding") return false;
+  if (u.nextRoute === "/dashboard") return true;
+  
+  if (u.onboarded === true || u.onboarded === "true") return true;
+  if (u.hasCompletedOnboarding === true || u.hasCompletedOnboarding === "true") return true;
+  if (u.onboarded === false || u.onboarded === "false") return false;
+  if (u.hasCompletedOnboarding === false || u.hasCompletedOnboarding === "false") return false;
+
+  if (u.dob && u.gender) return true;
+
+  if (localStorage.getItem("oneday_onboarded") === "true") return true;
+
+  return false;
+}
+
 export default function App() {
   const { user, firebaseUser, initialized, loading, backendError, refreshFromBackend, activeTab } = useStore();
   const [showIntro, setShowIntro] = useState(true);
+  const initialRoutePerformed = useRef(false);
+
+  useEffect(() => {
+    if (!firebaseUser) {
+      initialRoutePerformed.current = false;
+      return;
+    }
+
+    if (user && !initialRoutePerformed.current) {
+      initialRoutePerformed.current = true;
+      if (!hasCompletedOnboarding(user)) {
+        console.log("[App Routing] Initial load: user not onboarded. Directing to Onboarding.");
+        useStore.getState().setActiveTab("dashboard");
+      } else {
+        console.log("[App Routing] Initial load: user onboarded. Directing to Dashboard.");
+        useStore.getState().setActiveTab("dashboard");
+      }
+    }
+  }, [user, firebaseUser]);
 
   useEffect(() => {
     // Show intro animation for 3.5 seconds
@@ -295,8 +332,11 @@ export default function App() {
         <TitleUnlockModal />
         <TitleLossModal />
         <OnboardingModal 
-          isOpen={Boolean(user && (!user.onboarded && !localStorage.getItem("oneday_onboarded")))} 
+          isOpen={Boolean(user && !hasCompletedOnboarding(user))} 
           onComplete={() => {
+            if (user) {
+              useStore.setState({ user: { ...user, onboarded: true, hasCompletedOnboarding: true, nextRoute: "/dashboard" } });
+            }
             localStorage.setItem("oneday_onboarded", "true");
             refreshFromBackend();
           }} 

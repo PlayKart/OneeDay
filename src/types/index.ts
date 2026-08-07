@@ -24,6 +24,8 @@ export interface User {
   favouriteSports?: string[];
   reasonForJoining?: string;
   onboarded?: boolean;
+  nextRoute?: string;
+  hasCompletedOnboarding?: boolean;
 }
 
 export interface Habit {

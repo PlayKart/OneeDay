@@ -16,14 +16,25 @@ export const apiClient: AxiosInstance = axios.create({
 // Request Interceptor: Attach Firebase Bearer token and x-local-date header
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
+    let token = "";
     const user = auth.currentUser;
     if (user) {
       try {
-        const token = await user.getIdToken();
-        config.headers.Authorization = `Bearer ${token}`;
+        token = await user.getIdToken();
+        if (token) {
+          localStorage.setItem("oneday_firebase_token", token);
+        }
       } catch (err) {
         console.warn("Failed to retrieve Firebase ID token:", err);
       }
+    }
+
+    if (!token) {
+      token = localStorage.getItem("oneday_firebase_token") || "";
+    }
+
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
 
     // Attach local date header YYYY-MM-DD

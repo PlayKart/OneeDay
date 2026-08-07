@@ -75,11 +75,48 @@ interface StoreState {
 }
 
 export const useStore = create<StoreState>((set, get) => {
+  const sessionActive = localStorage.getItem("oneday_session_active") === "true";
+  const cachedUid = localStorage.getItem("oneday_firebase_uid") || "";
+  const cachedEmail = localStorage.getItem("oneday_firebase_email") || "";
+  const cachedToken = localStorage.getItem("oneday_firebase_token") || "";
+
+  let initialFirebaseUser: FirebaseUser | null = null;
+  if (sessionActive && cachedUid) {
+    initialFirebaseUser = {
+      uid: cachedUid,
+      email: cachedEmail,
+      getIdToken: async (force?: boolean) => {
+        return localStorage.getItem("oneday_firebase_token") || cachedToken;
+      }
+    } as any;
+  }
+
+  let initialUser: BackendUser | null = null;
+  const cachedUserStr = localStorage.getItem("oneday_cached_user");
+  if (cachedUserStr) {
+    try {
+      initialUser = JSON.parse(cachedUserStr);
+    } catch (_) {
+      // Ignore
+    }
+  }
+
   // 1. Process potential redirect results from signInWithRedirect
   getRedirectResult(auth)
-    .then((result) => {
+    .then(async (result) => {
       if (result && result.user) {
         console.log("[Auth Step - Redirect] Successful redirect login. User UID:", result.user.uid);
+        try {
+          const token = await result.user.getIdToken(true);
+          localStorage.setItem("oneday_session_active", "true");
+          localStorage.setItem("oneday_firebase_uid", result.user.uid);
+          localStorage.setItem("oneday_firebase_email", result.user.email || "");
+          localStorage.setItem("oneday_firebase_token", token);
+        } catch (tokenErr) {
+          console.warn("[Auth Step - Redirect Warning] Failed to retrieve ID token:", tokenErr);
+        }
+        set({ firebaseUser: result.user, initialized: true });
+        await get().refreshFromBackend();
       }
     })
     .catch((err) => {
@@ -89,29 +126,38 @@ export const useStore = create<StoreState>((set, get) => {
   // 2. Listen to Auth state changes and boot store sync
   onAuthStateChanged(auth, async (fbUser) => {
     console.log("[Auth Step - Listener] onAuthStateChanged fired:", fbUser ? `UID: ${fbUser.uid}, Email: ${fbUser.email}` : "No user logged in");
-    set({ firebaseUser: fbUser, initialized: true });
     
     if (fbUser) {
       try {
         const token = await fbUser.getIdToken();
         console.log("[Auth Step - Token] Firebase ID token retrieved on auth state change (length:", token?.length || 0, ")");
+        localStorage.setItem("oneday_session_active", "true");
+        localStorage.setItem("oneday_firebase_uid", fbUser.uid);
+        localStorage.setItem("oneday_firebase_email", fbUser.email || "");
+        localStorage.setItem("oneday_firebase_token", token);
       } catch (tokenErr) {
         console.warn("[Auth Step - Token Warning] Failed to retrieve ID token on auth state change:", tokenErr);
       }
+      set({ firebaseUser: fbUser, initialized: true });
       console.log("[Auth Step - Sync] Fetching dashboard data from backend...");
       await get().refreshFromBackend();
     } else {
       console.log("[Auth Step - Reset] Clearing store state on logout.");
-      set({ user: null, habits: [], chatSessions: [], chatMessages: [] });
+      localStorage.removeItem("oneday_session_active");
+      localStorage.removeItem("oneday_firebase_uid");
+      localStorage.removeItem("oneday_firebase_email");
+      localStorage.removeItem("oneday_firebase_token");
+      localStorage.removeItem("oneday_cached_user");
+      set({ firebaseUser: null, user: null, habits: [], chatSessions: [], chatMessages: [] });
     }
   });
 
   return {
-    firebaseUser: auth.currentUser,
-    user: null,
+    firebaseUser: initialFirebaseUser,
+    user: initialUser,
     habits: [],
     quote: "One day broke. Don't let two.",
-    initialized: false,
+    initialized: sessionActive ? true : false,
     loading: false,
     backendError: null,
     activeTab: "dashboard",
@@ -127,6 +173,16 @@ export const useStore = create<StoreState>((set, get) => {
 
     setFirebaseUser: (fbUser) => {
       console.log("[Zustand Store] setFirebaseUser called:", fbUser ? fbUser.uid : null);
+      if (fbUser) {
+        localStorage.setItem("oneday_session_active", "true");
+        localStorage.setItem("oneday_firebase_uid", fbUser.uid);
+        localStorage.setItem("oneday_firebase_email", fbUser.email || "");
+        fbUser.getIdToken().then(token => {
+          localStorage.setItem("oneday_firebase_token", token);
+        }).catch(err => {
+          console.warn("Failed to update token on setFirebaseUser:", err);
+        });
+      }
       set({ firebaseUser: fbUser, initialized: true });
     },
 
@@ -135,8 +191,8 @@ export const useStore = create<StoreState>((set, get) => {
     setTitleLossData: (data) => set({ titleLossData: data }),
 
     refreshFromBackend: async () => {
-      if (!auth.currentUser) {
-        console.warn("[Auth Step - Sync Skipped] No auth.currentUser present.");
+      if (!auth.currentUser && localStorage.getItem("oneday_session_active") !== "true") {
+        console.warn("[Auth Step - Sync Skipped] No auth.currentUser and no cached session present.");
         return;
       }
       set({ loading: true, backendError: null });
@@ -166,6 +222,9 @@ export const useStore = create<StoreState>((set, get) => {
           }
         }
         console.log(`[Streak Verification - Sync] Backend currentStreak: ${data.user.streak}, Frontend displayed streak: ${data.user.streak}`);
+        if (data.user) {
+          localStorage.setItem("oneday_cached_user", JSON.stringify(data.user));
+        }
         set({
           user: data.user,
           habits: safeArray(data.habits),
@@ -431,12 +490,18 @@ export const useStore = create<StoreState>((set, get) => {
 
     freezeStreak: async (days) => {
       const updatedUser = await userService.freezeStreak(days);
+      if (updatedUser) {
+        localStorage.setItem("oneday_cached_user", JSON.stringify(updatedUser));
+      }
       set({ user: updatedUser });
       await get().refreshFromBackend();
     },
 
     deactivateFreeze: async () => {
       const updatedUser = await userService.deactivateFreeze();
+      if (updatedUser) {
+        localStorage.setItem("oneday_cached_user", JSON.stringify(updatedUser));
+      }
       set({ user: updatedUser });
       await get().refreshFromBackend();
     },
@@ -446,12 +511,16 @@ export const useStore = create<StoreState>((set, get) => {
         const currentUser = get().user;
         if (!currentUser) return;
         const updated = await userService.updateProfile(data);
-        set({ user: { ...currentUser, ...updated, ...data } });
+        const nextUser = { ...currentUser, ...updated, ...data };
+        localStorage.setItem("oneday_cached_user", JSON.stringify(nextUser));
+        set({ user: nextUser });
         await get().refreshFromBackend();
       } catch (e) {
         const currentUser = get().user;
         if (currentUser) {
-          set({ user: { ...currentUser, ...data, onboarded: true } });
+          const nextUser = { ...currentUser, ...data, onboarded: true };
+          localStorage.setItem("oneday_cached_user", JSON.stringify(nextUser));
+          set({ user: nextUser });
         }
       }
     },
