@@ -34,6 +34,7 @@ import { TitleUnlockModal } from './components/TitleUnlockModal';
 import { TitleLossModal } from './components/TitleLossModal';
 import { OnboardingModal } from './components/OnboardingModal';
 import { AppIntroFlow } from './components/AppIntroFlow';
+import { hasCompletedOnboarding } from './utils';
 
 const GoogleIcon = () => (
   <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
@@ -44,22 +45,6 @@ const GoogleIcon = () => (
   </svg>
 );
 
-function hasCompletedOnboarding(u: any): boolean {
-  if (!u) return true; // Default to true while loading
-  
-  if (localStorage.getItem("oneday_onboarded") === "true") return true;
-  if (u.onboarded === true || u.onboarded === "true") return true;
-  if (u.hasCompletedOnboarding === true || u.hasCompletedOnboarding === "true") return true;
-
-  if (u.onboarded === false || u.onboarded === "false") return false;
-  if (u.hasCompletedOnboarding === false || u.hasCompletedOnboarding === "false") return false;
-
-  if (u.nextRoute === "/dashboard") return true;
-  if (u.nextRoute === "/onboarding") return false;
-
-  return false;
-}
-
 function hasSeenAppIntro(userId: string, u: any): boolean {
   if (!userId) return false;
   if (localStorage.getItem(`oneday_intro_seen_${userId}`) === "true") return true;
@@ -68,7 +53,7 @@ function hasSeenAppIntro(userId: string, u: any): boolean {
 }
 
 export default function App() {
-  const { user, firebaseUser, initialized, loading, backendError, refreshFromBackend, activeTab } = useStore();
+  const { user, firebaseUser, initialized, loading, backendError, refreshFromBackend, activeTab, incrementProfileVersion } = useStore();
   const [currentRoute, setCurrentRoute] = useState<string>(() => {
     const path = window.location.pathname;
     if (path === "/onboarding") return "/onboarding";
@@ -82,7 +67,7 @@ export default function App() {
 
   // Log App mounted
   useEffect(() => {
-    console.log("[AUTH] App mounted");
+    console.log("[BOOT] initialization started");
   }, []);
 
   // Listen to popstate event for native history back/forward
@@ -99,7 +84,7 @@ export default function App() {
 
   // Centralized startup orchestrator & watchdog
   useEffect(() => {
-    console.log(`[STARTUP SEQUENCE] Startup began (trigger: ${startupTrigger}).`);
+    console.log(`[BOOT] Startup began (trigger: ${startupTrigger}).`);
     setStartupStatus("loading");
     setStartupError(null);
 
@@ -116,7 +101,7 @@ export default function App() {
       if (resolved) return;
       resolved = true;
       clearTimeout(watchdog);
-      console.log(`[STARTUP SEQUENCE] Resolved successfully. Target route: ${route}`);
+      console.log(`[NAV] destination ${route}`);
       if (window.location.pathname !== route) {
         window.history.pushState({}, "", route);
       }
@@ -133,23 +118,21 @@ export default function App() {
       setStartupStatus("error");
     };
 
-    // Subscribe to the Zustand store changes
-    const unsubscribe = useStore.subscribe((state) => {
+    const evaluateState = (state: ReturnType<typeof useStore.getState>) => {
       if (resolved) return;
 
-      // Wait until Firebase auth initializes
       if (!state.initialized) {
         return;
       }
 
-      // 1. If unauthenticated, they belong on /landing
       if (!state.firebaseUser) {
-        console.log("[AUTH] Navigation destination: /landing");
+        console.log("[AUTH] Firebase state: unauthenticated");
         resolveStartup("/landing");
         return;
       }
 
-      // 2. If authenticated, wait for backend profile
+      console.log(`[AUTH] Firebase state: authenticated (UID: ${state.firebaseUser.uid})`);
+
       if (state.backendError) {
         rejectStartup(state.backendError);
         return;
@@ -157,35 +140,19 @@ export default function App() {
 
       if (state.user) {
         const onboarded = hasCompletedOnboarding(state.user);
-        console.log("[AUTH] hasCompletedOnboarding:", onboarded);
-        console.log("[AUTH] nextRoute:", state.user?.nextRoute);
+        console.log(`[ONBOARDING] status: hasCompletedOnboarding = ${onboarded}`);
         const uid = state.firebaseUser?.uid || state.user?.id || "";
         const seenIntro = hasSeenAppIntro(uid, state.user);
         const targetRoute = !onboarded ? "/onboarding" : (seenIntro ? "/dashboard" : "/intro");
-        console.log("[AUTH] Navigation destination:", targetRoute);
         resolveStartup(targetRoute);
       }
+    };
+
+    const unsubscribe = useStore.subscribe((state) => {
+      evaluateState(state);
     });
 
-    // Check initial state in case it's already resolved
-    const initialState = useStore.getState();
-    if (initialState.initialized) {
-      if (!initialState.firebaseUser) {
-        console.log("[AUTH] Navigation destination: /landing");
-        resolveStartup("/landing");
-      } else if (initialState.backendError) {
-        rejectStartup(initialState.backendError);
-      } else if (initialState.user) {
-        const onboarded = hasCompletedOnboarding(initialState.user);
-        console.log("[AUTH] hasCompletedOnboarding:", onboarded);
-        console.log("[AUTH] nextRoute:", initialState.user?.nextRoute);
-        const uid = initialState.firebaseUser?.uid || initialState.user?.id || "";
-        const seenIntro = hasSeenAppIntro(uid, initialState.user);
-        const targetRoute = !onboarded ? "/onboarding" : (seenIntro ? "/dashboard" : "/intro");
-        console.log("[AUTH] Navigation destination:", targetRoute);
-        resolveStartup(targetRoute);
-      }
-    }
+    evaluateState(useStore.getState());
 
     return () => {
       clearTimeout(watchdog);
@@ -199,11 +166,9 @@ export default function App() {
       return;
     }
 
-    // 1. Unauthenticated users
     if (!firebaseUser) {
       if (currentRoute !== "/landing") {
-        console.log(`[Route Guard] Unauthenticated user tried to access ${currentRoute}. Redirecting to /landing`);
-        console.log("[AUTH] Navigation destination: /landing");
+        console.log("[NAV] destination /landing");
         if (window.location.pathname !== "/landing") {
           window.history.pushState({}, "", "/landing");
         }
@@ -212,23 +177,23 @@ export default function App() {
       return;
     }
 
-    // Authenticated users: wait until backend user profile is loaded
     if (!user) {
       return;
     }
 
-    // 2. Authenticated users
     const onboarded = hasCompletedOnboarding(user);
-    console.log("[AUTH] hasCompletedOnboarding:", onboarded);
-    console.log("[AUTH] nextRoute:", user?.nextRoute);
+    console.log(`[ONBOARDING] status: hasCompletedOnboarding = ${onboarded}`);
 
     const uid = firebaseUser.uid || user.id || "";
     const seenIntro = hasSeenAppIntro(uid, user);
     const targetRoute = !onboarded ? "/onboarding" : (seenIntro ? "/dashboard" : "/intro");
 
     if (currentRoute !== targetRoute) {
-      console.log(`[Route Guard] Transitioning to ${targetRoute} (current: ${currentRoute})`);
-      console.log("[AUTH] Navigation destination:", targetRoute);
+      // If user is currently viewing the intro, allow them to finish or skip
+      if (currentRoute === "/intro" && onboarded && !seenIntro) {
+        return;
+      }
+      console.log(`[NAV] destination ${targetRoute}`);
       if (window.location.pathname !== targetRoute) {
         window.history.pushState({}, "", targetRoute);
       }
@@ -448,10 +413,15 @@ export default function App() {
         <OnboardingModal 
           isOpen={true} 
           onComplete={async () => {
-            console.log("[Onboarding] Completion callback triggered.");
+            console.log("[ONBOARDING] Completion callback triggered.");
             localStorage.setItem("oneday_onboarded", "true");
+            if (firebaseUser?.uid) {
+              localStorage.setItem(`oneday_onboarded_${firebaseUser.uid}`, "true");
+            }
             localStorage.removeItem("oneday_onboarding_step");
             localStorage.removeItem("oneday_onboarding_data");
+
+            incrementProfileVersion();
 
             const currentUser = useStore.getState().user;
             const updatedUser = { 
@@ -462,24 +432,11 @@ export default function App() {
             };
             useStore.setState({ user: updatedUser });
 
-            await refreshFromBackend();
-
-            const postRefreshUser = useStore.getState().user;
-            if (postRefreshUser) {
-              useStore.setState({
-                user: {
-                  ...postRefreshUser,
-                  onboarded: true,
-                  hasCompletedOnboarding: true,
-                  nextRoute: "/dashboard"
-                }
-              });
-            }
-
             const activeUser = useStore.getState().user || updatedUser;
             const uid = firebaseUser?.uid || activeUser?.id || "";
             const seenIntro = hasSeenAppIntro(uid, activeUser);
             const targetRoute = seenIntro ? "/dashboard" : "/intro";
+            console.log(`[NAV] destination ${targetRoute}`);
             if (window.location.pathname !== targetRoute) {
               window.history.pushState({}, "", targetRoute);
             }

@@ -267,6 +267,7 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
   const handleFinish = async () => {
     try {
       setSaving(true);
+      console.log("[ONBOARDING] completion submitted");
       const payload = {
         name,
         dob,
@@ -283,21 +284,28 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
       if (updateProfile) {
         await updateProfile(payload);
       }
-      await refreshFromBackend();
+      console.log("[ONBOARDING] backend confirmed complete");
       
+      localStorage.setItem("oneday_onboarded", "true");
+      if (user?.id) {
+        localStorage.setItem(`oneday_onboarded_${user.id}`, "true");
+      }
+
       if (!isEditing) {
         localStorage.removeItem("oneday_onboarding_step");
         localStorage.removeItem("oneday_onboarding_data");
       }
-      localStorage.setItem("oneday_onboarded", "true");
       setIsCompletedState(true);
     } catch (e: any) {
       console.error("[Onboarding] Finish error:", e);
+      localStorage.setItem("oneday_onboarded", "true");
+      if (user?.id) {
+        localStorage.setItem(`oneday_onboarded_${user.id}`, "true");
+      }
       if (!isEditing) {
         localStorage.removeItem("oneday_onboarding_step");
         localStorage.removeItem("oneday_onboarding_data");
       }
-      localStorage.setItem("oneday_onboarded", "true");
       setIsCompletedState(true);
     } finally {
       setSaving(false);

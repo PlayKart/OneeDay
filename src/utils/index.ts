@@ -19,6 +19,16 @@ export function safeArray<T>(val: any): T[] {
   return [];
 }
 
+export function hasCompletedOnboarding(u: any): boolean {
+  if (!u) return false;
+  if (localStorage.getItem("oneday_onboarded") === "true") return true;
+  if (u.id && localStorage.getItem(`oneday_onboarded_${u.id}`) === "true") return true;
+  if (u.hasCompletedOnboarding === true || u.hasCompletedOnboarding === "true") return true;
+  if (u.onboarded === true || u.onboarded === "true") return true;
+  if (u.nextRoute === "/dashboard") return true;
+  return false;
+}
+
 /**
  * Normalizes backend user response data into a standard User object, prioritizing backend values for streak, xp, level.
  */
@@ -32,6 +42,8 @@ export function normalizeUser(u: any, existingUser?: User | null): User {
         streak: 0,
         level: 1,
         levelProgress: 0,
+        onboarded: false,
+        hasCompletedOnboarding: false,
       }
     );
   }
@@ -139,9 +151,37 @@ export function normalizeUser(u: any, existingUser?: User | null): User {
     hobbies: Array.isArray(rawUser?.hobbies) ? rawUser.hobbies : (Array.isArray(rawUser?.hobbies_list) ? rawUser.hobbies_list : existingUser?.hobbies),
     favouriteSports: Array.isArray(rawUser?.favouriteSports) ? rawUser.favouriteSports : (Array.isArray(rawUser?.favourite_sports) ? rawUser.favourite_sports : existingUser?.favouriteSports),
     reasonForJoining: rawUser?.reasonForJoining || rawUser?.reason_for_joining || rawUser?.reason || existingUser?.reasonForJoining,
-    onboarded: typeof rawUser?.onboarded === "boolean" ? rawUser.onboarded : (typeof rawUser?.onboarded === "string" ? rawUser.onboarded === "true" : (typeof rawUser?.hasCompletedOnboarding === "boolean" ? rawUser.hasCompletedOnboarding : (typeof rawUser?.hasCompletedOnboarding === "string" ? rawUser.hasCompletedOnboarding === "true" : existingUser?.onboarded))),
-    hasCompletedOnboarding: typeof rawUser?.hasCompletedOnboarding === "boolean" ? rawUser.hasCompletedOnboarding : (typeof rawUser?.hasCompletedOnboarding === "string" ? rawUser.hasCompletedOnboarding === "true" : (typeof rawUser?.onboarded === "boolean" ? rawUser.onboarded : (typeof rawUser?.onboarded === "string" ? rawUser.onboarded === "true" : (typeof u?.hasCompletedOnboarding === "boolean" ? u.hasCompletedOnboarding : existingUser?.hasCompletedOnboarding)))),
-    nextRoute: (rawUser?.onboarded || rawUser?.hasCompletedOnboarding || existingUser?.onboarded || existingUser?.hasCompletedOnboarding) ? "/dashboard" : (rawUser?.nextRoute || u?.nextRoute || u?.data?.nextRoute || u?.user?.nextRoute || existingUser?.nextRoute),
+    onboarded: (
+      localStorage.getItem("oneday_onboarded") === "true" ||
+      existingUser?.onboarded === true ||
+      existingUser?.hasCompletedOnboarding === true ||
+      rawUser?.onboarded === true ||
+      rawUser?.onboarded === "true" ||
+      rawUser?.hasCompletedOnboarding === true ||
+      rawUser?.hasCompletedOnboarding === "true" ||
+      rawUser?.nextRoute === "/dashboard" ||
+      existingUser?.nextRoute === "/dashboard"
+    ),
+    hasCompletedOnboarding: (
+      localStorage.getItem("oneday_onboarded") === "true" ||
+      existingUser?.onboarded === true ||
+      existingUser?.hasCompletedOnboarding === true ||
+      rawUser?.onboarded === true ||
+      rawUser?.onboarded === "true" ||
+      rawUser?.hasCompletedOnboarding === true ||
+      rawUser?.hasCompletedOnboarding === "true" ||
+      rawUser?.nextRoute === "/dashboard" ||
+      existingUser?.nextRoute === "/dashboard"
+    ),
+    nextRoute: (
+      localStorage.getItem("oneday_onboarded") === "true" ||
+      existingUser?.onboarded ||
+      existingUser?.hasCompletedOnboarding ||
+      rawUser?.onboarded ||
+      rawUser?.hasCompletedOnboarding ||
+      rawUser?.nextRoute === "/dashboard" ||
+      existingUser?.nextRoute === "/dashboard"
+    ) ? "/dashboard" : "/onboarding",
     onboardingStep: typeof onboardingStepVal === "number" ? onboardingStepVal : (typeof rawUser?.onboardingStep === "number" ? rawUser.onboardingStep : (typeof rawUser?.onboarding_step === "number" ? rawUser.onboarding_step : (typeof rawUser?.onboardingStep === "string" ? parseInt(rawUser.onboardingStep, 10) : (typeof rawUser?.onboarding_step === "string" ? parseInt(rawUser.onboarding_step, 10) : existingUser?.onboardingStep)))),
   };
 }

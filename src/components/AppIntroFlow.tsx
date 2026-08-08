@@ -27,6 +27,10 @@ interface AppIntroFlowProps {
 }
 
 export function AppIntroFlow({ userId, userName, onComplete }: AppIntroFlowProps) {
+  useEffect(() => {
+    console.log("[INTRO] started");
+  }, []);
+
   // Step 0: Welcome Screen
   // Step 1: Dashboard
   // Step 2: Habits
@@ -63,6 +67,7 @@ export function AppIntroFlow({ userId, userName, onComplete }: AppIntroFlowProps
   };
 
   const handleFinish = () => {
+    console.log("[INTRO] skipped");
     localStorage.setItem(`oneday_intro_seen_${userId}`, 'true');
     localStorage.removeItem(`oneday_intro_step_${userId}`);
     onComplete();

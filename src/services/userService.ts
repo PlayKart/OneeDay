@@ -3,16 +3,17 @@
 import { apiClient } from "../api/client";
 import { User } from "../types";
 import { normalizeUser } from "../utils";
+import { useStore } from "../store/useStore";
 
 export const userService = {
-  async getUserProfile(): Promise<User> {
+  async getUserProfile(existingUser?: User): Promise<User> {
     const res = await apiClient.get<User | { user: User }>("/api/me");
-    return normalizeUser(res.data);
+    return normalizeUser(res.data, existingUser || useStore.getState().user || undefined);
   },
 
   async updateProfile(data: Partial<User>): Promise<User> {
     const res = await apiClient.patch<User | { user: User }>("/api/me", data);
-    return normalizeUser(res.data);
+    return normalizeUser(res.data, useStore.getState().user || undefined);
   },
 
   async freezeStreak(days: number): Promise<User> {

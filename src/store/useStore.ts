@@ -31,6 +31,7 @@ interface StoreState {
   quote: string;
   initialized: boolean;
   loading: boolean;
+  profileVersion: number;
   backendError: string | null;
   activeTab: TabState;
   pendingHabitIds: Set<string>;
@@ -46,6 +47,7 @@ interface StoreState {
 
   // Actions
   setFirebaseUser: (fbUser: FirebaseUser | null) => void;
+  incrementProfileVersion: () => void;
   setActiveTab: (tab: TabState) => void;
   setTitleUnlockData: (data: { title: string; signature: string; level: number } | null) => void;
   setTitleLossData: (data: { title: string; signature: string; reason?: string } | null) => void;
@@ -150,7 +152,18 @@ export const useStore = create<StoreState>((set, get) => {
       localStorage.removeItem("oneday_firebase_email");
       localStorage.removeItem("oneday_firebase_token");
       localStorage.removeItem("oneday_cached_user");
-      set({ firebaseUser: null, user: null, habits: [], chatSessions: [], chatMessages: [], initialized: true });
+      localStorage.removeItem("oneday_onboarded");
+      localStorage.removeItem("oneday_onboarding_step");
+      localStorage.removeItem("oneday_onboarding_data");
+      set({
+        firebaseUser: null,
+        user: null,
+        habits: [],
+        chatSessions: [],
+        chatMessages: [],
+        initialized: true,
+        profileVersion: get().profileVersion + 1,
+      });
     }
   });
 
@@ -161,6 +174,7 @@ export const useStore = create<StoreState>((set, get) => {
     quote: "One day broke. Don't let two.",
     initialized: sessionActive ? true : false,
     loading: false,
+    profileVersion: 0,
     backendError: null,
     activeTab: "dashboard",
     pendingHabitIds: new Set<string>(),
@@ -174,7 +188,7 @@ export const useStore = create<StoreState>((set, get) => {
     sessionsLoading: false,
 
     setFirebaseUser: (fbUser) => {
-      console.log("[Zustand Store] setFirebaseUser called:", fbUser ? fbUser.uid : null);
+      console.log("[AUTH] Firebase state:", fbUser ? `authenticated (UID: ${fbUser.uid})` : "unauthenticated");
       if (fbUser) {
         localStorage.setItem("oneday_session_active", "true");
         localStorage.setItem("oneday_firebase_uid", fbUser.uid);
@@ -186,6 +200,10 @@ export const useStore = create<StoreState>((set, get) => {
         });
       }
       set({ firebaseUser: fbUser, initialized: true });
+    },
+
+    incrementProfileVersion: () => {
+      set((state) => ({ profileVersion: state.profileVersion + 1 }));
     },
 
     setActiveTab: (tab) => set({ activeTab: tab }),
@@ -202,8 +220,8 @@ export const useStore = create<StoreState>((set, get) => {
         return;
       }
 
-      console.log("[STARTUP SEQUENCE - Backend started] Backend profile request started...");
-      console.log("[AUTH] Backend authentication started");
+      const reqVersion = get().profileVersion;
+      console.log(`[PROFILE] request started (version: ${reqVersion})`);
       set({ loading: true, backendError: null });
 
       try {
@@ -217,8 +235,13 @@ export const useStore = create<StoreState>((set, get) => {
           timeoutPromise
         ]);
 
-        console.log("[STARTUP SEQUENCE - Backend finished] Backend profile request finished successfully.");
-        console.log("[AUTH] Backend authentication completed");
+        console.log(`[PROFILE] response received (reqVersion: ${reqVersion}, currentVersion: ${get().profileVersion})`);
+
+        if (get().profileVersion > reqVersion) {
+          console.log(`[STALE] ignored response (reqVersion ${reqVersion} < current ${get().profileVersion})`);
+          set({ loading: false });
+          return;
+        }
 
         if (data) {
           const root = (data as any).data || data;
@@ -242,7 +265,6 @@ export const useStore = create<StoreState>((set, get) => {
             });
           }
         }
-        console.log(`[Streak Verification - Sync] Backend currentStreak: ${data.user.streak}, Frontend displayed streak: ${data.user.streak}`);
         if (data.user) {
           localStorage.setItem("oneday_cached_user", JSON.stringify(data.user));
         }
@@ -252,7 +274,6 @@ export const useStore = create<StoreState>((set, get) => {
           quote: data.quote,
           loading: false,
         });
-        console.log("[STARTUP SEQUENCE - Loading false] Loading state set to false (Success).");
 
         // Concurrently load chat sessions
         get().fetchSessions();
@@ -262,7 +283,6 @@ export const useStore = create<StoreState>((set, get) => {
           backendError: err.message || "Failed to load dashboard data",
           loading: false,
         });
-        console.log("[STARTUP SEQUENCE - Loading false] Loading state set to false (Error/Timeout).");
       }
     },
 
@@ -534,16 +554,32 @@ export const useStore = create<StoreState>((set, get) => {
         const currentUser = get().user;
         if (!currentUser) return;
         const updated = await userService.updateProfile(data);
+        const isCompletingOnboarding = Boolean(data.onboarded || data.hasCompletedOnboarding);
         const nextUser = { ...currentUser, ...updated, ...data };
+        if (isCompletingOnboarding) {
+          nextUser.onboarded = true;
+          nextUser.hasCompletedOnboarding = true;
+          localStorage.setItem("oneday_onboarded", "true");
+          if (nextUser.id) {
+            localStorage.setItem(`oneday_onboarded_${nextUser.id}`, "true");
+          }
+        }
         localStorage.setItem("oneday_cached_user", JSON.stringify(nextUser));
-        set({ user: nextUser });
-        await get().refreshFromBackend();
+        const newVersion = isCompletingOnboarding ? get().profileVersion + 1 : get().profileVersion;
+        set({ user: nextUser, profileVersion: newVersion });
       } catch (e) {
+        console.error("[useStore] updateProfile error:", e);
         const currentUser = get().user;
         if (currentUser) {
-          const nextUser = { ...currentUser, ...data, onboarded: true };
+          const isCompletingOnboarding = Boolean(data.onboarded || data.hasCompletedOnboarding);
+          const nextUser = { ...currentUser, ...data };
+          if (isCompletingOnboarding) {
+            nextUser.onboarded = true;
+            nextUser.hasCompletedOnboarding = true;
+          }
           localStorage.setItem("oneday_cached_user", JSON.stringify(nextUser));
-          set({ user: nextUser });
+          const newVersion = isCompletingOnboarding ? get().profileVersion + 1 : get().profileVersion;
+          set({ user: nextUser, profileVersion: newVersion });
         }
       }
     },
