@@ -461,6 +461,8 @@ export default function App() {
             console.log("[Onboarding] Completion callback triggered.");
             useStore.setState({ user: { ...user, onboarded: true, hasCompletedOnboarding: true, nextRoute: "/dashboard" } });
             localStorage.setItem("oneday_onboarded", "true");
+            localStorage.removeItem("oneday_onboarding_step");
+            localStorage.removeItem("oneday_onboarding_data");
             await refreshFromBackend();
             const uid = firebaseUser?.uid || user?.id || "";
             const seenIntro = hasSeenAppIntro(uid, user);

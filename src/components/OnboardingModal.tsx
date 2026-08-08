@@ -1,10 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   ArrowRight, ArrowLeft, Check, Sparkles, User as UserIcon, 
   Calendar, Heart, Trophy, Search, X, ShieldAlert 
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
+import { User } from '../types';
 import { toast } from 'react-hot-toast';
 
 const HOBBIES_LIST = [
@@ -43,24 +44,131 @@ interface OnboardingModalProps {
   isEditing?: boolean;
 }
 
-export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = false }: OnboardingModalProps) {
-  const { user, refreshFromBackend } = useStore();
+function parseStepNumber(val: any): number | null {
+  if (typeof val === "number" && !isNaN(val) && val >= 1 && val <= 6) {
+    return val;
+  }
+  if (typeof val === "string") {
+    const parsed = parseInt(val, 10);
+    if (!isNaN(parsed) && parsed >= 1 && parsed <= 6) {
+      return parsed;
+    }
+  }
+  return null;
+}
 
-  const [step, setStep] = useState(1);
+function getInitialOnboardingStep(user: User | null, isEditing: boolean): number {
+  if (isEditing) return 1;
+
+  // 1. Backend value takes priority over localStorage
+  const backendStep = parseStepNumber(user?.onboardingStep);
+  if (backendStep !== null) {
+    return backendStep;
+  }
+
+  // 2. localStorage temporary cache/fallback
+  try {
+    const saved = localStorage.getItem("oneday_onboarding_step");
+    if (saved) {
+      const trimmed = saved.trim();
+      if (trimmed.startsWith("{")) {
+        const parsed = JSON.parse(trimmed);
+        const stepNum = parseStepNumber(parsed?.step);
+        if (stepNum !== null) return stepNum;
+      } else {
+        const stepNum = parseStepNumber(trimmed);
+        if (stepNum !== null) return stepNum;
+      }
+    }
+  } catch (e) {
+    console.warn("[Onboarding] Error reading saved step:", e);
+  }
+
+  // 3. Default fallback
+  return 1;
+}
+
+function getSavedDraftData(isEditing: boolean) {
+  if (isEditing) return null;
+  try {
+    const raw = localStorage.getItem("oneday_onboarding_data");
+    if (raw) {
+      return JSON.parse(raw);
+    }
+  } catch (e) {
+    console.warn("[Onboarding] Error reading saved draft data:", e);
+  }
+  return null;
+}
+
+export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = false }: OnboardingModalProps) {
+  const { user, updateProfile, refreshFromBackend } = useStore();
+
+  const draftData = useMemo(() => getSavedDraftData(isEditing), [isEditing]);
+
+  const [step, setStep] = useState<number>(() => getInitialOnboardingStep(user, isEditing));
   const totalSteps = 6;
 
-  // Form state
-  const [name, setName] = useState(initialData?.name || user?.name || "");
-  const [dob, setDob] = useState(initialData?.dob || "");
-  const [gender, setGender] = useState(initialData?.gender || "male");
-  const [hobbies, setHobbies] = useState<string[]>(initialData?.hobbies || []);
+  // Track if backend step has synced
+  const hasSyncedBackendStep = React.useRef<boolean>(parseStepNumber(user?.onboardingStep) !== null);
+
+  // Sync step from backend user if backend step becomes available or updates
+  useEffect(() => {
+    if (isEditing) return;
+
+    const backendStep = parseStepNumber(user?.onboardingStep);
+    if (backendStep !== null) {
+      if (!hasSyncedBackendStep.current || backendStep > step) {
+        setStep(backendStep);
+        hasSyncedBackendStep.current = true;
+        try {
+          localStorage.setItem("oneday_onboarding_step", JSON.stringify({ step: backendStep }));
+        } catch (_) {}
+      }
+    }
+  }, [user?.onboardingStep, isEditing]);
+
+  // Form state initialized with draftData fallback, initialData, or user
+  const [name, setName] = useState(draftData?.name || initialData?.name || user?.name || "");
+  const [dob, setDob] = useState(draftData?.dob || initialData?.dob || "");
+  const [gender, setGender] = useState(draftData?.gender || initialData?.gender || "male");
+  const [hobbies, setHobbies] = useState<string[]>(draftData?.hobbies || initialData?.hobbies || []);
   const [hobbySearch, setHobbySearch] = useState("");
   const [customHobbyInput, setCustomHobbyInput] = useState("");
-  const [sports, setSports] = useState<string[]>(initialData?.favouriteSports || initialData?.sports || []);
+  const [sports, setSports] = useState<string[]>(draftData?.favouriteSports || draftData?.sports || initialData?.favouriteSports || initialData?.sports || []);
   const [sportSearch, setSportSearch] = useState("");
-  const [reason, setReason] = useState(initialData?.reasonForJoining || initialData?.reason || "");
+  const [reason, setReason] = useState(draftData?.reasonForJoining || draftData?.reason || initialData?.reasonForJoining || initialData?.reason || "");
   const [isCompletedState, setIsCompletedState] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Save current step to localStorage
+  useEffect(() => {
+    if (!isEditing && step >= 1 && step <= 6) {
+      try {
+        localStorage.setItem("oneday_onboarding_step", JSON.stringify({ step }));
+      } catch (e) {
+        console.warn("[Onboarding] Failed to save step to localStorage:", e);
+      }
+    }
+  }, [step, isEditing]);
+
+  // Save form state draft to localStorage
+  useEffect(() => {
+    if (!isEditing) {
+      try {
+        localStorage.setItem("oneday_onboarding_data", JSON.stringify({
+          name,
+          dob,
+          gender,
+          hobbies,
+          favouriteSports: sports,
+          reasonForJoining: reason
+        }));
+      } catch (e) {
+        console.warn("[Onboarding] Failed to save draft data to localStorage:", e);
+      }
+    }
+  }, [name, dob, gender, hobbies, sports, reason, isEditing]);
 
   // Auto-calculated age from DOB
   const age = useMemo(() => {
@@ -100,6 +208,23 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
     }
   };
 
+  const updateAndSaveStep = (nextStep: number) => {
+    if (nextStep < 1 || nextStep > totalSteps) return;
+    setStep(nextStep);
+    if (!isEditing) {
+      try {
+        localStorage.setItem("oneday_onboarding_step", JSON.stringify({ step: nextStep }));
+      } catch (e) {
+        console.warn("[Onboarding] Failed to save step to localStorage:", e);
+      }
+      if (updateProfile) {
+        updateProfile({ onboardingStep: nextStep }).catch((err) => {
+          console.warn("[Onboarding] Error persisting step to backend:", err);
+        });
+      }
+    }
+  };
+
   const handleNext = () => {
     if (!validateStep(step)) {
       if (step === 1) toast.error("Please enter a valid name (at least 2 characters).");
@@ -110,7 +235,7 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
     }
 
     if (step < totalSteps) {
-      setStep(step + 1);
+      updateAndSaveStep(step + 1);
     } else {
       handleFinish();
     }
@@ -127,9 +252,15 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
     }
 
     if (step < totalSteps) {
-      setStep(step + 1);
+      updateAndSaveStep(step + 1);
     } else {
       handleFinish();
+    }
+  };
+
+  const handleBack = () => {
+    if (step > 1) {
+      updateAndSaveStep(step - 1);
     }
   };
 
@@ -145,17 +276,27 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
         favouriteSports: sports,
         reasonForJoining: reason,
         onboarded: true,
+        hasCompletedOnboarding: true,
+        onboardingStep: totalSteps,
       };
 
-      // Update backend & local store
-      if (useStore.getState().updateProfile) {
-        await useStore.getState().updateProfile(payload);
+      if (updateProfile) {
+        await updateProfile(payload);
       }
-      await useStore.getState().refreshFromBackend();
+      await refreshFromBackend();
+      
+      if (!isEditing) {
+        localStorage.removeItem("oneday_onboarding_step");
+        localStorage.removeItem("oneday_onboarding_data");
+      }
       localStorage.setItem("oneday_onboarded", "true");
       setIsCompletedState(true);
     } catch (e: any) {
-      console.error("Onboarding finish error:", e);
+      console.error("[Onboarding] Finish error:", e);
+      if (!isEditing) {
+        localStorage.removeItem("oneday_onboarding_step");
+        localStorage.removeItem("oneday_onboarding_data");
+      }
       localStorage.setItem("oneday_onboarded", "true");
       setIsCompletedState(true);
     } finally {
@@ -513,7 +654,7 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
               {step > 1 ? (
                 <button
                   type="button"
-                  onClick={() => setStep(step - 1)}
+                  onClick={handleBack}
                   className="px-5 py-3 rounded-xl border border-white/10 text-slate-400 hover:text-white hover:bg-white/5 text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer"
                 >
                   <ArrowLeft size={14} /> Back

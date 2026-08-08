@@ -26,6 +26,7 @@ export interface User {
   onboarded?: boolean;
   nextRoute?: string;
   hasCompletedOnboarding?: boolean;
+  onboardingStep?: number;
 }
 
 export interface Habit {

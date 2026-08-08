@@ -87,6 +87,12 @@ export function normalizeUser(u: any, existingUser?: User | null): User {
     "progress",
   ]);
 
+  const onboardingStepVal = findFirstNumber([
+    "onboardingStep",
+    "onboarding_step",
+    "step",
+  ]);
+
   const rawUser = u.user || u.data?.user || u.data || u;
 
   return {
@@ -136,6 +142,7 @@ export function normalizeUser(u: any, existingUser?: User | null): User {
     onboarded: typeof rawUser?.onboarded === "boolean" ? rawUser.onboarded : (typeof rawUser?.onboarded === "string" ? rawUser.onboarded === "true" : existingUser?.onboarded),
     nextRoute: rawUser?.nextRoute || u?.nextRoute || u?.data?.nextRoute || u?.user?.nextRoute || existingUser?.nextRoute,
     hasCompletedOnboarding: typeof rawUser?.hasCompletedOnboarding === "boolean" ? rawUser.hasCompletedOnboarding : (typeof rawUser?.hasCompletedOnboarding === "string" ? rawUser.hasCompletedOnboarding === "true" : (typeof u?.hasCompletedOnboarding === "boolean" ? u.hasCompletedOnboarding : existingUser?.hasCompletedOnboarding)),
+    onboardingStep: typeof onboardingStepVal === "number" ? onboardingStepVal : (typeof rawUser?.onboardingStep === "number" ? rawUser.onboardingStep : (typeof rawUser?.onboarding_step === "number" ? rawUser.onboarding_step : (typeof rawUser?.onboardingStep === "string" ? parseInt(rawUser.onboardingStep, 10) : (typeof rawUser?.onboarding_step === "string" ? parseInt(rawUser.onboarding_step, 10) : existingUser?.onboardingStep)))),
   };
 }
 
