@@ -346,12 +346,10 @@ export function extractXpAwarded(res: any, habitDifficulty?: string): number {
     const val =
       root.xpAwarded ??
       root.xp_awarded ??
-      root.xpGained ??
-      root.xp_gained ??
+      root.xp_earned ??
       res.xpAwarded ??
       res.xp_awarded ??
-      res.xpGained ??
-      res.xp_gained;
+      res.xp_earned;
     if (typeof val === "number" && !isNaN(val)) {
       return val;
     }
