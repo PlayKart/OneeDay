@@ -34,6 +34,7 @@ import { TutorialOverlay } from './components/TutorialOverlay';
 import { TitleUnlockModal } from './components/TitleUnlockModal';
 import { TitleLossModal } from './components/TitleLossModal';
 import { OnboardingModal } from './components/OnboardingModal';
+import { AppIntroFlow } from './components/AppIntroFlow';
 
 const GoogleIcon = () => (
   <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
@@ -62,11 +63,19 @@ function hasCompletedOnboarding(u: any): boolean {
   return false;
 }
 
+function hasSeenAppIntro(userId: string, u: any): boolean {
+  if (!userId) return false;
+  if (localStorage.getItem(`oneday_intro_seen_${userId}`) === "true") return true;
+  if (u?.hasSeenAppIntroduction === true || u?.hasSeenAppIntroduction === "true") return true;
+  return false;
+}
+
 export default function App() {
   const { user, firebaseUser, initialized, loading, backendError, refreshFromBackend, activeTab } = useStore();
   const [currentRoute, setCurrentRoute] = useState<string>(() => {
     const path = window.location.pathname;
     if (path === "/onboarding") return "/onboarding";
+    if (path === "/intro") return "/intro";
     if (path === "/dashboard") return "/dashboard";
     return "/landing";
   });
@@ -83,7 +92,7 @@ export default function App() {
   useEffect(() => {
     const handlePopState = () => {
       const path = window.location.pathname;
-      if (path === "/onboarding" || path === "/dashboard" || path === "/landing") {
+      if (path === "/onboarding" || path === "/intro" || path === "/dashboard" || path === "/landing") {
         setCurrentRoute(path);
       }
     };
@@ -150,7 +159,13 @@ export default function App() {
 
       if (state.user) {
         const onboarded = hasCompletedOnboarding(state.user);
-        resolveStartup(onboarded ? "/dashboard" : "/onboarding");
+        if (!onboarded) {
+          resolveStartup("/onboarding");
+        } else {
+          const uid = state.firebaseUser?.uid || state.user?.id || "";
+          const seenIntro = hasSeenAppIntro(uid, state.user);
+          resolveStartup(seenIntro ? "/dashboard" : "/intro");
+        }
       }
     });
 
@@ -163,7 +178,13 @@ export default function App() {
         rejectStartup(initialState.backendError);
       } else if (initialState.user) {
         const onboarded = hasCompletedOnboarding(initialState.user);
-        resolveStartup(onboarded ? "/dashboard" : "/onboarding");
+        if (!onboarded) {
+          resolveStartup("/onboarding");
+        } else {
+          const uid = initialState.firebaseUser?.uid || initialState.user?.id || "";
+          const seenIntro = hasSeenAppIntro(uid, initialState.user);
+          resolveStartup(seenIntro ? "/dashboard" : "/intro");
+        }
       }
     }
 
@@ -199,12 +220,24 @@ export default function App() {
     // 2. Authenticated users
     const onboarded = hasCompletedOnboarding(user);
     if (onboarded) {
-      if (currentRoute !== "/dashboard") {
-        console.log(`[Route Guard] Onboarded user tried to access ${currentRoute}. Redirecting to /dashboard`);
-        if (window.location.pathname !== "/dashboard") {
-          window.history.pushState({}, "", "/dashboard");
+      const uid = firebaseUser.uid || user.id || "";
+      const seenIntro = hasSeenAppIntro(uid, user);
+      if (!seenIntro) {
+        if (currentRoute !== "/intro") {
+          console.log(`[Route Guard] Onboarded user needs intro. Redirecting to /intro`);
+          if (window.location.pathname !== "/intro") {
+            window.history.pushState({}, "", "/intro");
+          }
+          setCurrentRoute("/intro");
         }
-        setCurrentRoute("/dashboard");
+      } else {
+        if (currentRoute !== "/dashboard") {
+          console.log(`[Route Guard] Onboarded user has completed intro. Redirecting to /dashboard`);
+          if (window.location.pathname !== "/dashboard") {
+            window.history.pushState({}, "", "/dashboard");
+          }
+          setCurrentRoute("/dashboard");
+        }
       }
     } else {
       if (currentRoute !== "/onboarding") {
@@ -429,14 +462,38 @@ export default function App() {
             useStore.setState({ user: { ...user, onboarded: true, hasCompletedOnboarding: true, nextRoute: "/dashboard" } });
             localStorage.setItem("oneday_onboarded", "true");
             await refreshFromBackend();
-            setCurrentRoute("/dashboard");
+            const uid = firebaseUser?.uid || user?.id || "";
+            const seenIntro = hasSeenAppIntro(uid, user);
+            const targetRoute = seenIntro ? "/dashboard" : "/intro";
+            if (window.location.pathname !== targetRoute) {
+              window.history.pushState({}, "", targetRoute);
+            }
+            setCurrentRoute(targetRoute);
           }} 
         />
       </div>
     );
   }
 
-  // ── 3c. /dashboard view (Authenticated + Onboarded) ──────────────────────
+  // ── 3c. /intro view (Welcome & App Introduction) ──────────────────────────
+  if (currentRoute === "/intro") {
+    return (
+      <AppIntroFlow 
+        userId={firebaseUser.uid} 
+        userName={user.name} 
+        onComplete={() => {
+          console.log("[App Intro] Completed intro. Navigating to /dashboard");
+          localStorage.setItem(`oneday_intro_seen_${firebaseUser.uid}`, "true");
+          if (window.location.pathname !== "/dashboard") {
+            window.history.pushState({}, "", "/dashboard");
+          }
+          setCurrentRoute("/dashboard");
+        }} 
+      />
+    );
+  }
+
+  // ── 3d. /dashboard view (Authenticated + Onboarded + Intro completed) ────
   return (
     <div className="min-h-screen relative overflow-hidden bg-[#050505]">
       <Toaster 
