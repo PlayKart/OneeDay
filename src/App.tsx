@@ -64,42 +64,163 @@ function hasCompletedOnboarding(u: any): boolean {
 
 export default function App() {
   const { user, firebaseUser, initialized, loading, backendError, refreshFromBackend, activeTab } = useStore();
-  const [showIntro, setShowIntro] = useState(true);
-  const initialRoutePerformed = useRef(false);
+  const [currentRoute, setCurrentRoute] = useState<string>(() => {
+    const path = window.location.pathname;
+    if (path === "/onboarding") return "/onboarding";
+    if (path === "/dashboard") return "/dashboard";
+    return "/landing";
+  });
+  const [startupStatus, setStartupStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [startupError, setStartupError] = useState<string | null>(null);
+  const [startupTrigger, setStartupTrigger] = useState(0);
 
   // Log App mounted
   useEffect(() => {
     console.log("[STARTUP SEQUENCE - Mount] App mounted.");
   }, []);
 
+  // Listen to popstate event for native history back/forward
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname;
+      if (path === "/onboarding" || path === "/dashboard" || path === "/landing") {
+        setCurrentRoute(path);
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  // Centralized startup orchestrator & watchdog
+  useEffect(() => {
+    console.log(`[STARTUP SEQUENCE] Startup began (trigger: ${startupTrigger}).`);
+    setStartupStatus("loading");
+    setStartupError(null);
+
+    // Set 8-second maximum watchdog timer
+    const watchdog = setTimeout(() => {
+      console.error("[STARTUP SEQUENCE] Startup watchdog triggered after 8 seconds.");
+      setStartupError("Connection timed out. Uplink took more than 8 seconds to respond.");
+      setStartupStatus("error");
+    }, 8000);
+
+    let resolved = false;
+
+    const resolveStartup = (route: string) => {
+      if (resolved) return;
+      resolved = true;
+      clearTimeout(watchdog);
+      console.log(`[STARTUP SEQUENCE] Resolved successfully. Target route: ${route}`);
+      if (window.location.pathname !== route) {
+        window.history.pushState({}, "", route);
+      }
+      setCurrentRoute(route);
+      setStartupStatus("ready");
+    };
+
+    const rejectStartup = (errorMsg: string) => {
+      if (resolved) return;
+      resolved = true;
+      clearTimeout(watchdog);
+      console.error(`[STARTUP SEQUENCE] Rejected with error: ${errorMsg}`);
+      setStartupError(errorMsg);
+      setStartupStatus("error");
+    };
+
+    // Subscribe to the Zustand store changes
+    const unsubscribe = useStore.subscribe((state) => {
+      if (resolved) return;
+
+      // Wait until Firebase auth initializes
+      if (!state.initialized) {
+        return;
+      }
+
+      // 1. If unauthenticated, they belong on /landing
+      if (!state.firebaseUser) {
+        resolveStartup("/landing");
+        return;
+      }
+
+      // 2. If authenticated, wait for backend profile
+      if (state.backendError) {
+        rejectStartup(state.backendError);
+        return;
+      }
+
+      if (state.user) {
+        const onboarded = hasCompletedOnboarding(state.user);
+        resolveStartup(onboarded ? "/dashboard" : "/onboarding");
+      }
+    });
+
+    // Check initial state in case it's already resolved
+    const initialState = useStore.getState();
+    if (initialState.initialized) {
+      if (!initialState.firebaseUser) {
+        resolveStartup("/landing");
+      } else if (initialState.backendError) {
+        rejectStartup(initialState.backendError);
+      } else if (initialState.user) {
+        const onboarded = hasCompletedOnboarding(initialState.user);
+        resolveStartup(onboarded ? "/dashboard" : "/onboarding");
+      }
+    }
+
+    return () => {
+      clearTimeout(watchdog);
+      unsubscribe();
+    };
+  }, [startupTrigger]);
+
+  // Centralized Protection & Route Guard
+  useEffect(() => {
+    if (startupStatus !== "ready") {
+      return;
+    }
+
+    // 1. Unauthenticated users
+    if (!firebaseUser) {
+      if (currentRoute !== "/landing") {
+        console.log(`[Route Guard] Unauthenticated user tried to access ${currentRoute}. Redirecting to /landing`);
+        if (window.location.pathname !== "/landing") {
+          window.history.pushState({}, "", "/landing");
+        }
+        setCurrentRoute("/landing");
+      }
+      return;
+    }
+
+    // Authenticated users: wait until backend user profile is loaded
+    if (!user) {
+      return;
+    }
+
+    // 2. Authenticated users
+    const onboarded = hasCompletedOnboarding(user);
+    if (onboarded) {
+      if (currentRoute !== "/dashboard") {
+        console.log(`[Route Guard] Onboarded user tried to access ${currentRoute}. Redirecting to /dashboard`);
+        if (window.location.pathname !== "/dashboard") {
+          window.history.pushState({}, "", "/dashboard");
+        }
+        setCurrentRoute("/dashboard");
+      }
+    } else {
+      if (currentRoute !== "/onboarding") {
+        console.log(`[Route Guard] Non-onboarded user tried to access ${currentRoute}. Redirecting to /onboarding`);
+        if (window.location.pathname !== "/onboarding") {
+          window.history.pushState({}, "", "/onboarding");
+        }
+        setCurrentRoute("/onboarding");
+      }
+    }
+  }, [firebaseUser, user, currentRoute, startupStatus]);
+
   // Log Navigation/Route Changes
   useEffect(() => {
     console.log(`[STARTUP SEQUENCE - Navigation] Tab/Route changed to: ${activeTab}`);
   }, [activeTab]);
-
-  useEffect(() => {
-    if (!firebaseUser) {
-      initialRoutePerformed.current = false;
-      return;
-    }
-
-    if (user && !initialRoutePerformed.current) {
-      initialRoutePerformed.current = true;
-      if (!hasCompletedOnboarding(user)) {
-        console.log("[STARTUP SEQUENCE - Navigation] Initial load: user not onboarded. Active tab set to dashboard (showing onboarding).");
-        useStore.getState().setActiveTab("dashboard");
-      } else {
-        console.log("[STARTUP SEQUENCE - Navigation] Initial load: user onboarded. Active tab set to dashboard.");
-        useStore.getState().setActiveTab("dashboard");
-      }
-    }
-  }, [user, firebaseUser]);
-
-  useEffect(() => {
-    // Show intro animation for 3.5 seconds
-    const timer = setTimeout(() => setShowIntro(false), 3500);
-    return () => clearTimeout(timer);
-  }, []);
 
   useEffect(() => {
     if (!firebaseUser) return;
@@ -133,10 +254,9 @@ export default function App() {
 
   useEffect(() => {
     if (!firebaseUser) {
-      // Landing page sets its own titles dynamically
       return;
     }
-    if (showIntro) {
+    if (startupStatus === "loading") {
       document.title = "OneDay — AI Habit Tracker";
       return;
     }
@@ -156,12 +276,12 @@ export default function App() {
       default:
         document.title = "OneDay — AI Habit Tracker";
     }
-  }, [firebaseUser, activeTab, showIntro]);
+  }, [firebaseUser, activeTab, startupStatus]);
 
-  // ── 0. Show Intro Animation ───────────────────────────────────────────────
-  if (showIntro) {
+  // ── 1. Startup is loading -> Show OneDay splash/intro animation ──────────
+  if (startupStatus === "loading") {
     return (
-      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center relative overflow-hidden">
+      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center relative overflow-hidden font-sans">
         <div className="orb w-[400px] h-[400px] bg-blue-500/5 top-[-100px] left-[-100px] absolute mix-blend-screen animate-pulse" />
         <div className="orb w-[300px] h-[300px] bg-purple-500/5 bottom-[-50px] right-[-50px] absolute mix-blend-screen animate-pulse" />
         
@@ -171,13 +291,13 @@ export default function App() {
              animate={{ opacity: 1, scale: 1 }}
              exit={{ opacity: 0, scale: 1.1 }}
              transition={{ duration: 0.8, ease: "easeOut" }}
-             className="flex flex-col items-center z-10"
+             className="flex flex-col items-center z-10 animate-pulse"
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               transition={{ delay: 0.3, duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-              className="mb-8 animate-pulse-slow"
+              className="mb-8"
             >
               <MonolithLogo size={96} />
             </motion.div>
@@ -205,18 +325,51 @@ export default function App() {
     );
   }
 
-  // ── 1. Waiting for Firebase to resolve auth state on cold start ──────────
-  if (!initialized) return (
-    <div className="min-h-screen bg-[#050505] flex items-center justify-center font-sans">
-      <div className="w-12 h-12 border-2 border-white/5 border-t-white rounded-full animate-spin" />
-    </div>
-  );
+  // ── 2. Startup has failed -> Show the high-quality error screen ───────────
+  if (startupStatus === "error") {
+    return (
+      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center font-sans gap-6">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex flex-col items-center gap-6 max-w-sm text-center px-6"
+        >
+          <div className="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center">
+            <AlertTriangle size={32} className="text-red-400" />
+          </div>
+          <div className="flex flex-col gap-2">
+            <h2 className="text-xl font-bold tracking-tight">Something went wrong</h2>
+            <p className="text-slate-500 text-xs uppercase tracking-widest font-black">Uplink Failed</p>
+            <p className="text-slate-400 text-sm mt-2">{startupError || backendError || "Unknown connection error."}</p>
+          </div>
+          <button
+            onClick={async () => {
+              console.log("[STARTUP SEQUENCE] User clicked Retry.");
+              setStartupStatus("loading");
+              useStore.setState({ backendError: null });
+              await refreshFromBackend();
+              setStartupTrigger(prev => prev + 1);
+            }}
+            className="flex items-center gap-2 bg-white/10 hover:bg-white/20 disabled:opacity-50 text-white font-bold px-8 py-3 rounded-xl transition-all text-sm uppercase tracking-widest cursor-pointer"
+          >
+            <RefreshCw size={14} />
+            Retry
+          </button>
+          <button
+            onClick={() => signOut(auth)}
+            className="text-xs text-slate-600 hover:text-red-400 transition-colors uppercase tracking-widest font-bold cursor-pointer"
+          >
+            Sign Out
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
 
-  // ── 2. No Firebase user → show login screen ──────────────────────────────
-  // Uses firebaseUser (not backend `user`) so a backend failure never
-  // kicks an authenticated user back to the login screen.
-  if (!firebaseUser) {
-    console.log("[App Guard] No authenticated Firebase user. Rendering LandingScreen.");
+  // ── 3. We are in ready status -> render views by path ───────────────────────
+
+  // ── 3a. /landing view ──────────────────────────────────────────────────────
+  if (currentRoute === "/landing") {
     return (
       <Suspense fallback={
         <div className="min-h-screen bg-[#050505] flex items-center justify-center font-sans">
@@ -224,67 +377,14 @@ export default function App() {
         </div>
       }>
         <LandingScreen onLoginSuccess={() => {
-          console.log("[App Guard] Login success callback fired. Navigating to dashboard.");
-          useStore.getState().setActiveTab("dashboard");
+          console.log("[Landing] Sign in success. Waiting for route guard to evaluate destination...");
         }} />
       </Suspense>
     );
   }
 
-  // ── 3. Firebase user exists but backend data not yet loaded ───────────────
+  // If authenticated but backend user is not loaded yet (e.g. active sync on sign in)
   if (!user) {
-    console.log("[App Guard] Firebase user present (UID:", firebaseUser.uid, "). Loading backend user data...");
-    // Backend error — show retry screen instead of silently looping
-    if (backendError) {
-      return (
-        <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center font-sans gap-6">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="flex flex-col items-center gap-6 max-w-sm text-center px-6"
-          >
-            <div className="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center">
-              <AlertTriangle size={32} className="text-red-400" />
-            </div>
-            <div className="flex flex-col gap-2">
-              <h2 className="text-xl font-bold tracking-tight">Uplink Failed</h2>
-              <p className="text-slate-500 text-xs uppercase tracking-widest font-black">Backend Unreachable</p>
-              <p className="text-slate-400 text-sm mt-2">{backendError}</p>
-              {backendError.toLowerCase().includes("supabase") && (
-                <div className="mt-4 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-left text-xs text-amber-200">
-                  <p className="font-bold mb-1">💡 Render Backend Setup Required:</p>
-                  <p className="leading-relaxed">
-                    This error is coming from your external backend hosted on Render. 
-                    To fix this, go to your **Render Dashboard**, open your Web Service's 
-                    **Environment** settings, and add the following Environment Variables:
-                  </p>
-                  <ul className="list-disc ml-4 mt-2 space-y-1 text-slate-300 font-mono">
-                    <li><span className="text-amber-200">SUPABASE_URL</span></li>
-                    <li><span className="text-amber-200">SUPABASE_SERVICE_ROLE_KEY</span></li>
-                  </ul>
-                </div>
-              )}
-            </div>
-            <button
-              onClick={refreshFromBackend}
-              disabled={loading}
-              className="flex items-center gap-2 bg-white/10 hover:bg-white/20 disabled:opacity-50 text-white font-bold px-8 py-3 rounded-xl transition-all text-sm uppercase tracking-widest"
-            >
-              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-              {loading ? 'Retrying...' : 'Retry'}
-            </button>
-            <button
-              onClick={() => signOut(auth)}
-              className="text-xs text-slate-600 hover:text-red-400 transition-colors uppercase tracking-widest font-bold"
-            >
-              Sign Out
-            </button>
-          </motion.div>
-        </div>
-      );
-    }
-
-    // Normal loading after successful auth
     return (
       <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center font-sans">
         <motion.div 
@@ -304,7 +404,39 @@ export default function App() {
     );
   }
 
-  // ── 4. Fully authenticated + backend data loaded → main app ───────────────
+  // ── 3b. /onboarding view ───────────────────────────────────────────────────
+  if (currentRoute === "/onboarding") {
+    return (
+      <div className="min-h-screen bg-[#050505] flex items-center justify-center relative overflow-hidden">
+        <Toaster 
+          position="top-center" 
+          toastOptions={{
+            style: {
+              background: 'rgba(5, 5, 5, 0.9)',
+              color: '#fff',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              backdropFilter: 'blur(10px)',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              borderRadius: '12px',
+            }
+          }} 
+        />
+        <OnboardingModal 
+          isOpen={true} 
+          onComplete={async () => {
+            console.log("[Onboarding] Completion callback triggered.");
+            useStore.setState({ user: { ...user, onboarded: true, hasCompletedOnboarding: true, nextRoute: "/dashboard" } });
+            localStorage.setItem("oneday_onboarded", "true");
+            await refreshFromBackend();
+            setCurrentRoute("/dashboard");
+          }} 
+        />
+      </div>
+    );
+  }
+
+  // ── 3c. /dashboard view (Authenticated + Onboarded) ──────────────────────
   return (
     <div className="min-h-screen relative overflow-hidden bg-[#050505]">
       <Toaster 
@@ -341,16 +473,6 @@ export default function App() {
         <TutorialOverlay />
         <TitleUnlockModal />
         <TitleLossModal />
-        <OnboardingModal 
-          isOpen={Boolean(user && !hasCompletedOnboarding(user))} 
-          onComplete={() => {
-            if (user) {
-              useStore.setState({ user: { ...user, onboarded: true, hasCompletedOnboarding: true, nextRoute: "/dashboard" } });
-            }
-            localStorage.setItem("oneday_onboarded", "true");
-            refreshFromBackend();
-          }} 
-        />
       </div>
     </div>
   );

@@ -121,7 +121,7 @@ export function TermsPage({ onBack }: TermsPageProps) {
             <Scale size={32} className="text-white" />
           </div>
           <h1 className="text-4xl md:text-5xl font-black tracking-tighter">Terms & Conditions</h1>
-          <p className="text-slate-500 font-medium text-sm">Last Updated: July 12, 2026</p>
+          <p className="text-slate-500 font-medium text-sm">Last Updated: August 7, 2026</p>
         </div>
 
         {/* Divider */}
@@ -130,8 +130,8 @@ export function TermsPage({ onBack }: TermsPageProps) {
         {/* Intro Highlight */}
         <p className="text-lg md:text-xl text-slate-300 leading-relaxed font-semibold max-w-3xl">
           These Terms & Conditions constitute a legally binding agreement between you and OneDay. 
-          By creating an account, launching guest sessions, or utilizing our tracking framework, 
-          you agree to adhere strictly to these operational boundaries.
+          By creating an account, completing the multi-step onboarding protocol, launching guest sessions, 
+          or utilizing our habit tracking framework, you agree to adhere strictly to these operational boundaries.
         </p>
 
         {/* Core Layout Grid */}
@@ -197,28 +197,36 @@ export function TermsPage({ onBack }: TermsPageProps) {
             <section id="eligibility" className="scroll-mt-28 space-y-4">
               <div className="flex items-center gap-3">
                 <span className="text-xs font-mono bg-white/5 border border-white/10 text-white px-2 py-1 rounded">SEC 02</span>
-                <h2 className="text-xl font-bold text-white tracking-tight">Eligibility</h2>
+                <h2 className="text-xl font-bold text-white tracking-tight">Eligibility & Minimum Age Requirement</h2>
               </div>
               <p>
-                You must be at least thirteen (13) years of age to register an account or interact with our habit tracking platform. If you are under the age of eighteen (18) but at least thirteen (13), you represent and warrant that you have reviewed these Terms with a parent or legal guardian who accepts full responsibility for your adherence to this agreement.
+                You must be at least <strong>ten (10) years of age</strong> to register an account, complete onboarding, or interact with our habit tracking platform. If you are under the age of eighteen (18) but at least ten (10) years old, you represent and warrant that you have reviewed these Terms with a parent or legal guardian who accepts full legal responsibility for your adherence to this agreement and consents to your platform usage.
               </p>
             </section>
 
             <section id="user-accounts" className="scroll-mt-28 space-y-4">
               <div className="flex items-center gap-3">
                 <span className="text-xs font-mono bg-white/5 border border-white/10 text-white px-2 py-1 rounded">SEC 03</span>
-                <h2 className="text-xl font-bold text-white tracking-tight">Accounts & Guest Mode</h2>
+                <h2 className="text-xl font-bold text-white tracking-tight">Accounts, Guest Mode & Onboarding Protocol</h2>
               </div>
               <p>
-                OneDay currently supports secure authentication through Firebase Authentication (specifically utilizing Google Sign-In protocols) as well as a localized Guest Mode.
+                OneDay supports secure authentication through Firebase Authentication (specifically Google Sign-In) as well as a localized Guest Mode. Upon sign-in, users complete our 6-step onboarding protocol:
               </p>
+              <ul className="list-disc pl-5 space-y-1.5 text-slate-300 text-xs md:text-sm">
+                <li><strong>Step 1: Display Name:</strong> Setting your personal or preferred display name.</li>
+                <li><strong>Step 2: Date of Birth & Age Verification:</strong> Validating that you meet our minimum age requirement of 10 years old.</li>
+                <li><strong>Step 3: Gender Identity:</strong> Selecting your gender preference for persona customization.</li>
+                <li><strong>Step 4: Hobbies & Interests:</strong> Choosing your favorite creative, technical, or personal pursuits.</li>
+                <li><strong>Step 5: Favorite Sports & Physical Activities:</strong> Indicating up to 5 favorite sports or active routines.</li>
+                <li><strong>Step 6: Primary Motivation:</strong> Stating your core goal or reason for joining OneDay.</li>
+              </ul>
               <div className="grid md:grid-cols-2 gap-4 pt-2">
                 <div className="p-5 bg-white/[0.02] border border-white/5 rounded-2xl space-y-2">
                   <div className="font-bold text-white text-sm flex items-center gap-2">
-                    <ShieldCheck size={16} className="text-slate-400" /> Firebase Auth (Google)
+                    <ShieldCheck size={16} className="text-slate-400" /> Firebase Auth & Cloud Sync
                   </div>
                   <p className="text-xs text-slate-500">
-                    Accounts authenticated via Google Sign-In are securely bound on our database servers. You are solely responsible for maintaining the security of your Google credentials.
+                    Accounts authenticated via Google Sign-In store their onboarding profile, active habits, and streak progress securely on our database servers. You are solely responsible for maintaining the security of your account credentials.
                   </p>
                 </div>
                 <div className="p-5 bg-white/[0.02] border border-white/5 rounded-2xl space-y-2">
@@ -226,7 +234,7 @@ export function TermsPage({ onBack }: TermsPageProps) {
                     <AlertTriangle size={16} className="text-amber-500" /> Guest Mode Notice
                   </div>
                   <p className="text-xs text-slate-500">
-                    Guest data is stored temporarily using browser local storage. Guest data and metrics may be permanently lost if browser cache or cookies are cleared, or if the guest session expires. OneDay holds zero liability for data loss in Guest Mode.
+                    Guest data and onboarding parameters are stored temporarily using browser local storage. Guest data and metrics may be permanently lost if browser cache or cookies are cleared, or if the guest session expires. OneDay holds zero liability for data loss in Guest Mode.
                   </p>
                 </div>
               </div>
@@ -235,10 +243,10 @@ export function TermsPage({ onBack }: TermsPageProps) {
             <section id="user-content" className="scroll-mt-28 space-y-4">
               <div className="flex items-center gap-3">
                 <span className="text-xs font-mono bg-white/5 border border-white/10 text-white px-2 py-1 rounded">SEC 04</span>
-                <h2 className="text-xl font-bold text-white tracking-tight">User Content Ownership</h2>
+                <h2 className="text-xl font-bold text-white tracking-tight">User Content & Onboarding Disclosures</h2>
               </div>
               <p>
-                You retain full, absolute, and uncompromised ownership of all user-generated content you submit, create, or enter into the OneDay platform. This includes your custom habit names, routine titles, personalized task notes, text-based chat messages, and personal progress entries. OneDay does not claim any ownership rights over your personal inputs or progress metrics.
+                You retain full, absolute, and uncompromised ownership of all user-generated content and onboarding disclosures you submit, create, or enter into the OneDay platform. This includes your name, date of birth, selected hobbies, favorite sports, personal motivations, custom habit titles, routine schedules, notes, AI chat prompts, and progress entries. OneDay does not claim any ownership rights over your personal inputs or progress metrics.
               </p>
               <p>
                 In contrast, OneDay retains full and exclusive ownership of the application itself, including all design elements, layout styling, visual branding, color palettes, micro-animations, logo assets, software algorithms, databases, and underlying source code.
@@ -264,10 +272,10 @@ export function TermsPage({ onBack }: TermsPageProps) {
             <section id="ai-usage" className="scroll-mt-28 space-y-4">
               <div className="flex items-center gap-3">
                 <span className="text-xs font-mono bg-white/5 border border-white/10 text-white px-2 py-1 rounded">SEC 06</span>
-                <h2 className="text-xl font-bold text-white tracking-tight">AI Usage & Processing</h2>
+                <h2 className="text-xl font-bold text-white tracking-tight">AI Usage & Onboarding Context</h2>
               </div>
               <p>
-                To provide smart context-aware tracking feedback, your text prompts and brief habit summaries may be securely forwarded to high-performance AI providers (such as OpenRouter, Google Gemini, or other configured providers) solely to generate conversational coaching responses. These payloads are processed securely and do not include sensitive credentials or personally identifying email records.
+                To provide tailored habit feedback and age-appropriate motivation, contextual prompts incorporating your onboarding parameters (such as age group, active sports, hobbies, and goals) and habit completion history are securely processed server-side through AI partners (such as OpenRouter or Google Gemini API). These payloads are transmitted securely and do not include sensitive auth credentials or raw email records.
               </p>
             </section>
 
