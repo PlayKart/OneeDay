@@ -30,7 +30,6 @@ const SettingsScreen = lazy(() => import('./components/screens/SettingsScreen').
 const LandingScreen = lazy(() => import('./components/screens/LandingScreen').then(m => ({ default: m.LandingScreen })));
 
 import { MainLayout } from './components/MainLayout';
-import { TutorialOverlay } from './components/TutorialOverlay';
 import { TitleUnlockModal } from './components/TitleUnlockModal';
 import { TitleLossModal } from './components/TitleLossModal';
 import { OnboardingModal } from './components/OnboardingModal';
@@ -543,7 +542,6 @@ export default function App() {
             {activeTab === "settings" && <SettingsScreen />}
           </Suspense>
         </MainLayout>
-        <TutorialOverlay />
         <TitleUnlockModal />
         <TitleLossModal />
       </div>
