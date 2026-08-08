@@ -382,7 +382,7 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
               }}
               className="w-full max-w-xs bg-white text-black font-extrabold py-4 rounded-2xl hover:bg-slate-200 transition-all shadow-[0_4px_30px_rgba(255,255,255,0.2)] active:scale-95 cursor-pointer text-sm uppercase tracking-wider"
             >
-              Enter Dashboard
+              {isEditing ? "Done" : "Ready"}
             </button>
           </motion.div>
         ) : (

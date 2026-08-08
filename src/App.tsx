@@ -48,17 +48,16 @@ const GoogleIcon = () => (
 function hasCompletedOnboarding(u: any): boolean {
   if (!u) return true; // Default to true while loading
   
-  if (u.nextRoute === "/onboarding") return false;
-  if (u.nextRoute === "/dashboard") return true;
-  
+  if (localStorage.getItem("oneday_onboarded") === "true") return true;
   if (u.onboarded === true || u.onboarded === "true") return true;
   if (u.hasCompletedOnboarding === true || u.hasCompletedOnboarding === "true") return true;
+  if (u.dob && u.gender) return true;
+
   if (u.onboarded === false || u.onboarded === "false") return false;
   if (u.hasCompletedOnboarding === false || u.hasCompletedOnboarding === "false") return false;
 
-  if (u.dob && u.gender) return true;
-
-  if (localStorage.getItem("oneday_onboarded") === "true") return true;
+  if (u.nextRoute === "/dashboard") return true;
+  if (u.nextRoute === "/onboarding") return false;
 
   return false;
 }
@@ -459,13 +458,36 @@ export default function App() {
           isOpen={true} 
           onComplete={async () => {
             console.log("[Onboarding] Completion callback triggered.");
-            useStore.setState({ user: { ...user, onboarded: true, hasCompletedOnboarding: true, nextRoute: "/dashboard" } });
             localStorage.setItem("oneday_onboarded", "true");
             localStorage.removeItem("oneday_onboarding_step");
             localStorage.removeItem("oneday_onboarding_data");
+
+            const currentUser = useStore.getState().user;
+            const updatedUser = { 
+              ...currentUser, 
+              onboarded: true, 
+              hasCompletedOnboarding: true, 
+              nextRoute: "/dashboard" 
+            };
+            useStore.setState({ user: updatedUser });
+
             await refreshFromBackend();
-            const uid = firebaseUser?.uid || user?.id || "";
-            const seenIntro = hasSeenAppIntro(uid, user);
+
+            const postRefreshUser = useStore.getState().user;
+            if (postRefreshUser) {
+              useStore.setState({
+                user: {
+                  ...postRefreshUser,
+                  onboarded: true,
+                  hasCompletedOnboarding: true,
+                  nextRoute: "/dashboard"
+                }
+              });
+            }
+
+            const activeUser = useStore.getState().user || updatedUser;
+            const uid = firebaseUser?.uid || activeUser?.id || "";
+            const seenIntro = hasSeenAppIntro(uid, activeUser);
             const targetRoute = seenIntro ? "/dashboard" : "/intro";
             if (window.location.pathname !== targetRoute) {
               window.history.pushState({}, "", targetRoute);
