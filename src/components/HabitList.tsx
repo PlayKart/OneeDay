@@ -6,7 +6,7 @@ import { toast } from 'react-hot-toast';
 import { isHabitScheduledForToday, getScheduledDaysMessage } from '../lib/habitUtils';
 import { EditHabitModal } from './EditHabitModal';
 import { getHabitIconComponent, getHabitColorTheme } from '../lib/habitIcons';
-import { getXpForDifficulty, extractXpAwarded } from '../utils';
+import { getXpForDifficulty, extractXpAwarded, toDisplayDifficulty } from '../utils';
 
 export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) => {
   const { habits, completeHabit, undoHabit, deleteHabit, refreshFromBackend, loading, pendingHabitIds } = useStore();
@@ -148,7 +148,7 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
                       habit.difficulty.toLowerCase() === 'elite' ? 'bg-red-500/10 border-red-500/30 text-red-400' :
                       'bg-blue-500/10 border-blue-500/30 text-blue-400'
                     }`}>
-                      {habit.difficulty} (+{getXpForDifficulty(habit.difficulty)} XP)
+                      {toDisplayDifficulty(habit.difficulty)} (+{getXpForDifficulty(habit.difficulty)} XP)
                     </span>
                   )}
                 </div>

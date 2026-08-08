@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { motion } from "motion/react";
 import { X, Calendar, Flag, AlignLeft, Check } from "lucide-react";
 import { useStore } from "../store/useStore";
+import { toCanonicalDifficulty } from "../utils";
 import { HabitIconPicker } from "./HabitIconPicker";
 import { toast } from "react-hot-toast";
 
@@ -65,7 +66,7 @@ export function CreateHabitModal({ onClose }: CreateHabitModalProps) {
       name: trimmedName,
       repeatType,
       customDays: repeatType === "custom_days" ? customDays : [],
-      difficulty,
+      difficulty: toCanonicalDifficulty(difficulty),
       notes: notes.trim(),
       icon: selectedIcon,
       category: selectedColor

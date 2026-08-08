@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { motion } from "motion/react";
 import { X, Calendar, Flag, AlignLeft, Check, Trash } from "lucide-react";
 import { useStore, Habit } from "../store/useStore";
+import { toCanonicalDifficulty, toDisplayDifficulty } from "../utils";
 import { HabitIconPicker } from "./HabitIconPicker";
 import { toast } from "react-hot-toast";
 
@@ -18,7 +19,7 @@ export function EditHabitModal({ habit, onClose }: EditHabitModalProps) {
   const [customDays, setCustomDays] = useState<string[]>(() => {
     return Array.isArray(habit.customDays) ? habit.customDays : [];
   });
-  const [difficulty, setDifficulty] = useState(habit.difficulty || "Medium");
+  const [difficulty, setDifficulty] = useState(toDisplayDifficulty(habit.difficulty));
   const [notes, setNotes] = useState(habit.notes || "");
   const [selectedIcon, setSelectedIcon] = useState(habit.icon || "dumbbell");
   const [selectedColor, setSelectedColor] = useState(habit.category || "emerald");
@@ -69,7 +70,7 @@ export function EditHabitModal({ habit, onClose }: EditHabitModalProps) {
       name: trimmedName,
       repeatType,
       customDays: repeatType === "custom_days" ? customDays : [],
-      difficulty,
+      difficulty: toCanonicalDifficulty(difficulty),
       notes: notes.trim(),
       icon: selectedIcon,
       category: selectedColor

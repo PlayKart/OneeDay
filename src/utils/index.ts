@@ -276,6 +276,40 @@ export function formatTimestamp(dateStr?: string): string {
   }
 }
 
+export function toCanonicalDifficulty(val?: string): string {
+  if (!val) return "medium";
+  const s = String(val).trim().toLowerCase();
+  switch (s) {
+    case "easy":
+      return "easy";
+    case "medium":
+      return "medium";
+    case "hard":
+      return "hard";
+    case "elite":
+      return "elite";
+    default:
+      return "medium";
+  }
+}
+
+export function toDisplayDifficulty(val?: string): string {
+  if (!val) return "Medium";
+  const s = String(val).trim().toLowerCase();
+  switch (s) {
+    case "easy":
+      return "Easy";
+    case "medium":
+      return "Medium";
+    case "hard":
+      return "Hard";
+    case "elite":
+      return "Elite";
+    default:
+      return "Medium";
+  }
+}
+
 /**
  * Returns the official XP value for a habit difficulty level:
  * Easy = 20
