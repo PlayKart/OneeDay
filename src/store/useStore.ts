@@ -265,11 +265,17 @@ export const useStore = create<StoreState>((set, get) => {
             });
           }
         }
-        if (data.user) {
-          localStorage.setItem("oneday_cached_user", JSON.stringify(data.user));
+        const fetchedUser = normalizeUser(data, get().user);
+        const currentXp = get().user?.xp ?? 0;
+        const fetchedXp = fetchedUser?.xp ?? 0;
+        const finalXp = fetchedXp < currentXp ? currentXp : fetchedXp;
+        const finalUser = fetchedUser ? { ...fetchedUser, xp: finalXp } : fetchedUser;
+
+        if (finalUser) {
+          localStorage.setItem("oneday_cached_user", JSON.stringify(finalUser));
         }
         set({
-          user: data.user,
+          user: finalUser,
           habits: safeArray(data.habits),
           quote: data.quote,
           loading: false,

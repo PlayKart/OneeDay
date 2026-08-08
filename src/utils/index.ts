@@ -57,6 +57,9 @@ export function normalizeUser(u: any, existingUser?: User | null): User {
     u?.data?.stats,
     u?.user?.stats,
     u?.data?.user?.stats,
+    u?.data?.data,
+    u?.data?.data?.user,
+    u?.data?.data?.stats,
   ].filter((item) => item && typeof item === "object");
 
   const findFirstNumber = (keys: string[]): number | undefined => {
@@ -89,7 +92,7 @@ export function normalizeUser(u: any, existingUser?: User | null): User {
     "current_streaks",
   ]);
 
-  const xpVal = findFirstNumber(["xp", "experience", "totalXp", "total_xp"]);
+  const xpVal = findFirstNumber(["totalXP", "total_xp", "totalXp", "xp", "experience", "currentXp", "current_xp"]);
 
   const levelVal = findFirstNumber(["level", "currentLevel", "current_level"]);
 
