@@ -6,6 +6,7 @@ import { toast } from 'react-hot-toast';
 import { isHabitScheduledForToday, getScheduledDaysMessage } from '../lib/habitUtils';
 import { EditHabitModal } from './EditHabitModal';
 import { getHabitIconComponent, getHabitColorTheme } from '../lib/habitIcons';
+import { getXpForDifficulty, extractXpAwarded } from '../utils';
 
 export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) => {
   const { habits, completeHabit, undoHabit, deleteHabit, refreshFromBackend, loading, pendingHabitIds } = useStore();
@@ -72,9 +73,10 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
 
   const handleUndoCompletion = async (habit: Habit) => {
     try {
-      await undoHabit(habit.id);
+      const res = await undoHabit(habit.id);
       await refreshFromBackend();
-      toast.success("Completion undone.");
+      const xp = extractXpAwarded(res, habit.difficulty);
+      toast.success(`Completion undone (-${xp} XP)`);
     } catch (err: any) {
       console.error("Failed to undo habit completion:", err);
       const errorMessage =
@@ -135,9 +137,21 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
                 <IconComp size={20} />
               </div>
               <div className="flex flex-col gap-1 min-w-0">
-                <h4 className={`font-bold transition-all text-sm truncate ${habit.completedToday ? 'text-slate-500 line-through' : 'text-white'}`}>
-                  {habit.name}
-                </h4>
+                <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                  <h4 className={`font-bold transition-all text-sm truncate ${habit.completedToday ? 'text-slate-500 line-through' : 'text-white'}`}>
+                    {habit.name}
+                  </h4>
+                  {habit.difficulty && (
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${
+                      habit.difficulty.toLowerCase() === 'easy' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' :
+                      habit.difficulty.toLowerCase() === 'hard' ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' :
+                      habit.difficulty.toLowerCase() === 'elite' ? 'bg-red-500/10 border-red-500/30 text-red-400' :
+                      'bg-blue-500/10 border-blue-500/30 text-blue-400'
+                    }`}>
+                      {habit.difficulty} (+{getXpForDifficulty(habit.difficulty)} XP)
+                    </span>
+                  )}
+                </div>
                 <p className={`text-[10px] font-bold uppercase tracking-widest truncate ${habit.completedToday ? 'text-green-500/50' : 'text-slate-500'}`}>
                   {isPending ? 'Updating...' : (habit.completedToday ? 'Completed' : (isToday ? 'Scheduled Today' : getScheduledDaysMessage(habit)))}
                 </p>
@@ -159,8 +173,9 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
                       title: "Lied to Yourself ?",
                       action: async () => {
                         try {
-                          await undoHabit(habit.id);
-                          toast.success("Completion undone.");
+                          const res = await undoHabit(habit.id);
+                          const xp = extractXpAwarded(res, habit.difficulty);
+                          toast.success(`Completion undone (-${xp} XP)`);
                         } catch (e: any) {
                           const errorMessage = e?.response?.data?.error || e?.message || "Failed to undo completion";
                           toast.error(errorMessage);
@@ -173,8 +188,9 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
                       title: "Don't lie to yourself bro , You did it or not ?",
                       action: async () => {
                         try {
-                          await completeHabit(habit.id);
-                          toast.success("HABIT COMPLETED +10 XP");
+                          const res = await completeHabit(habit.id);
+                          const xpAwarded = extractXpAwarded(res, habit.difficulty);
+                          toast.success(`+${xpAwarded} XP`);
                         } catch (e: any) {
                           const errorMessage = e?.response?.data?.error || e?.message || "Failed to complete habit";
                           toast.error(errorMessage);

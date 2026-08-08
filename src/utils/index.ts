@@ -275,3 +275,50 @@ export function formatTimestamp(dateStr?: string): string {
     return dateStr;
   }
 }
+
+/**
+ * Returns the official XP value for a habit difficulty level:
+ * Easy = 20
+ * Medium = 40
+ * Hard = 60
+ * Elite = 80
+ */
+export function getXpForDifficulty(difficulty?: string): number {
+  if (!difficulty) return 40;
+  const d = String(difficulty).trim().toLowerCase();
+  switch (d) {
+    case "easy":
+      return 20;
+    case "medium":
+      return 40;
+    case "hard":
+      return 60;
+    case "elite":
+      return 80;
+    default:
+      return 40;
+  }
+}
+
+/**
+ * Extracts xpAwarded from backend completion response, falling back to difficulty mapping.
+ */
+export function extractXpAwarded(res: any, habitDifficulty?: string): number {
+  if (res) {
+    const root = res.data || res;
+    const val =
+      root.xpAwarded ??
+      root.xp_awarded ??
+      root.xpGained ??
+      root.xp_gained ??
+      res.xpAwarded ??
+      res.xp_awarded ??
+      res.xpGained ??
+      res.xp_gained;
+    if (typeof val === "number" && !isNaN(val)) {
+      return val;
+    }
+  }
+  return getXpForDifficulty(habitDifficulty);
+}
+

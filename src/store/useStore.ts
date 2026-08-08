@@ -55,8 +55,8 @@ interface StoreState {
   addHabit: (habitData: Partial<Habit>) => Promise<void>;
   editHabit: (habitId: string, habitData: Partial<Habit>) => Promise<void>;
   deleteHabit: (habitId: string) => Promise<void>;
-  completeHabit: (habitId: string) => Promise<void>;
-  undoHabit: (habitId: string) => Promise<void>;
+  completeHabit: (habitId: string) => Promise<any>;
+  undoHabit: (habitId: string) => Promise<any>;
   freezeStreak: (days: number) => Promise<void>;
   deactivateFreeze: () => Promise<void>;
   updateProfile: (data: Partial<BackendUser>) => Promise<void>;
@@ -423,6 +423,7 @@ export const useStore = create<StoreState>((set, get) => {
         });
 
         await get().refreshFromBackend();
+        return res;
       } catch (e: any) {
         console.error(`[useStore] completeHabit error:`, e);
 
@@ -502,6 +503,7 @@ export const useStore = create<StoreState>((set, get) => {
         });
 
         await get().refreshFromBackend();
+        return res;
       } catch (e: any) {
         console.error(`[useStore] undoHabit error:`, e);
 
