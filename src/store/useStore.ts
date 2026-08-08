@@ -124,10 +124,12 @@ export const useStore = create<StoreState>((set, get) => {
     });
 
   // 2. Listen to Auth state changes and boot store sync
+  console.log("[AUTH] Firebase auth initializing");
   onAuthStateChanged(auth, async (fbUser) => {
-    console.log("[STARTUP SEQUENCE - Auth] Firebase auth state received:", fbUser ? `Authenticated (UID: ${fbUser.uid})` : "Unauthenticated");
+    console.log("[AUTH] Firebase auth state received:", fbUser ? "authenticated" : "unauthenticated");
     
     if (fbUser) {
+      console.log("[AUTH] User UID:", fbUser.uid);
       try {
         const token = await fbUser.getIdToken();
         console.log("[Auth Step - Token] Firebase ID token retrieved on auth state change (length:", token?.length || 0, ")");
@@ -201,6 +203,7 @@ export const useStore = create<StoreState>((set, get) => {
       }
 
       console.log("[STARTUP SEQUENCE - Backend started] Backend profile request started...");
+      console.log("[AUTH] Backend authentication started");
       set({ loading: true, backendError: null });
 
       try {
@@ -215,6 +218,7 @@ export const useStore = create<StoreState>((set, get) => {
         ]);
 
         console.log("[STARTUP SEQUENCE - Backend finished] Backend profile request finished successfully.");
+        console.log("[AUTH] Backend authentication completed");
 
         if (data) {
           const root = (data as any).data || data;

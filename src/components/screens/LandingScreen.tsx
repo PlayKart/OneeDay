@@ -81,6 +81,8 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
       }
 
       const fbUser = credential.user;
+      console.log("[AUTH] Google login success");
+      console.log("[AUTH] User UID:", fbUser.uid);
       console.log("[Auth Step 4] Authenticated User UID:", fbUser.uid, "| Email:", fbUser.email);
 
       console.log("[Auth Step 5] Retrieving Firebase ID token...");

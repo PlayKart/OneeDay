@@ -51,7 +51,6 @@ function hasCompletedOnboarding(u: any): boolean {
   if (localStorage.getItem("oneday_onboarded") === "true") return true;
   if (u.onboarded === true || u.onboarded === "true") return true;
   if (u.hasCompletedOnboarding === true || u.hasCompletedOnboarding === "true") return true;
-  if (u.dob && u.gender) return true;
 
   if (u.onboarded === false || u.onboarded === "false") return false;
   if (u.hasCompletedOnboarding === false || u.hasCompletedOnboarding === "false") return false;
@@ -84,7 +83,7 @@ export default function App() {
 
   // Log App mounted
   useEffect(() => {
-    console.log("[STARTUP SEQUENCE - Mount] App mounted.");
+    console.log("[AUTH] App mounted");
   }, []);
 
   // Listen to popstate event for native history back/forward
@@ -146,6 +145,7 @@ export default function App() {
 
       // 1. If unauthenticated, they belong on /landing
       if (!state.firebaseUser) {
+        console.log("[AUTH] Navigation destination: /landing");
         resolveStartup("/landing");
         return;
       }
@@ -158,13 +158,13 @@ export default function App() {
 
       if (state.user) {
         const onboarded = hasCompletedOnboarding(state.user);
-        if (!onboarded) {
-          resolveStartup("/onboarding");
-        } else {
-          const uid = state.firebaseUser?.uid || state.user?.id || "";
-          const seenIntro = hasSeenAppIntro(uid, state.user);
-          resolveStartup(seenIntro ? "/dashboard" : "/intro");
-        }
+        console.log("[AUTH] hasCompletedOnboarding:", onboarded);
+        console.log("[AUTH] nextRoute:", state.user?.nextRoute);
+        const uid = state.firebaseUser?.uid || state.user?.id || "";
+        const seenIntro = hasSeenAppIntro(uid, state.user);
+        const targetRoute = !onboarded ? "/onboarding" : (seenIntro ? "/dashboard" : "/intro");
+        console.log("[AUTH] Navigation destination:", targetRoute);
+        resolveStartup(targetRoute);
       }
     });
 
@@ -172,18 +172,19 @@ export default function App() {
     const initialState = useStore.getState();
     if (initialState.initialized) {
       if (!initialState.firebaseUser) {
+        console.log("[AUTH] Navigation destination: /landing");
         resolveStartup("/landing");
       } else if (initialState.backendError) {
         rejectStartup(initialState.backendError);
       } else if (initialState.user) {
         const onboarded = hasCompletedOnboarding(initialState.user);
-        if (!onboarded) {
-          resolveStartup("/onboarding");
-        } else {
-          const uid = initialState.firebaseUser?.uid || initialState.user?.id || "";
-          const seenIntro = hasSeenAppIntro(uid, initialState.user);
-          resolveStartup(seenIntro ? "/dashboard" : "/intro");
-        }
+        console.log("[AUTH] hasCompletedOnboarding:", onboarded);
+        console.log("[AUTH] nextRoute:", initialState.user?.nextRoute);
+        const uid = initialState.firebaseUser?.uid || initialState.user?.id || "";
+        const seenIntro = hasSeenAppIntro(uid, initialState.user);
+        const targetRoute = !onboarded ? "/onboarding" : (seenIntro ? "/dashboard" : "/intro");
+        console.log("[AUTH] Navigation destination:", targetRoute);
+        resolveStartup(targetRoute);
       }
     }
 
@@ -203,6 +204,7 @@ export default function App() {
     if (!firebaseUser) {
       if (currentRoute !== "/landing") {
         console.log(`[Route Guard] Unauthenticated user tried to access ${currentRoute}. Redirecting to /landing`);
+        console.log("[AUTH] Navigation destination: /landing");
         if (window.location.pathname !== "/landing") {
           window.history.pushState({}, "", "/landing");
         }
@@ -218,34 +220,20 @@ export default function App() {
 
     // 2. Authenticated users
     const onboarded = hasCompletedOnboarding(user);
-    if (onboarded) {
-      const uid = firebaseUser.uid || user.id || "";
-      const seenIntro = hasSeenAppIntro(uid, user);
-      if (!seenIntro) {
-        if (currentRoute !== "/intro") {
-          console.log(`[Route Guard] Onboarded user needs intro. Redirecting to /intro`);
-          if (window.location.pathname !== "/intro") {
-            window.history.pushState({}, "", "/intro");
-          }
-          setCurrentRoute("/intro");
-        }
-      } else {
-        if (currentRoute !== "/dashboard") {
-          console.log(`[Route Guard] Onboarded user has completed intro. Redirecting to /dashboard`);
-          if (window.location.pathname !== "/dashboard") {
-            window.history.pushState({}, "", "/dashboard");
-          }
-          setCurrentRoute("/dashboard");
-        }
+    console.log("[AUTH] hasCompletedOnboarding:", onboarded);
+    console.log("[AUTH] nextRoute:", user?.nextRoute);
+
+    const uid = firebaseUser.uid || user.id || "";
+    const seenIntro = hasSeenAppIntro(uid, user);
+    const targetRoute = !onboarded ? "/onboarding" : (seenIntro ? "/dashboard" : "/intro");
+
+    if (currentRoute !== targetRoute) {
+      console.log(`[Route Guard] Transitioning to ${targetRoute} (current: ${currentRoute})`);
+      console.log("[AUTH] Navigation destination:", targetRoute);
+      if (window.location.pathname !== targetRoute) {
+        window.history.pushState({}, "", targetRoute);
       }
-    } else {
-      if (currentRoute !== "/onboarding") {
-        console.log(`[Route Guard] Non-onboarded user tried to access ${currentRoute}. Redirecting to /onboarding`);
-        if (window.location.pathname !== "/onboarding") {
-          window.history.pushState({}, "", "/onboarding");
-        }
-        setCurrentRoute("/onboarding");
-      }
+      setCurrentRoute(targetRoute);
     }
   }, [firebaseUser, user, currentRoute, startupStatus]);
 
@@ -312,6 +300,7 @@ export default function App() {
 
   // ── 1. Startup is loading -> Show OneDay splash/intro animation ──────────
   if (startupStatus === "loading") {
+    console.log("[AUTH] Splash rendered");
     return (
       <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center relative overflow-hidden font-sans">
         <div className="orb w-[400px] h-[400px] bg-blue-500/5 top-[-100px] left-[-100px] absolute mix-blend-screen animate-pulse" />
@@ -400,19 +389,22 @@ export default function App() {
 
   // ── 3. We are in ready status -> render views by path ───────────────────────
 
-  // ── 3a. /landing view ──────────────────────────────────────────────────────
-  if (currentRoute === "/landing") {
-    return (
-      <Suspense fallback={
-        <div className="min-h-screen bg-[#050505] flex items-center justify-center font-sans">
-          <div className="w-12 h-12 border-2 border-white/5 border-t-white rounded-full animate-spin" />
-        </div>
-      }>
-        <LandingScreen onLoginSuccess={() => {
-          console.log("[Landing] Sign in success. Waiting for route guard to evaluate destination...");
-        }} />
-      </Suspense>
-    );
+  // ── 3a. /landing view (ONLY for unauthenticated users) ─────────────────────
+  if (!firebaseUser || currentRoute === "/landing") {
+    if (!firebaseUser) {
+      console.log("[AUTH] Landing rendered");
+      return (
+        <Suspense fallback={
+          <div className="min-h-screen bg-[#050505] flex items-center justify-center font-sans">
+            <div className="w-12 h-12 border-2 border-white/5 border-t-white rounded-full animate-spin" />
+          </div>
+        }>
+          <LandingScreen onLoginSuccess={() => {
+            console.log("[Landing] Sign in success. Waiting for route guard to evaluate destination...");
+          }} />
+        </Suspense>
+      );
+    }
   }
 
   // If authenticated but backend user is not loaded yet (e.g. active sync on sign in)
