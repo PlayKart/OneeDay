@@ -579,6 +579,7 @@ export const useStore = create<StoreState>((set, get) => {
         localStorage.setItem("oneday_cached_user", JSON.stringify(nextUser));
         const newVersion = isCompletingOnboarding ? get().profileVersion + 1 : get().profileVersion;
         set({ user: nextUser, profileVersion: newVersion });
+        await get().refreshFromBackend();
       } catch (e) {
         console.error("[useStore] updateProfile error:", e);
         const currentUser = get().user;
@@ -592,6 +593,7 @@ export const useStore = create<StoreState>((set, get) => {
           localStorage.setItem("oneday_cached_user", JSON.stringify(nextUser));
           const newVersion = isCompletingOnboarding ? get().profileVersion + 1 : get().profileVersion;
           set({ user: nextUser, profileVersion: newVersion });
+          await get().refreshFromBackend();
         }
       }
     },
