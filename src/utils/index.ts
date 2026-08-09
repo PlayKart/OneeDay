@@ -21,12 +21,44 @@ export function safeArray<T>(val: any): T[] {
 
 export function hasCompletedOnboarding(u: any): boolean {
   if (!u) return false;
-  if (localStorage.getItem("oneday_onboarded") === "true") return true;
-  if (u.id && localStorage.getItem(`oneday_onboarded_${u.id}`) === "true") return true;
+
+  // Prioritize needsOnboarding or needs_onboarding
+  if (u.needsOnboarding === false || u.needsOnboarding === "false") return true;
+  if (u.needs_onboarding === false || u.needs_onboarding === "false") return true;
+  if (u.needsOnboarding === true || u.needsOnboarding === "true") return false;
+  if (u.needs_onboarding === true || u.needs_onboarding === "true") return false;
+
+  // Fallback to onboarding_completed / onboardingCompleted / onboarded / hasCompletedOnboarding
+  if (u.onboarding_completed === true || u.onboarding_completed === "true") return true;
+  if (u.onboardingCompleted === true || u.onboardingCompleted === "true") return true;
   if (u.hasCompletedOnboarding === true || u.hasCompletedOnboarding === "true") return true;
   if (u.onboarded === true || u.onboarded === "true") return true;
+
   if (u.nextRoute === "/dashboard") return true;
+  if (typeof u.onboardingStep === "number" && u.onboardingStep >= 6) return true;
+  if (typeof u.onboarding_step === "number" && u.onboarding_step >= 6) return true;
+
   return false;
+}
+
+function isUserOnboarded(rawUser: any): boolean | undefined {
+  if (!rawUser) return undefined;
+
+  if (rawUser.needsOnboarding === false || rawUser.needsOnboarding === "false") return true;
+  if (rawUser.needs_onboarding === false || rawUser.needs_onboarding === "false") return true;
+  if (rawUser.needsOnboarding === true || rawUser.needsOnboarding === "true") return false;
+  if (rawUser.needs_onboarding === true || rawUser.needs_onboarding === "true") return false;
+
+  if (rawUser.onboarding_completed === true || rawUser.onboarding_completed === "true") return true;
+  if (rawUser.onboardingCompleted === true || rawUser.onboardingCompleted === "true") return true;
+  if (rawUser.hasCompletedOnboarding === true || rawUser.hasCompletedOnboarding === "true") return true;
+  if (rawUser.onboarded === true || rawUser.onboarded === "true") return true;
+
+  if (rawUser.nextRoute === "/dashboard") return true;
+  if (typeof rawUser.onboardingStep === "number" && rawUser.onboardingStep >= 6) return true;
+  if (typeof rawUser.onboarding_step === "number" && rawUser.onboarding_step >= 6) return true;
+
+  return undefined;
 }
 
 /**
@@ -110,6 +142,10 @@ export function normalizeUser(u: any, existingUser?: User | null): User {
 
   const rawUser = u.user || u.data?.user || u.data || u;
 
+  const rawOnboarded = isUserOnboarded(rawUser);
+  const existingOnboarded = isUserOnboarded(existingUser);
+  const isCompleted = rawOnboarded !== undefined ? rawOnboarded : (existingOnboarded !== undefined ? existingOnboarded : false);
+
   return {
     id:
       findFirstString(["id", "userId", "user_id"]) ||
@@ -154,37 +190,13 @@ export function normalizeUser(u: any, existingUser?: User | null): User {
     hobbies: Array.isArray(rawUser?.hobbies) ? rawUser.hobbies : (Array.isArray(rawUser?.hobbies_list) ? rawUser.hobbies_list : existingUser?.hobbies),
     favouriteSports: Array.isArray(rawUser?.favouriteSports) ? rawUser.favouriteSports : (Array.isArray(rawUser?.favourite_sports) ? rawUser.favourite_sports : existingUser?.favouriteSports),
     reasonForJoining: rawUser?.reasonForJoining || rawUser?.reason_for_joining || rawUser?.reason || existingUser?.reasonForJoining,
-    onboarded: (
-      localStorage.getItem("oneday_onboarded") === "true" ||
-      existingUser?.onboarded === true ||
-      existingUser?.hasCompletedOnboarding === true ||
-      rawUser?.onboarded === true ||
-      rawUser?.onboarded === "true" ||
-      rawUser?.hasCompletedOnboarding === true ||
-      rawUser?.hasCompletedOnboarding === "true" ||
-      rawUser?.nextRoute === "/dashboard" ||
-      existingUser?.nextRoute === "/dashboard"
-    ),
-    hasCompletedOnboarding: (
-      localStorage.getItem("oneday_onboarded") === "true" ||
-      existingUser?.onboarded === true ||
-      existingUser?.hasCompletedOnboarding === true ||
-      rawUser?.onboarded === true ||
-      rawUser?.onboarded === "true" ||
-      rawUser?.hasCompletedOnboarding === true ||
-      rawUser?.hasCompletedOnboarding === "true" ||
-      rawUser?.nextRoute === "/dashboard" ||
-      existingUser?.nextRoute === "/dashboard"
-    ),
-    nextRoute: (
-      localStorage.getItem("oneday_onboarded") === "true" ||
-      existingUser?.onboarded ||
-      existingUser?.hasCompletedOnboarding ||
-      rawUser?.onboarded ||
-      rawUser?.hasCompletedOnboarding ||
-      rawUser?.nextRoute === "/dashboard" ||
-      existingUser?.nextRoute === "/dashboard"
-    ) ? "/dashboard" : "/onboarding",
+    onboarded: isCompleted,
+    hasCompletedOnboarding: isCompleted,
+    onboarding_completed: isCompleted,
+    onboardingCompleted: isCompleted,
+    needsOnboarding: !isCompleted,
+    needs_onboarding: !isCompleted,
+    nextRoute: isCompleted ? "/dashboard" : "/onboarding",
     onboardingStep: typeof onboardingStepVal === "number" ? onboardingStepVal : (typeof rawUser?.onboardingStep === "number" ? rawUser.onboardingStep : (typeof rawUser?.onboarding_step === "number" ? rawUser.onboarding_step : (typeof rawUser?.onboardingStep === "string" ? parseInt(rawUser.onboardingStep, 10) : (typeof rawUser?.onboarding_step === "string" ? parseInt(rawUser.onboarding_step, 10) : existingUser?.onboardingStep)))),
   };
 }

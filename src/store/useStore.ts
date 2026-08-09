@@ -31,6 +31,7 @@ interface StoreState {
   quote: string;
   initialized: boolean;
   loading: boolean;
+  profileSynced: boolean;
   profileVersion: number;
   backendError: string | null;
   activeTab: TabState;
@@ -162,6 +163,7 @@ export const useStore = create<StoreState>((set, get) => {
         chatSessions: [],
         chatMessages: [],
         initialized: true,
+        profileSynced: false,
         profileVersion: get().profileVersion + 1,
       });
     }
@@ -174,6 +176,7 @@ export const useStore = create<StoreState>((set, get) => {
     quote: "One day broke. Don't let two.",
     initialized: sessionActive ? true : false,
     loading: false,
+    profileSynced: false,
     profileVersion: 0,
     backendError: null,
     activeTab: "dashboard",
@@ -279,6 +282,7 @@ export const useStore = create<StoreState>((set, get) => {
           habits: safeArray(data.habits),
           quote: data.quote,
           loading: false,
+          profileSynced: true,
         });
 
         // Concurrently load chat sessions

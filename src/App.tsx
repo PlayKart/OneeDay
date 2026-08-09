@@ -138,6 +138,11 @@ export default function App() {
         return;
       }
 
+      if (!state.profileSynced) {
+        console.log("[STARTUP SEQUENCE] Authenticated, waiting for backend profile sync...");
+        return;
+      }
+
       if (state.user) {
         const onboarded = hasCompletedOnboarding(state.user);
         console.log(`[ONBOARDING] status: hasCompletedOnboarding = ${onboarded}`);
@@ -414,10 +419,6 @@ export default function App() {
           isOpen={true} 
           onComplete={async () => {
             console.log("[ONBOARDING] Completion callback triggered.");
-            localStorage.setItem("oneday_onboarded", "true");
-            if (firebaseUser?.uid) {
-              localStorage.setItem(`oneday_onboarded_${firebaseUser.uid}`, "true");
-            }
             localStorage.removeItem("oneday_onboarding_step");
             localStorage.removeItem("oneday_onboarding_data");
 
@@ -428,6 +429,10 @@ export default function App() {
               ...currentUser, 
               onboarded: true, 
               hasCompletedOnboarding: true, 
+              onboarding_completed: true,
+              onboardingCompleted: true,
+              needsOnboarding: false,
+              needs_onboarding: false,
               nextRoute: "/dashboard" 
             };
             useStore.setState({ user: updatedUser });

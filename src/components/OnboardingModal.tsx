@@ -278,18 +278,32 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
         reasonForJoining: reason,
         onboarded: true,
         hasCompletedOnboarding: true,
+        onboarding_completed: true,
+        onboardingCompleted: true,
+        needsOnboarding: false,
+        needs_onboarding: false,
         onboardingStep: totalSteps,
       };
 
       if (updateProfile) {
+        // 1. Save onboarding through the backend, wait for successful response.
         await updateProfile(payload);
       }
-      console.log("[ONBOARDING] backend confirmed complete");
-      
-      localStorage.setItem("oneday_onboarded", "true");
-      if (user?.id) {
-        localStorage.setItem(`oneday_onboarded_${user.id}`, "true");
+      console.log("[ONBOARDING] backend confirmed complete, refreshing...");
+
+      // 2. Refresh the authenticated user/profile.
+      if (refreshFromBackend) {
+        await refreshFromBackend();
       }
+
+      // 3. Confirm onboarding_completed = true (or equivalent) from refreshed profile
+      const refreshedUser = useStore.getState().user;
+      const isConfirmedOnboarded = refreshedUser?.onboarding_completed === true || 
+                                   refreshedUser?.onboardingCompleted === true || 
+                                   refreshedUser?.onboarded === true ||
+                                   refreshedUser?.hasCompletedOnboarding === true;
+
+      console.log("[ONBOARDING] Confirmed onboarded status from backend refresh:", isConfirmedOnboarded);
 
       if (!isEditing) {
         localStorage.removeItem("oneday_onboarding_step");
@@ -298,10 +312,6 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
       setIsCompletedState(true);
     } catch (e: any) {
       console.error("[Onboarding] Finish error:", e);
-      localStorage.setItem("oneday_onboarded", "true");
-      if (user?.id) {
-        localStorage.setItem(`oneday_onboarded_${user.id}`, "true");
-      }
       if (!isEditing) {
         localStorage.removeItem("oneday_onboarding_step");
         localStorage.removeItem("oneday_onboarding_data");
