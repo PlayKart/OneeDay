@@ -348,14 +348,11 @@ export const useStore = create<StoreState>((set, get) => {
     },
 
     deleteHabit: async (habitId) => {
-      const original = get().habits.find((h) => h.id === habitId);
-      set((state) => ({ habits: state.habits.filter((h) => h.id !== habitId) }));
-
       try {
         await habitService.deleteHabit(habitId);
+        set((state) => ({ habits: state.habits.filter((h) => h.id !== habitId) }));
         await get().refreshFromBackend();
       } catch (e) {
-        if (original) set((state) => ({ habits: [...state.habits, original] }));
         throw e;
       }
     },
@@ -568,33 +565,13 @@ export const useStore = create<StoreState>((set, get) => {
         const updated = await userService.updateProfile(data);
         const isCompletingOnboarding = Boolean(data.onboarded || data.hasCompletedOnboarding);
         const nextUser = { ...currentUser, ...updated, ...data };
-        if (isCompletingOnboarding) {
-          nextUser.onboarded = true;
-          nextUser.hasCompletedOnboarding = true;
-          localStorage.setItem("oneday_onboarded", "true");
-          if (nextUser.id) {
-            localStorage.setItem(`oneday_onboarded_${nextUser.id}`, "true");
-          }
-        }
         localStorage.setItem("oneday_cached_user", JSON.stringify(nextUser));
         const newVersion = isCompletingOnboarding ? get().profileVersion + 1 : get().profileVersion;
         set({ user: nextUser, profileVersion: newVersion });
         await get().refreshFromBackend();
       } catch (e) {
         console.error("[useStore] updateProfile error:", e);
-        const currentUser = get().user;
-        if (currentUser) {
-          const isCompletingOnboarding = Boolean(data.onboarded || data.hasCompletedOnboarding);
-          const nextUser = { ...currentUser, ...data };
-          if (isCompletingOnboarding) {
-            nextUser.onboarded = true;
-            nextUser.hasCompletedOnboarding = true;
-          }
-          localStorage.setItem("oneday_cached_user", JSON.stringify(nextUser));
-          const newVersion = isCompletingOnboarding ? get().profileVersion + 1 : get().profileVersion;
-          set({ user: nextUser, profileVersion: newVersion });
-          await get().refreshFromBackend();
-        }
+        throw e;
       }
     },
 
@@ -644,8 +621,8 @@ export const useStore = create<StoreState>((set, get) => {
             await get().selectSession(targetSession.id);
           }
         } else {
-          console.log("[useStore] No sessions found, auto-creating first session silently.");
-          await get().createSession("New Chat");
+          console.log("[useStore] No sessions found, delaying backend creation.");
+          set({ activeChatId: null, chatMessages: [] });
         }
       } catch (e) {
         console.warn("[useStore] fetchSessions failed:", e);
@@ -701,7 +678,7 @@ export const useStore = create<StoreState>((set, get) => {
         if (remaining.length > 0) {
           await get().selectSession(remaining[0].id);
         } else {
-          await get().createSession("New Chat");
+          set({ activeChatId: null, chatMessages: [] });
         }
       }
 
@@ -726,10 +703,10 @@ export const useStore = create<StoreState>((set, get) => {
     pinSession: async (id) => {
       const session = get().chatSessions.find((s) => s.id === id);
       if (!session) return;
-      const newPinned = !session.isPinned;
+      const newPinned = !(session.isPinned || session.is_pinned);
 
       set((state) => ({
-        chatSessions: state.chatSessions.map((s) => (s.id === id ? { ...s, isPinned: newPinned } : s)),
+        chatSessions: state.chatSessions.map((s) => (s.id === id ? { ...s, isPinned: newPinned, is_pinned: newPinned } : s)),
       }));
 
       try {

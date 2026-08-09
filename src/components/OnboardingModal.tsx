@@ -298,12 +298,18 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
 
       // 3. Confirm onboarding_completed = true (or equivalent) from refreshed profile
       const refreshedUser = useStore.getState().user;
-      const isConfirmedOnboarded = refreshedUser?.onboarding_completed === true || 
+      const isConfirmedOnboarded = refreshedUser?.needsOnboarding === false ||
+                                   refreshedUser?.needs_onboarding === false ||
+                                   refreshedUser?.onboarding_completed === true || 
                                    refreshedUser?.onboardingCompleted === true || 
                                    refreshedUser?.onboarded === true ||
                                    refreshedUser?.hasCompletedOnboarding === true;
 
       console.log("[ONBOARDING] Confirmed onboarded status from backend refresh:", isConfirmedOnboarded);
+
+      if (!isConfirmedOnboarded) {
+        throw new Error("Backend did not confirm onboarding completion. Please try again.");
+      }
 
       if (!isEditing) {
         localStorage.removeItem("oneday_onboarding_step");
@@ -312,11 +318,8 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
       setIsCompletedState(true);
     } catch (e: any) {
       console.error("[Onboarding] Finish error:", e);
-      if (!isEditing) {
-        localStorage.removeItem("oneday_onboarding_step");
-        localStorage.removeItem("oneday_onboarding_data");
-      }
-      setIsCompletedState(true);
+      const errorMessage = e?.response?.data?.error || e?.message || "Failed to save onboarding. Please try again.";
+      toast.error(errorMessage);
     } finally {
       setSaving(false);
     }
