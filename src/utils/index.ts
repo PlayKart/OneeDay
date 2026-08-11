@@ -143,8 +143,7 @@ export function normalizeUser(u: any, existingUser?: User | null): User {
   const rawUser = u.user || u.data?.user || u.data || u;
 
   const rawOnboarded = isUserOnboarded(rawUser);
-  const existingOnboarded = isUserOnboarded(existingUser);
-  const isCompleted = rawOnboarded !== undefined ? rawOnboarded : (existingOnboarded !== undefined ? existingOnboarded : false);
+  const isCompleted = rawOnboarded !== undefined ? rawOnboarded : false;
 
   return {
     id:

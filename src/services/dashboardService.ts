@@ -18,14 +18,7 @@ export interface DashboardData {
 export const dashboardService = {
   async fetchDashboardData(): Promise<DashboardData> {
     const [userRes, habitsRes] = await Promise.all([
-      userService.getUserProfile().catch(() => ({
-        id: "me",
-        name: "User",
-        xp: 0,
-        streak: 0,
-        level: 1,
-        levelProgress: 0,
-      })),
+      userService.getUserProfile(),
       habitService.getHabits().catch(() => []),
     ]);
 
