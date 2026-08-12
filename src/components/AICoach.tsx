@@ -290,7 +290,7 @@ export const AICoach = () => {
   });
 
   const filteredSessions = sortedSessions.filter(session => 
-    session && typeof session.title === "string" && session.title.toLowerCase().includes(searchQuery.toLowerCase())
+    session && String(session.title || "New Chat").toLowerCase().includes((searchQuery || "").toLowerCase())
   );
 
   const safeChatMessages = Array.isArray(chatMessages) ? chatMessages : [];

@@ -158,7 +158,7 @@ export function AboutMeSection() {
 
         <div>
           <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 block mb-2">Hobbies & Interests</span>
-          {activeUser.hobbies && activeUser.hobbies.length > 0 ? (
+          {Array.isArray(activeUser.hobbies) && activeUser.hobbies.length > 0 ? (
             <div className="flex flex-wrap gap-1.5">
               {activeUser.hobbies.map((h: string, i: number) => (
                 <span key={i} className="px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-indigo-300 text-xs font-bold">
@@ -173,7 +173,7 @@ export function AboutMeSection() {
 
         <div>
           <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 block mb-2">Favorite Sports</span>
-          {activeUser.favouriteSports && activeUser.favouriteSports.length > 0 ? (
+          {Array.isArray(activeUser.favouriteSports) && activeUser.favouriteSports.length > 0 ? (
             <div className="flex flex-wrap gap-1.5">
               {activeUser.favouriteSports.map((s: string, i: number) => (
                 <span key={i} className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-emerald-300 text-xs font-bold">
