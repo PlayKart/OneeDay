@@ -289,6 +289,44 @@ export const useStore = create<StoreState>((set, get) => {
         get().fetchSessions();
       } catch (err: any) {
         console.error("[STARTUP SEQUENCE - Sync Error] refreshFromBackend failed:", err);
+
+        const isAuthErr =
+          err?.isAuthError ||
+          err?.response?.status === 401 ||
+          err?.message?.includes("Cannot read properties of undefined") ||
+          err?.message?.includes("length");
+
+        // If backend auth/token error or unauthenticated state, clear stale session and route cleanly to landing
+        if (isAuthErr || !auth.currentUser) {
+          console.warn("[STARTUP SEQUENCE] Token invalid or unauthenticated session. Clearing stale cache and routing to landing.");
+          localStorage.removeItem("oneday_session_active");
+          localStorage.removeItem("oneday_firebase_token");
+          localStorage.removeItem("oneday_cached_user");
+          set({
+            firebaseUser: null,
+            user: null,
+            habits: [],
+            chatSessions: [],
+            chatMessages: [],
+            loading: false,
+            backendError: null,
+            initialized: true,
+            profileSynced: false,
+          });
+          return;
+        }
+
+        // If cached user exists, fall back to offline cached state
+        if (get().user) {
+          console.warn("[STARTUP SEQUENCE] Refresh failed but cached user exists, continuing in fallback mode.");
+          set({
+            loading: false,
+            profileSynced: true,
+            backendError: null,
+          });
+          return;
+        }
+
         set({
           backendError: err.message || "Failed to load dashboard data",
           loading: false,

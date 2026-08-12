@@ -56,8 +56,14 @@ apiClient.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
-    // 1. Handle 401 Unauthorized with token refresh retry
-    if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
+    // 1. Handle 401 Unauthorized or backend token missing/invalid errors with token refresh retry
+    const responseData = error.response?.data as any;
+    const isBackendAuthError =
+      error.response?.status === 401 ||
+      responseData?.error === "Cannot read properties of undefined (reading 'length')" ||
+      responseData?.message === "Cannot read properties of undefined (reading 'length')";
+
+    if (isBackendAuthError && originalRequest && !originalRequest._retry) {
       originalRequest._retry = true;
       const user = auth.currentUser;
       if (user) {
@@ -77,7 +83,6 @@ apiClient.interceptors.response.use(
     }
 
     // Standardize error message & log Supabase / Backend errors
-    const responseData = error.response?.data as any;
     console.error("API / Supabase Error Response:", error.response?.status, responseData || error.message);
 
     let serverMessage = "An unexpected error occurred";
@@ -95,6 +100,7 @@ apiClient.interceptors.response.use(
 
     const err = new Error(serverMessage);
     (err as any).response = error.response;
+    (err as any).isAuthError = isBackendAuthError;
     return Promise.reject(err);
   }
 );

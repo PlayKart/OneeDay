@@ -1,7 +1,6 @@
 // src/services/chatService.ts
 
 import { apiClient } from "../api/client";
-import { auth } from "../lib/firebase";
 import { BACKEND_URL } from "../constants";
 import { ChatSession, ChatMessage } from "../types";
 import { safeArray } from "../utils";
@@ -75,42 +74,7 @@ export const chatService = {
     const payload = {
       message,
       ...(sessionId ? { sessionId } : {}),
-      async editMessage(editingMessageId: string, content: string): Promise<void> {
-    try {
-      await apiClient.put(`/api/chat/${editingMessageId}`, { content });
-    } catch (e) {
-      console.warn("Edit message endpoint failed:", e);
-    }
-  },
-
-  async deleteMessage(msgId: string): Promise<void> {
-    try {
-      await apiClient.delete(`/api/chat/${msgId}`);
-    } catch (e) {
-      console.warn("Delete message endpoint failed:", e);
-    }
-  },
-
-  async searchChats(query: string): Promise<any> {
-    try {
-      const res = await apiClient.get(`/api/chat/search`, { params: { q: query } });
-      return res.data;
-    } catch (e) {
-      console.warn("Search chats endpoint failed:", e);
-      return [];
-    }
-  },
-
-  async exportChats(): Promise<any> {
-    try {
-      const res = await apiClient.get(`/api/chat/export`);
-      return res.data;
-    } catch (e) {
-      console.warn("Export chats endpoint failed:", e);
-      return null;
-    }
-  },
-};
+    };
 
     console.log("Current session:", sessionId);
     console.log("Request payload:", payload);
