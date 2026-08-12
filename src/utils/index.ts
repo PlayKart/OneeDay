@@ -97,8 +97,9 @@ export function normalizeUser(u: any, existingUser?: User | null): User {
   const findFirstNumber = (keys: string[]): number | undefined => {
     for (const obj of objectsToCheck) {
       for (const key of keys) {
-        if (typeof obj[key] === "number" && !isNaN(obj[key])) {
-          return obj[key];
+        if (obj[key] !== undefined && obj[key] !== null && obj[key] !== "") {
+           const parsed = Number(obj[key]);
+           if (!isNaN(parsed)) return parsed;
         }
       }
     }
@@ -183,12 +184,12 @@ export function normalizeUser(u: any, existingUser?: User | null): User {
       rawUser?.last_active_date ||
       existingUser?.lastActiveDate ||
       null,
-    dob: rawUser?.dob || existingUser?.dob,
+    dob: rawUser?.date_of_birth || rawUser?.dateOfBirth || rawUser?.dob || existingUser?.dob,
     age: typeof rawUser?.age === "number" ? rawUser.age : (typeof rawUser?.age === "string" ? parseInt(rawUser.age, 10) : existingUser?.age),
     gender: rawUser?.gender || existingUser?.gender,
     hobbies: Array.isArray(rawUser?.hobbies) ? rawUser.hobbies : (Array.isArray(rawUser?.hobbies_list) ? rawUser.hobbies_list : existingUser?.hobbies),
-    favouriteSports: Array.isArray(rawUser?.favouriteSports) ? rawUser.favouriteSports : (Array.isArray(rawUser?.favourite_sports) ? rawUser.favourite_sports : existingUser?.favouriteSports),
-    reasonForJoining: rawUser?.reasonForJoining || rawUser?.reason_for_joining || rawUser?.reason || existingUser?.reasonForJoining,
+    favouriteSports: Array.isArray(rawUser?.sports) ? rawUser.sports : (Array.isArray(rawUser?.favouriteSports) ? rawUser.favouriteSports : (Array.isArray(rawUser?.favourite_sports) ? rawUser.favourite_sports : existingUser?.favouriteSports)),
+    reasonForJoining: rawUser?.why_oneday || rawUser?.whyOneday || rawUser?.reasonForJoining || rawUser?.reason_for_joining || rawUser?.reason || existingUser?.reasonForJoining,
     onboarded: isCompleted,
     hasCompletedOnboarding: isCompleted,
     onboarding_completed: isCompleted,

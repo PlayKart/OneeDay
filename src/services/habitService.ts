@@ -73,19 +73,14 @@ export const habitService = {
       reminder_time: habitData.reminderTime || "",
     };
 
-    console.log("POST /api/habits request payload:", payload);
+    console.log("POST /api/habit request payload:", payload);
 
     let res: any;
     try {
-      res = await apiClient.post("/api/habits", payload);
+      res = await apiClient.post("/api/habit", payload);
     } catch (err: any) {
-      if (err?.response?.status === 404 || err?.message?.includes("404")) {
-        console.warn("POST /api/habits returned 404, falling back to POST /api/habit");
-        res = await apiClient.post("/api/habit", payload);
-      } else {
-        console.error("API POST error:", err);
-        throw err;
-      }
+      console.error("API POST error:", err);
+      throw err;
     }
 
     const body = res.data;
@@ -130,6 +125,8 @@ export const habitService = {
 
   async updateHabit(habitId: string, habitData: Partial<Habit>): Promise<Habit> {
     const payload = {
+      habitId: habitId,
+      habit_id: habitId,
       name: habitData.name,
       repeatType: habitData.repeatType,
       repeat_type: habitData.repeatType,
@@ -143,19 +140,14 @@ export const habitService = {
       reminder_time: habitData.reminderTime,
     };
 
-    console.log(`PUT /api/habits/${habitId} request payload:`, payload);
+    console.log(`PUT /api/habit request payload:`, payload);
 
     let res: any;
     try {
-      res = await apiClient.put(`/api/habits/${habitId}`, payload);
+      res = await apiClient.put(`/api/habit`, payload);
     } catch (err: any) {
-      if (err?.response?.status === 404 || err?.message?.includes("404")) {
-        console.warn(`PUT /api/habits/${habitId} returned 404, falling back to PUT /api/habit/${habitId}`);
-        res = await apiClient.put(`/api/habit/${habitId}`, payload);
-      } else {
-        console.error("API PUT error:", err);
-        throw err;
-      }
+      console.error("API PUT error:", err);
+      throw err;
     }
 
     const body = res.data;
@@ -205,14 +197,8 @@ export const habitService = {
       res = await apiClient.delete(`/api/habit/${habitId}`);
       console.log(`[Habit Service] DELETE /api/habit/${habitId} status: ${res.status}, response:`, res.data);
     } catch (err: any) {
-      if (err?.response?.status === 404 || err?.message?.includes("404")) {
-        console.warn(`[Habit Service] DELETE /api/habit/${habitId} returned 404, attempting fallback to DELETE /api/habits/${habitId}`);
-        res = await apiClient.delete(`/api/habits/${habitId}`);
-        console.log(`[Habit Service] DELETE /api/habits/${habitId} status: ${res.status}, response:`, res.data);
-      } else {
-        console.error(`[Habit Service] DELETE API call failed. HTTP Status: ${err?.response?.status}, Error:`, err?.response?.data || err.message);
-        throw err;
-      }
+      console.error(`[Habit Service] DELETE API call failed. HTTP Status: ${err?.response?.status}, Error:`, err?.response?.data || err.message);
+      throw err;
     }
 
     const body = res?.data;
@@ -230,17 +216,11 @@ export const habitService = {
 
     let res: any;
     try {
-      res = await apiClient.post(`/api/habits/${habitId}/complete`, payload);
-      console.log(`[Habit Service] POST /api/habits/${habitId}/complete HTTP status: ${res.status}, response:`, res.data);
+      res = await apiClient.post(`/api/complete`, payload);
+      console.log(`[Habit Service] POST /api/complete HTTP status: ${res.status}, response:`, res.data);
     } catch (err: any) {
-      if (err?.response?.status === 404 || err?.message?.includes("404")) {
-        console.warn(`[Habit Service] POST /api/habits/${habitId}/complete returned 404, attempting fallback to POST /api/complete`);
-        res = await apiClient.post(`/api/complete`, payload);
-        console.log(`[Habit Service] POST /api/complete HTTP status: ${res.status}, response:`, res.data);
-      } else {
-        console.error(`[Habit Service] Complete API call failed. HTTP Status: ${err?.response?.status}, Error:`, err?.response?.data || err.message);
-        throw err;
-      }
+      console.error(`[Habit Service] Complete API call failed. HTTP Status: ${err?.response?.status}, Error:`, err?.response?.data || err.message);
+      throw err;
     }
 
     const body = res.data;
@@ -259,17 +239,11 @@ export const habitService = {
 
     let res: any;
     try {
-      res = await apiClient.post(`/api/habits/${habitId}/undo`, payload);
-      console.log(`[Habit Service] POST /api/habits/${habitId}/undo HTTP status: ${res.status}, response:`, res.data);
+      res = await apiClient.post(`/api/undo`, payload);
+      console.log(`[Habit Service] POST /api/undo HTTP status: ${res.status}, response:`, res.data);
     } catch (err: any) {
-      if (err?.response?.status === 404 || err?.message?.includes("404")) {
-        console.warn(`[Habit Service] POST /api/habits/${habitId}/undo returned 404, attempting fallback to POST /api/undo`);
-        res = await apiClient.post(`/api/undo`, payload);
-        console.log(`[Habit Service] POST /api/undo HTTP status: ${res.status}, response:`, res.data);
-      } else {
-        console.error(`[Habit Service] Undo API call failed. HTTP Status: ${err?.response?.status}, Error:`, err?.response?.data || err.message);
-        throw err;
-      }
+      console.error(`[Habit Service] Undo API call failed. HTTP Status: ${err?.response?.status}, Error:`, err?.response?.data || err.message);
+      throw err;
     }
 
     const body = res.data;

@@ -68,15 +68,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
-  createSession: async (title) => {
-    const newSession = await chatService.createSession(title || "New Chat");
-    localStorage.setItem("activeChatId", newSession.id);
-    set((state) => ({
-      chatSessions: [newSession, ...state.chatSessions],
-      activeChatId: newSession.id,
-      chatMessages: [],
-    }));
-    return newSession.id;
+  createSession: async () => {
+    set({ activeChatId: null, chatMessages: [] });
+    localStorage.removeItem("activeChatId");
+    return "";
   },
 
   selectSession: async (id: string) => {
@@ -172,49 +167,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   sendChatMessage: async (messageText: string) => {
     let activeId = get().activeChatId;
-    let isNewSession = false;
-
-    // Delayed creation: create session on backend only when sending the first message
-    if (!activeId) {
-      isNewSession = true;
-      try {
-        const newSession = await chatService.createSession("New Chat");
-        activeId = newSession.id;
-        localStorage.setItem("activeChatId", activeId);
-        set((state) => ({
-          chatSessions: [newSession, ...state.chatSessions],
-          activeChatId: activeId,
-        }));
-      } catch (createErr: any) {
-        console.error("[AI Coach] Session creation failed:", createErr);
-        const errMsg = createErr?.response?.data?.error || createErr?.message || "Failed to create chat session";
-        const tempAssistantMsgId = `assistant_${Date.now()}`;
-        const userMsg: ChatMessage = {
-          id: `user_${Date.now()}`,
-          sessionId: "",
-          role: "user",
-          content: messageText,
-          createdAt: new Date().toISOString(),
-        };
-        const placeholderAssistantMsg: ChatMessage = {
-          id: tempAssistantMsgId,
-          sessionId: "",
-          role: "assistant",
-          content: `⚠️ ${errMsg}`,
-          createdAt: new Date().toISOString(),
-          isStreaming: false,
-        };
-        set((state) => ({
-          chatMessages: [...state.chatMessages, userMsg, placeholderAssistantMsg],
-          chatLoading: false,
-        }));
-        return;
-      }
-    }
 
     const userMsg: ChatMessage = {
       id: `user_${Date.now()}`,
-      sessionId: activeId,
+      sessionId: activeId || "",
       role: "user",
       content: messageText,
       createdAt: new Date().toISOString(),
@@ -223,7 +179,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const tempAssistantMsgId = `assistant_${Date.now()}`;
     const placeholderAssistantMsg: ChatMessage = {
       id: tempAssistantMsgId,
-      sessionId: activeId,
+      sessionId: activeId || "",
       role: "assistant",
       content: "...",
       createdAt: new Date().toISOString(),
@@ -236,34 +192,44 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }));
 
     try {
-      const res = await chatService.sendMessage(activeId, messageText);
+      const res = await chatService.sendMessage(activeId || null, messageText);
       const reply = res.reply || "Build discipline daily. Never miss twice.";
+      const returnedSessionId = res.sessionId;
+
+      if (returnedSessionId && returnedSessionId !== activeId) {
+        activeId = returnedSessionId;
+        set({ activeChatId: returnedSessionId });
+        localStorage.setItem("activeChatId", returnedSessionId);
+        await get().fetchSessions();
+      }
 
       // Update assistant message with reply
       set((state) => ({
         chatMessages: state.chatMessages.map((m) =>
-          m.id === tempAssistantMsgId ? { ...m, content: reply, isStreaming: false } : m
+          m.id === tempAssistantMsgId ? { ...m, sessionId: activeId || "", content: reply, isStreaming: false } : m
         ),
         chatLoading: false,
       }));
 
       // Title Auto Update logic (Max 3 words, ChatGPT style)
-      const currentSession = get().chatSessions.find((s) => s.id === activeId);
-      let targetTitle = res.title;
+      if (activeId) {
+        const currentSession = get().chatSessions.find((s) => s.id === activeId);
+        let targetTitle = res.title;
 
-      if (!targetTitle || targetTitle === "New Chat" || targetTitle === "New Conversation" || targetTitle === "New Coaching Session") {
-        const cleanText = messageText.trim().replace(/[^\w\s]/gi, '');
-        const words = cleanText.split(/\s+/).filter(Boolean);
-        if (words.length > 0) {
-          const threeWords = words.slice(0, 3).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
-          targetTitle = threeWords.length <= 28 ? threeWords : "New Chat";
-        } else {
-          targetTitle = "New Chat";
+        if (!targetTitle || targetTitle === "New Chat" || targetTitle === "New Conversation" || targetTitle === "New Coaching Session") {
+          const cleanText = messageText.trim().replace(/[^\w\s]/gi, '');
+          const words = cleanText.split(/\s+/).filter(Boolean);
+          if (words.length > 0) {
+            const threeWords = words.slice(0, 3).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+            targetTitle = threeWords.length <= 28 ? threeWords : "New Chat";
+          } else {
+            targetTitle = "New Chat";
+          }
         }
-      }
 
-      if (targetTitle && currentSession?.title !== targetTitle) {
-        get().renameSession(activeId, targetTitle);
+        if (targetTitle && currentSession?.title !== targetTitle) {
+          get().renameSession(activeId, targetTitle);
+        }
       }
     } catch (e: any) {
       console.error("[AI Coach] sendChatMessage failed:", e);

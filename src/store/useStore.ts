@@ -228,9 +228,9 @@ export const useStore = create<StoreState>((set, get) => {
       set({ loading: true, backendError: null });
 
       try {
-        // 10-second timeout for dashboard service
+        // 60-second timeout for dashboard service
         const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("Connection timed out. Uplink took more than 10 seconds to respond.")), 10000)
+          setTimeout(() => reject(new Error("Connection timed out. Uplink took more than 60 seconds to respond.")), 60000)
         );
 
         const data = await Promise.race([
@@ -562,7 +562,14 @@ export const useStore = create<StoreState>((set, get) => {
       try {
         const currentUser = get().user;
         if (!currentUser) return;
-        await userService.updateProfile(data);
+        
+        // Use step API if only updating step
+        if (Object.keys(data).length === 1 && data.onboardingStep !== undefined) {
+          await userService.updateOnboardingStep(data.onboardingStep);
+        } else {
+          await userService.updateProfile(data);
+        }
+        
         const isCompletingOnboarding = Boolean(data.onboarded || data.hasCompletedOnboarding);
         const newVersion = isCompletingOnboarding ? get().profileVersion + 1 : get().profileVersion;
         set({ profileVersion: newVersion });
@@ -629,15 +636,10 @@ export const useStore = create<StoreState>((set, get) => {
       }
     },
 
-    createSession: async (title) => {
-      const newSession = await chatService.createSession(title || "New Chat");
-      localStorage.setItem("activeChatId", newSession.id);
-      set((state) => ({
-        chatSessions: [newSession, ...state.chatSessions],
-        activeChatId: newSession.id,
-        chatMessages: [],
-      }));
-      return newSession.id;
+    createSession: async () => {
+      set({ activeChatId: null, chatMessages: [] });
+      localStorage.removeItem("activeChatId");
+      return "";
     },
 
     selectSession: async (id) => {
@@ -716,49 +718,10 @@ export const useStore = create<StoreState>((set, get) => {
 
     sendChatMessage: async (messageText) => {
       let activeId = get().activeChatId;
-      let isNewSession = false;
-
-      // Delayed creation: create session on backend only when sending the first message
-      if (!activeId) {
-        isNewSession = true;
-        try {
-          const newSession = await chatService.createSession("New Chat");
-          activeId = newSession.id;
-          localStorage.setItem("activeChatId", activeId);
-          set((state) => ({
-            chatSessions: [newSession, ...state.chatSessions],
-            activeChatId: activeId,
-          }));
-        } catch (createErr: any) {
-          console.error("[AI Coach] Session creation failed:", createErr);
-          const errMsg = createErr?.response?.data?.error || createErr?.message || "Failed to create chat session";
-          const tempAssistantMsgId = `assistant_${Date.now()}`;
-          const userMsg: ChatMessage = {
-            id: `user_${Date.now()}`,
-            sessionId: "",
-            role: "user",
-            content: messageText,
-            createdAt: new Date().toISOString(),
-          };
-          const placeholderMsg: ChatMessage = {
-            id: tempAssistantMsgId,
-            sessionId: "",
-            role: "assistant",
-            content: `⚠️ ${errMsg}`,
-            createdAt: new Date().toISOString(),
-            isStreaming: false,
-          };
-          set((state) => ({
-            chatMessages: [...state.chatMessages, userMsg, placeholderMsg],
-            chatLoading: false,
-          }));
-          return;
-        }
-      }
 
       const userMsg: ChatMessage = {
         id: `user_${Date.now()}`,
-        sessionId: activeId,
+        sessionId: activeId || "",
         role: "user",
         content: messageText,
         createdAt: new Date().toISOString(),
@@ -767,7 +730,7 @@ export const useStore = create<StoreState>((set, get) => {
       const tempAssistantMsgId = `assistant_${Date.now()}`;
       const placeholderMsg: ChatMessage = {
         id: tempAssistantMsgId,
-        sessionId: activeId,
+        sessionId: activeId || "",
         role: "assistant",
         content: "...",
         createdAt: new Date().toISOString(),
@@ -780,33 +743,43 @@ export const useStore = create<StoreState>((set, get) => {
       }));
 
       try {
-        const res = await chatService.sendMessage(activeId, messageText);
+        const res = await chatService.sendMessage(activeId || null, messageText);
         const reply = res.reply || "Focus on daily execution.";
+        const returnedSessionId = res.sessionId;
+
+        if (returnedSessionId && returnedSessionId !== activeId) {
+          activeId = returnedSessionId;
+          set({ activeChatId: returnedSessionId });
+          localStorage.setItem("activeChatId", returnedSessionId);
+          await get().fetchSessions();
+        }
 
         set((state) => ({
           chatMessages: state.chatMessages.map((m) =>
-            m.id === tempAssistantMsgId ? { ...m, content: reply, isStreaming: false } : m
+            m.id === tempAssistantMsgId ? { ...m, sessionId: activeId || "", content: reply, isStreaming: false } : m
           ),
           chatLoading: false,
         }));
 
-        // Title Auto Update logic (Max 3 words, ChatGPT style)
-        const currentSession = get().chatSessions.find((s) => s.id === activeId);
-        let targetTitle = res.title;
+        // Title Auto Update logic
+        if (activeId) {
+          const currentSession = get().chatSessions.find((s) => s.id === activeId);
+          let targetTitle = res.title;
 
-        if (!targetTitle || targetTitle === "New Chat" || targetTitle === "New Conversation" || targetTitle === "New Coaching Session") {
-          const cleanText = messageText.trim().replace(/[^\w\s]/gi, '');
-          const words = cleanText.split(/\s+/).filter(Boolean);
-          if (words.length > 0) {
-            const threeWords = words.slice(0, 3).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
-            targetTitle = threeWords.length <= 28 ? threeWords : "New Chat";
-          } else {
-            targetTitle = "New Chat";
+          if (!targetTitle || targetTitle === "New Chat" || targetTitle === "New Conversation" || targetTitle === "New Coaching Session") {
+            const cleanText = messageText.trim().replace(/[^\w\s]/gi, '');
+            const words = cleanText.split(/\s+/).filter(Boolean);
+            if (words.length > 0) {
+              const threeWords = words.slice(0, 3).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+              targetTitle = threeWords.length <= 28 ? threeWords : "New Chat";
+            } else {
+              targetTitle = "New Chat";
+            }
           }
-        }
 
-        if (targetTitle && currentSession?.title !== targetTitle) {
-          get().renameSession(activeId, targetTitle);
+          if (targetTitle && currentSession?.title !== targetTitle) {
+            get().renameSession(activeId, targetTitle);
+          }
         }
       } catch (e: any) {
         console.error("[AI Coach] sendChatMessage failed:", e);
@@ -864,13 +837,18 @@ export const useStore = create<StoreState>((set, get) => {
     },
 
     editPreviousMessage: async (messageId, newContent) => {
-      set((state) => {
-        const idx = state.chatMessages.findIndex((m) => m.id === messageId);
-        if (idx === -1) return state;
-        return { chatMessages: state.chatMessages.slice(0, idx) };
-      });
-
-      await get().sendChatMessage(newContent);
+      try {
+        await chatService.editMessage(messageId, newContent);
+        // Optimistically update local UI
+        set((state) => {
+          const updated = state.chatMessages.map(m => 
+            m.id === messageId ? { ...m, content: newContent } : m
+          );
+          return { chatMessages: updated };
+        });
+      } catch (e) {
+        console.warn("Failed to edit message:", e);
+      }
     },
   };
 });

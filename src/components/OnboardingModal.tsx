@@ -270,12 +270,16 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
       console.log("[ONBOARDING] completion submitted");
       const payload = {
         name,
+        full_name: name,
         dob,
+        date_of_birth: dob,
         age,
         gender,
         hobbies,
         favouriteSports: sports,
+        sports,
         reasonForJoining: reason,
+        why_oneday: reason,
         onboarded: true,
         hasCompletedOnboarding: true,
         onboarding_completed: true,

@@ -88,12 +88,12 @@ export default function App() {
     setStartupStatus("loading");
     setStartupError(null);
 
-    // Set 8-second maximum watchdog timer
+    // Set 60-second maximum watchdog timer (Render free tier can take 50s+ to cold start)
     const watchdog = setTimeout(() => {
-      console.error("[STARTUP SEQUENCE] Startup watchdog triggered after 8 seconds.");
-      setStartupError("Connection timed out. Uplink took more than 8 seconds to respond.");
+      console.error("[STARTUP SEQUENCE] Startup watchdog triggered after 60 seconds.");
+      setStartupError("Connection timed out. Uplink took more than 60 seconds to respond.");
       setStartupStatus("error");
-    }, 8000);
+    }, 60000);
 
     let resolved = false;
 
@@ -150,6 +150,8 @@ export default function App() {
         const seenIntro = hasSeenAppIntro(uid, state.user);
         const targetRoute = !onboarded ? "/onboarding" : (seenIntro ? "/dashboard" : "/intro");
         resolveStartup(targetRoute);
+      } else {
+        rejectStartup("Failed to load user profile data.");
       }
     };
 
@@ -267,6 +269,18 @@ export default function App() {
     }
   }, [firebaseUser, activeTab, startupStatus]);
 
+  const [showSlowBootMessage, setShowSlowBootMessage] = useState(false);
+
+  useEffect(() => {
+    let timeout: NodeJS.Timeout;
+    if (startupStatus === "loading") {
+      timeout = setTimeout(() => setShowSlowBootMessage(true), 5000);
+    } else {
+      setShowSlowBootMessage(false);
+    }
+    return () => clearTimeout(timeout);
+  }, [startupStatus]);
+
   // ── 1. Startup is loading -> Show OneDay splash/intro animation ──────────
   if (startupStatus === "loading") {
     console.log("[AUTH] Splash rendered");
@@ -309,6 +323,20 @@ export default function App() {
             >
               Discipline makes it all
             </motion.p>
+            
+            {showSlowBootMessage && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-12 text-center"
+              >
+                <div className="flex items-center gap-3 justify-center mb-2">
+                  <div className="w-3 h-3 rounded-full bg-blue-500 animate-ping" />
+                  <p className="text-blue-400 text-xs font-bold uppercase tracking-widest">Waking up servers</p>
+                </div>
+                <p className="text-slate-500 text-[10px] max-w-[200px] mx-auto">This happens if you are the first user in a while. Can take up to 60 seconds.</p>
+              </motion.div>
+            )}
           </motion.div>
         </AnimatePresence>
       </div>

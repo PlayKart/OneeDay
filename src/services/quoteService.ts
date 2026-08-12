@@ -16,11 +16,7 @@ export const quoteService = {
     }
 
     try {
-      const activeHabits = Array.isArray(habits) ? habits : [];
-      const res = await apiClient.post<{ quote?: string; text?: string; message?: string }>("/api/quote", {
-        streak,
-        habits: activeHabits.map((h) => ({ name: h.name, completedToday: h.completedToday })),
-      });
+      const res = await apiClient.get<{ quote?: string; text?: string; message?: string }>("/api/mindset");
 
       const quoteText =
         res.data?.quote ||

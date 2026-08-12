@@ -32,6 +32,7 @@ import {
   MoreHorizontal
 } from 'lucide-react';
 import { useStore, ChatSession, ChatMessage } from '../store/useStore';
+import { chatService } from '../services/chatService';
 import { toast } from 'react-hot-toast';
 import { MonolithLogo } from './MonolithLogo';
 
@@ -198,11 +199,17 @@ export const AICoach = () => {
     toast.success("Message edited");
   };
 
-  const handleDeleteMessageLocal = (msgId: string) => {
-    const safeMsgs = Array.isArray(chatMessages) ? chatMessages : [];
-    const updated = safeMsgs.filter(m => m && m.id !== msgId);
-    useStore.setState({ chatMessages: updated });
-    toast.success("Message deleted");
+  const handleDeleteMessageLocal = async (msgId: string) => {
+    try {
+      await chatService.deleteMessage(msgId);
+      const safeMsgs = Array.isArray(chatMessages) ? chatMessages : [];
+      const updated = safeMsgs.filter(m => m && m.id !== msgId);
+      useStore.setState({ chatMessages: updated });
+      toast.success("Message deleted");
+    } catch (e) {
+      console.error("Failed to delete message", e);
+      toast.error("Failed to delete message");
+    }
   };
 
   const handleClearChatLocal = () => {
@@ -211,23 +218,27 @@ export const AICoach = () => {
     toast.success("Chat history cleared locally");
   };
 
-  const handleExportChat = () => {
-    const safeMsgs = Array.isArray(chatMessages) ? chatMessages : [];
-    if (safeMsgs.length === 0) {
-      toast.error("No messages to export");
-      return;
+  const handleExportChat = async () => {
+    try {
+      const data = await chatService.exportChats();
+      if (!data) {
+        toast.error("Failed to export chats");
+        return;
+      }
+      const dataStr = JSON.stringify(data, null, 2);
+      const blob = new Blob([dataStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Monolith_Chats.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setMenuOpen(false);
+      toast.success("Chats exported successfully");
+    } catch (e) {
+      console.error("Export chats error", e);
+      toast.error("Failed to export chats");
     }
-    const text = safeMsgs
-      .map(m => m ? `### ${m.role === 'user' ? 'User' : 'Monolith AI Coach'}\n\n${m.content}\n\n` : "")
-      .join('---\n\n');
-    const blob = new Blob([`# Monolith Coaching Log\n\n${text}`], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Monolith_Coaching_Log_${activeChatId || 'session'}.md`;
-    a.click();
-    setMenuOpen(false);
-    toast.success("Chat history exported (.md)");
   };
 
   const handleFeedbackToggle = (msgId: string, type: 'up' | 'down') => {
