@@ -53,7 +53,7 @@ function hasSeenAppIntro(userId: string, u: any): boolean {
 }
 
 export default function App() {
-  const { user, firebaseUser, initialized, loading, backendError, refreshFromBackend, activeTab, incrementProfileVersion } = useStore();
+  const { user, firebaseUser, initialized, loading, backendError, profileSynced, refreshFromBackend, activeTab, incrementProfileVersion } = useStore();
   const [currentRoute, setCurrentRoute] = useState<string>(() => {
     const path = window.location.pathname;
     if (path === "/onboarding") return "/onboarding";
@@ -61,9 +61,6 @@ export default function App() {
     if (path === "/dashboard") return "/dashboard";
     return "/landing";
   });
-  const [startupStatus, setStartupStatus] = useState<"loading" | "ready" | "error">("loading");
-  const [startupError, setStartupError] = useState<string | null>(null);
-  const [startupTrigger, setStartupTrigger] = useState(0);
 
   // Log App mounted
   useEffect(() => {
@@ -82,100 +79,22 @@ export default function App() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
-  // Centralized startup orchestrator & watchdog
+  // Centralized Protection & Route Guard for Authenticated Users
   useEffect(() => {
-    console.log(`[BOOT] Startup began (trigger: ${startupTrigger}).`);
-    setStartupStatus("loading");
-    setStartupError(null);
-
-    // Set 60-second maximum watchdog timer (Render free tier can take 50s+ to cold start)
-    const watchdog = setTimeout(() => {
-      console.error("[STARTUP SEQUENCE] Startup watchdog triggered after 60 seconds.");
-      setStartupError("Connection timed out. Uplink took more than 60 seconds to respond.");
-      setStartupStatus("error");
-    }, 60000);
-
-    let resolved = false;
-
-    const resolveStartup = (route: string) => {
-      if (resolved) return;
-      resolved = true;
-      clearTimeout(watchdog);
-      console.log(`[AUTH] Redirecting to: ${route}`);
-      if (window.location.pathname !== route) {
-        window.history.pushState({}, "", route);
-      }
-      setCurrentRoute(route);
-      setStartupStatus("ready");
-    };
-
-    const rejectStartup = (errorMsg: string) => {
-      if (resolved) return;
-      resolved = true;
-      clearTimeout(watchdog);
-      console.error(`[STARTUP SEQUENCE] Rejected with error: ${errorMsg}`);
-      setStartupError(errorMsg);
-      setStartupStatus("error");
-    };
-
-    const evaluateState = (state: ReturnType<typeof useStore.getState>) => {
-      if (resolved) return;
-
-      if (!state.initialized) {
-        return;
-      }
-
-      if (!state.firebaseUser) {
-        console.log("[AUTH] Firebase state: unauthenticated");
-        resolveStartup("/landing");
-        return;
-      }
-
-      console.log(`[AUTH] Firebase state: authenticated (UID: ${state.firebaseUser.uid})`);
-
-      if (state.backendError) {
-        rejectStartup(state.backendError);
-        return;
-      }
-
-      if (!state.profileSynced) {
-        console.log("[STARTUP SEQUENCE] Authenticated, waiting for backend profile sync...");
-        return;
-      }
-
-      if (state.user) {
-        const onboarded = hasCompletedOnboarding(state.user);
-        console.log(`[ONBOARDING] status: hasCompletedOnboarding = ${onboarded}`);
-        const uid = state.firebaseUser?.uid || state.user?.id || "";
-        const seenIntro = hasSeenAppIntro(uid, state.user);
-        const targetRoute = !onboarded ? "/onboarding" : (seenIntro ? "/dashboard" : "/intro");
-        resolveStartup(targetRoute);
-      } else {
-        rejectStartup("Failed to load user profile data.");
-      }
-    };
-
-    const unsubscribe = useStore.subscribe((state) => {
-      evaluateState(state);
-    });
-
-    evaluateState(useStore.getState());
-
-    return () => {
-      clearTimeout(watchdog);
-      unsubscribe();
-    };
-  }, [startupTrigger]);
-
-  // Centralized Protection & Route Guard
-  useEffect(() => {
-    if (startupStatus !== "ready") {
-      return;
-    }
+    if (!initialized) return;
 
     if (!firebaseUser) {
       if (currentRoute !== "/landing") {
-        console.log("[AUTH] Redirecting to: /landing");
+        console.error("[ROUTE GUARD] Redirecting to landing", {
+          firebaseUser,
+          authInitialized: initialized,
+          isAuthenticated: false,
+          profileSynced,
+          profileLoading: loading,
+          profileSyncError: backendError,
+          user,
+          currentPath: window.location.pathname
+        });
         if (window.location.pathname !== "/landing") {
           window.history.pushState({}, "", "/landing");
         }
@@ -196,7 +115,6 @@ export default function App() {
     const targetRoute = !onboarded ? "/onboarding" : (seenIntro ? "/dashboard" : "/intro");
 
     if (currentRoute !== targetRoute) {
-      // If user is currently viewing the intro, allow them to finish or skip
       if (currentRoute === "/intro" && onboarded && !seenIntro) {
         return;
       }
@@ -206,7 +124,7 @@ export default function App() {
       }
       setCurrentRoute(targetRoute);
     }
-  }, [firebaseUser, user, currentRoute, startupStatus]);
+  }, [initialized, firebaseUser, user, currentRoute, profileSynced, loading, backendError]);
 
   // Log Navigation/Route Changes
   useEffect(() => {
@@ -245,9 +163,6 @@ export default function App() {
 
   useEffect(() => {
     if (!firebaseUser) {
-      return;
-    }
-    if (startupStatus === "loading") {
       document.title = "OneDay — AI Habit Tracker";
       return;
     }
@@ -267,23 +182,11 @@ export default function App() {
       default:
         document.title = "OneDay — AI Habit Tracker";
     }
-  }, [firebaseUser, activeTab, startupStatus]);
+  }, [firebaseUser, activeTab]);
 
-  const [showSlowBootMessage, setShowSlowBootMessage] = useState(false);
-
-  useEffect(() => {
-    let timeout: NodeJS.Timeout;
-    if (startupStatus === "loading") {
-      timeout = setTimeout(() => setShowSlowBootMessage(true), 5000);
-    } else {
-      setShowSlowBootMessage(false);
-    }
-    return () => clearTimeout(timeout);
-  }, [startupStatus]);
-
-  // ── 1. Startup is loading -> Show OneDay splash/intro animation ──────────
-  if (startupStatus === "loading") {
-    console.log("[AUTH] Splash rendered");
+  // ── 1. Auth Initializing -> Show initialization screen ──────────
+  if (!initialized) {
+    console.log("[AUTH] Splash rendered - initializing auth");
     return (
       <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center relative overflow-hidden font-sans">
         <div className="orb w-[400px] h-[400px] bg-blue-500/5 top-[-100px] left-[-100px] absolute mix-blend-screen animate-pulse" />
@@ -323,30 +226,32 @@ export default function App() {
             >
               Discipline makes it all
             </motion.p>
-            
-            {showSlowBootMessage && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mt-12 text-center"
-              >
-                <div className="flex items-center gap-3 justify-center mb-2">
-                  <div className="w-3 h-3 rounded-full bg-blue-500 animate-ping" />
-                  <p className="text-blue-400 text-xs font-bold uppercase tracking-widest">Waking up servers</p>
-                </div>
-                <p className="text-slate-500 text-[10px] max-w-[200px] mx-auto">This happens if you are the first user in a while. Can take up to 60 seconds.</p>
-              </motion.div>
-            )}
           </motion.div>
         </AnimatePresence>
       </div>
     );
   }
 
-  // ── 2. Startup has failed -> Show the high-quality error screen ───────────
-  if (startupStatus === "error") {
+  // ── 2. Unauthenticated -> Show Landing Screen ONLY ─────────────────────
+  if (!firebaseUser) {
+    console.log("[AUTH] Landing rendered");
     return (
-      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center font-sans gap-6">
+      <Suspense fallback={
+        <div className="min-h-screen bg-[#050505] flex items-center justify-center font-sans">
+          <div className="w-12 h-12 border-2 border-white/5 border-t-white rounded-full animate-spin" />
+        </div>
+      }>
+        <LandingScreen onLoginSuccess={() => {
+          console.log("[Landing] Sign in success. Waiting for route guard to evaluate destination...");
+        }} />
+      </Suspense>
+    );
+  }
+
+  // ── 3. Authenticated -> Show Sync Error screen if backend request failed ──
+  if (backendError && !profileSynced && !user) {
+    return (
+      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center font-sans p-6">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -356,22 +261,20 @@ export default function App() {
             <AlertTriangle size={32} className="text-red-400" />
           </div>
           <div className="flex flex-col gap-2">
-            <h2 className="text-xl font-bold tracking-tight">Something went wrong</h2>
-            <p className="text-slate-500 text-xs uppercase tracking-widest font-black">Uplink Failed</p>
-            <p className="text-slate-400 text-sm mt-2">{startupError || backendError || "Unknown connection error."}</p>
+            <h2 className="text-xl font-bold tracking-tight text-white">Sync Failure</h2>
+            <p className="text-slate-500 text-xs uppercase tracking-widest font-black">Uplink Error</p>
+            <p className="text-slate-400 text-sm mt-2">{backendError}</p>
           </div>
           <button
             onClick={async () => {
-              console.log("[STARTUP SEQUENCE] User clicked Retry.");
-              setStartupStatus("loading");
+              console.log("[AUTH] Retrying profile sync...");
               useStore.setState({ backendError: null });
               await refreshFromBackend();
-              setStartupTrigger(prev => prev + 1);
             }}
-            className="flex items-center gap-2 bg-white/10 hover:bg-white/20 disabled:opacity-50 text-white font-bold px-8 py-3 rounded-xl transition-all text-sm uppercase tracking-widest cursor-pointer"
+            className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white font-bold px-8 py-3 rounded-xl transition-all text-sm uppercase tracking-widest cursor-pointer"
           >
             <RefreshCw size={14} />
-            Retry
+            Retry Connection
           </button>
           <button
             onClick={() => signOut(auth)}
@@ -384,28 +287,8 @@ export default function App() {
     );
   }
 
-  // ── 3. We are in ready status -> render views by path ───────────────────────
-
-  // ── 3a. /landing view (ONLY for unauthenticated users) ─────────────────────
-  if (!firebaseUser || currentRoute === "/landing") {
-    if (!firebaseUser) {
-      console.log("[AUTH] Landing rendered");
-      return (
-        <Suspense fallback={
-          <div className="min-h-screen bg-[#050505] flex items-center justify-center font-sans">
-            <div className="w-12 h-12 border-2 border-white/5 border-t-white rounded-full animate-spin" />
-          </div>
-        }>
-          <LandingScreen onLoginSuccess={() => {
-            console.log("[Landing] Sign in success. Waiting for route guard to evaluate destination...");
-          }} />
-        </Suspense>
-      );
-    }
-  }
-
-  // If authenticated but backend user is not loaded yet (e.g. active sync on sign in)
-  if (!user) {
+  // ── 4. Authenticated -> Show Syncing screen while profile is loading ──────
+  if (!user || (loading && !profileSynced)) {
     return (
       <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center font-sans">
         <motion.div 
@@ -417,7 +300,7 @@ export default function App() {
             <MonolithLogo size={64} />
           </div>
           <div className="flex flex-col items-center gap-2">
-            <h2 className="text-xl font-bold tracking-tight">Syncing Discipline...</h2>
+            <h2 className="text-xl font-bold tracking-tight text-white">Syncing Discipline...</h2>
             <p className="text-slate-500 text-xs uppercase tracking-widest font-black">Connecting to Uplink</p>
           </div>
         </motion.div>
@@ -425,7 +308,7 @@ export default function App() {
     );
   }
 
-  // ── 3b. /onboarding view ───────────────────────────────────────────────────
+  // ── 5. /onboarding view ───────────────────────────────────────────────────
   if (currentRoute === "/onboarding") {
     return (
       <div className="min-h-screen bg-[#050505] flex items-center justify-center relative overflow-hidden">
@@ -469,7 +352,7 @@ export default function App() {
             const uid = firebaseUser?.uid || activeUser?.id || "";
             const seenIntro = hasSeenAppIntro(uid, activeUser);
             const targetRoute = seenIntro ? "/dashboard" : "/intro";
-            console.log(`[NAV] destination ${targetRoute}`);
+            console.log(`[AUTH] Redirecting to: ${targetRoute}`);
             if (window.location.pathname !== targetRoute) {
               window.history.pushState({}, "", targetRoute);
             }
@@ -480,7 +363,7 @@ export default function App() {
     );
   }
 
-  // ── 3c. /intro view (Welcome & App Introduction) ──────────────────────────
+  // ── 6. /intro view (Welcome & App Introduction) ──────────────────────────
   if (currentRoute === "/intro") {
     return (
       <AppIntroFlow 
@@ -498,7 +381,7 @@ export default function App() {
     );
   }
 
-  // ── 3d. /dashboard view (Authenticated + Onboarded + Intro completed) ────
+  // ── 7. /dashboard view (Authenticated + Onboarded + Intro completed) ────
   return (
     <div className="min-h-screen relative overflow-hidden bg-[#050505]">
       <Toaster 
