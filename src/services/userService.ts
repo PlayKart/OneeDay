@@ -2,7 +2,7 @@
 
 import { apiClient } from "../api/client";
 import { User } from "../types";
-import { normalizeUser, hasCompletedOnboarding } from "../utils";
+import { normalizeUser, hasCompletedOnboarding, normalizeGenderValue } from "../utils";
 import { useStore } from "../store/useStore";
 import { auth } from "../lib/firebase";
 
@@ -63,6 +63,9 @@ export const userService = {
   },
 
   async updateProfile(data: Partial<User>): Promise<User> {
+    if (data.gender !== undefined) {
+      data.gender = normalizeGenderValue(data.gender);
+    }
     const res = await apiClient.post<User | { user: User }>("/api/onboarding", data);
     return normalizeUser(res.data, useStore.getState().user || undefined);
   },

@@ -7,6 +7,7 @@ import {
 import { useStore } from '../store/useStore';
 import { User } from '../types';
 import { toast } from 'react-hot-toast';
+import { VALID_GENDERS, normalizeGenderValue } from '../utils';
 
 const HOBBIES_LIST = [
   "Reading", "Coding", "Fitness", "Writing", "Meditation", 
@@ -31,10 +32,10 @@ const INDOOR_SPORTS = [
 const ALL_SPORTS = [...OUTDOOR_SPORTS, ...INDOOR_SPORTS];
 
 const GENDER_OPTIONS = [
-  { id: "male", label: "Male", icon: "👨" },
-  { id: "female", label: "Female", icon: "👩" },
-  { id: "non-binary", label: "Non-binary", icon: "✨" },
-  { id: "prefer-not-to-say", label: "Prefer not to say", icon: "🔒" },
+  { id: "Male", label: "Male", icon: "👨", value: "Male" },
+  { id: "Female", label: "Female", icon: "👩", value: "Female" },
+  { id: "Prefer not to say", label: "Prefer not to say", icon: "🔒", value: "Prefer not to say" },
+  { id: "Other", label: "Other", icon: "✨", value: "Other" },
 ];
 
 interface OnboardingModalProps {
@@ -131,7 +132,9 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
   // Form state initialized with draftData fallback, initialData, or user
   const [name, setName] = useState(draftData?.name || initialData?.name || user?.name || "");
   const [dob, setDob] = useState(draftData?.dob || initialData?.dob || "");
-  const [gender, setGender] = useState(draftData?.gender || initialData?.gender || "male");
+  const [gender, setGender] = useState<string>(() => 
+    normalizeGenderValue(draftData?.gender || initialData?.gender || user?.gender)
+  );
   const [hobbies, setHobbies] = useState<string[]>(draftData?.hobbies || initialData?.hobbies || []);
   const [hobbySearch, setHobbySearch] = useState("");
   const [customHobbyInput, setCustomHobbyInput] = useState("");
@@ -193,7 +196,7 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
       case 2:
         return Boolean(dob && age !== null && age >= 10 && age <= 120);
       case 3:
-        return Boolean(gender);
+        return VALID_GENDERS.includes(gender as any);
       case 4:
         // Optional step
         return true;
@@ -267,14 +270,22 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
   const handleFinish = async () => {
     try {
       setSaving(true);
-      console.log("[ONBOARDING] completion submitted");
+      const finalGender = normalizeGenderValue(gender);
+      if (!VALID_GENDERS.includes(finalGender as any)) {
+        toast.error("Valid gender is required (Male, Female, Prefer not to say, Other).");
+        setSaving(false);
+        return;
+      }
+
+      console.log("[ONBOARDING] Gender being submitted:", finalGender);
+
       const payload = {
         name,
         full_name: name,
         dob,
         date_of_birth: dob,
         age,
-        gender,
+        gender: finalGender,
         hobbies,
         favouriteSports: sports,
         sports,
@@ -288,6 +299,8 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
         needs_onboarding: false,
         onboardingStep: totalSteps,
       };
+
+      console.log("[ONBOARDING] Payload:", payload);
 
       if (updateProfile) {
         // 1. Save onboarding through the backend, wait for successful response.

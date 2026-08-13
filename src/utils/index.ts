@@ -3,6 +3,23 @@
 export * from "./camelCase";
 import { User } from "../types";
 
+export const VALID_GENDERS = ["Male", "Female", "Prefer not to say", "Other"] as const;
+export type ValidGender = typeof VALID_GENDERS[number];
+
+export function normalizeGenderValue(val?: string | null): string {
+  if (!val || typeof val !== "string") return "";
+  const trimmed = val.trim();
+  if (VALID_GENDERS.includes(trimmed as ValidGender)) {
+    return trimmed;
+  }
+  const lower = trimmed.toLowerCase();
+  if (lower === "male") return "Male";
+  if (lower === "female") return "Female";
+  if (lower === "prefer not to say" || lower === "prefer_not_to_say" || lower === "prefer-not-to-say") return "Prefer not to say";
+  if (lower === "other" || lower === "non-binary" || lower === "non_binary") return "Other";
+  return "";
+}
+
 /**
  * Ensures a value is guaranteed to be an array, preventing runtime errors like '.map is not a function'.
  */
@@ -186,7 +203,7 @@ export function normalizeUser(u: any, existingUser?: User | null): User {
       null,
     dob: rawUser?.date_of_birth || rawUser?.dateOfBirth || rawUser?.dob || existingUser?.dob,
     age: typeof rawUser?.age === "number" ? rawUser.age : (typeof rawUser?.age === "string" ? parseInt(rawUser.age, 10) : existingUser?.age),
-    gender: rawUser?.gender || existingUser?.gender,
+    gender: normalizeGenderValue(rawUser?.gender || existingUser?.gender),
     hobbies: Array.isArray(rawUser?.hobbies) ? rawUser.hobbies : (Array.isArray(rawUser?.hobbies_list) ? rawUser.hobbies_list : existingUser?.hobbies),
     favouriteSports: Array.isArray(rawUser?.sports) ? rawUser.sports : (Array.isArray(rawUser?.favouriteSports) ? rawUser.favouriteSports : (Array.isArray(rawUser?.favourite_sports) ? rawUser.favourite_sports : existingUser?.favouriteSports)),
     reasonForJoining: rawUser?.why_oneday || rawUser?.whyOneday || rawUser?.reasonForJoining || rawUser?.reason_for_joining || rawUser?.reason || existingUser?.reasonForJoining,
