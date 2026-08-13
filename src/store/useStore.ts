@@ -301,34 +301,12 @@ export const useStore = create<StoreState>((set, get) => {
       } catch (err: any) {
         console.error("[AUTH] Backend sync error:", err);
 
-        // DO NOT log out user or clear firebaseUser if Firebase Auth user exists!
-        // Construct fallback profile or use cached state
-        let activeUser = get().user;
-        if (!activeUser) {
-          activeUser = {
-            id: activeFbUser.uid,
-            userId: activeFbUser.uid,
-            name: activeFbUser.displayName || activeFbUser.email?.split("@")[0] || "Striker",
-            email: activeFbUser.email || "",
-            xp: 0,
-            streak: 0,
-            level: 1,
-            levelProgress: 0,
-            onboarded: false,
-            hasCompletedOnboarding: false,
-            needsOnboarding: true,
-          };
-        }
-
-        console.log("[AUTH] Fallback user initialized:", activeUser.email);
-        console.log("[AUTH] Profile loaded:", activeUser.name);
-        console.log("[AUTH] needsOnboarding:", !hasCompletedOnboarding(activeUser));
+        const errorMsg = err?.message || "Failed to sync profile with server.";
 
         set({
-          user: activeUser,
           loading: false,
-          profileSynced: true,
-          backendError: null,
+          profileSynced: false,
+          backendError: errorMsg,
         });
       }
     },
