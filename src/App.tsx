@@ -101,7 +101,7 @@ export default function App() {
       if (resolved) return;
       resolved = true;
       clearTimeout(watchdog);
-      console.log(`[NAV] destination ${route}`);
+      console.log(`[AUTH] Redirecting to: ${route}`);
       if (window.location.pathname !== route) {
         window.history.pushState({}, "", route);
       }
@@ -175,7 +175,7 @@ export default function App() {
 
     if (!firebaseUser) {
       if (currentRoute !== "/landing") {
-        console.log("[NAV] destination /landing");
+        console.log("[AUTH] Redirecting to: /landing");
         if (window.location.pathname !== "/landing") {
           window.history.pushState({}, "", "/landing");
         }
@@ -189,7 +189,7 @@ export default function App() {
     }
 
     const onboarded = hasCompletedOnboarding(user);
-    console.log(`[ONBOARDING] status: hasCompletedOnboarding = ${onboarded}`);
+    console.log(`[AUTH] needsOnboarding: ${!onboarded}`);
 
     const uid = firebaseUser.uid || user.id || "";
     const seenIntro = hasSeenAppIntro(uid, user);
@@ -200,7 +200,7 @@ export default function App() {
       if (currentRoute === "/intro" && onboarded && !seenIntro) {
         return;
       }
-      console.log(`[NAV] destination ${targetRoute}`);
+      console.log(`[AUTH] Redirecting to: ${targetRoute}`);
       if (window.location.pathname !== targetRoute) {
         window.history.pushState({}, "", targetRoute);
       }

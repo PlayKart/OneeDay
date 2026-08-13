@@ -67,53 +67,41 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
     if (authLoading) return;
 
     setAuthLoading(true);
-    console.log("[Auth Step 1] Initializing GoogleAuthProvider...");
+    console.log("[AUTH] Google login started");
     try {
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: "select_account" });
 
-      console.log("[Auth Step 2] Invoking signInWithPopup...");
       const credential = await signInWithPopup(auth, provider);
-      console.log("[Auth Step 3] Verified UserCredential received from Firebase:", credential);
+      console.log("[AUTH] Google popup/redirect completed");
 
       if (!credential || !credential.user) {
         throw new Error("No user credential returned from Firebase.");
       }
 
       const fbUser = credential.user;
-      console.log("[AUTH] Google login success");
-      console.log("[AUTH] User UID:", fbUser.uid);
-      console.log("[Auth Step 4] Authenticated User UID:", fbUser.uid, "| Email:", fbUser.email);
+      console.log("[AUTH] Firebase user:", fbUser.email || fbUser.displayName || fbUser.uid);
+      console.log("[AUTH] Firebase UID:", fbUser.uid);
 
-      console.log("[Auth Step 5] Retrieving Firebase ID token...");
       const token = await fbUser.getIdToken(true);
-      console.log("[Auth Step 6] Firebase ID token retrieved successfully (length:", token.length, ")");
+      if (token) {
+        console.log("[AUTH] ID token acquired");
+      }
 
       localStorage.setItem("oneday_policy_accepted_v1", "true");
 
-      console.log("[Auth Step 7] Updating Zustand store with firebaseUser...");
       useStore.getState().setFirebaseUser(fbUser);
-
-      console.log("[Auth Step 8] Synchronizing user profile & dashboard data from backend...");
       await useStore.getState().refreshFromBackend();
 
-      console.log("[Auth Step 9] Login flow completed successfully.");
       setShowAuthModal(false);
       onLoginSuccess();
-      toast.success("Welcome back!");
+      toast.success("Welcome!");
     } catch (error: any) {
-      console.error("[Auth Step Error] Google Sign-In failed:", error);
+      console.error("[AUTH Error] Google login failed:", error.code, error.message, error.stack);
       if (error.code === "auth/unauthorized-domain") {
         toast.error(`Please add ${window.location.hostname} to your Firebase authorized domains.`);
       } else if (error.code === "auth/popup-blocked") {
-        toast.error("Popup blocked by browser. Attempting redirect login...");
-        try {
-          const provider = new GoogleAuthProvider();
-          await signInWithRedirect(auth, provider);
-        } catch (redirectErr: any) {
-          console.error("[Auth Step Error] Redirect login failed:", redirectErr);
-          toast.error(redirectErr.message || "Redirect login failed.");
-        }
+        toast.error("Popup blocked by browser. Please allow popups or try again.");
       } else if (error.code === "auth/popup-closed-by-user") {
         toast.error("Sign-in cancelled.");
       } else {

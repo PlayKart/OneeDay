@@ -1,8 +1,7 @@
 // src/store/authStore.ts
 
 import { create } from "zustand";
-import { User as FirebaseUser, onAuthStateChanged } from "firebase/auth";
-import { auth } from "../lib/firebase";
+import { User as FirebaseUser } from "firebase/auth";
 
 interface AuthState {
   firebaseUser: FirebaseUser | null;
@@ -18,9 +17,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   setFirebaseUser: (user) => set({ firebaseUser: user }),
   setInitialized: (init) => set({ initialized: init }),
   initAuthListener: () => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      set({ firebaseUser: user, initialized: true });
-    });
-    return unsubscribe;
+    // Single authoritative auth initialization is managed in useStore.ts
+    return () => {};
   },
 }));
+

@@ -8,7 +8,7 @@ import { habitService } from '../services/habitService';
 import { chatService } from '../services/chatService';
 import { userService } from '../services/userService';
 import { quoteService } from '../services/quoteService';
-import { safeArray, normalizeCompletedDates, normalizeUser } from '../utils';
+import { safeArray, normalizeCompletedDates, normalizeUser, hasCompletedOnboarding } from '../utils';
 import { apiRequest } from '../api/client';
 import { 
   User as BackendUser, 
@@ -132,22 +132,25 @@ export const useStore = create<StoreState>((set, get) => {
     console.log("[AUTH] Firebase auth state received:", fbUser ? "authenticated" : "unauthenticated");
     
     if (fbUser) {
-      console.log("[AUTH] User UID:", fbUser.uid);
+      console.log("[AUTH] Firebase user:", fbUser.email || fbUser.displayName || fbUser.uid);
+      console.log("[AUTH] Firebase UID:", fbUser.uid);
       try {
         const token = await fbUser.getIdToken();
-        console.log("[Auth Step - Token] Firebase ID token retrieved on auth state change (length:", token?.length || 0, ")");
+        if (token) {
+          console.log("[AUTH] ID token acquired");
+          localStorage.setItem("oneday_firebase_token", token);
+        }
         localStorage.setItem("oneday_session_active", "true");
         localStorage.setItem("oneday_firebase_uid", fbUser.uid);
         localStorage.setItem("oneday_firebase_email", fbUser.email || "");
-        localStorage.setItem("oneday_firebase_token", token);
       } catch (tokenErr) {
-        console.warn("[Auth Step - Token Warning] Failed to retrieve ID token on auth state change:", tokenErr);
+        console.warn("[AUTH] Failed to acquire ID token on auth change:", tokenErr);
       }
       set({ firebaseUser: fbUser, initialized: true });
-      console.log("[STARTUP SEQUENCE - Backend started] Requesting backend sync from onAuthStateChanged...");
+      console.log("[AUTH] Requesting backend profile sync from onAuthStateChanged...");
       await get().refreshFromBackend();
     } else {
-      console.log("[Auth Step - Reset] Clearing store state on logout.");
+      console.log("[AUTH] Firebase user: null");
       localStorage.removeItem("oneday_session_active");
       localStorage.removeItem("oneday_firebase_uid");
       localStorage.removeItem("oneday_firebase_email");
@@ -167,6 +170,7 @@ export const useStore = create<StoreState>((set, get) => {
         profileVersion: get().profileVersion + 1,
       });
     }
+    console.log("[AUTH] Auth initialization completed");
   });
 
   return {
@@ -191,7 +195,7 @@ export const useStore = create<StoreState>((set, get) => {
     sessionsLoading: false,
 
     setFirebaseUser: (fbUser) => {
-      console.log("[AUTH] Firebase state:", fbUser ? `authenticated (UID: ${fbUser.uid})` : "unauthenticated");
+      console.log("[AUTH] setFirebaseUser called:", fbUser ? `authenticated (UID: ${fbUser.uid})` : "unauthenticated");
       if (fbUser) {
         localStorage.setItem("oneday_session_active", "true");
         localStorage.setItem("oneday_firebase_uid", fbUser.uid);
@@ -214,21 +218,24 @@ export const useStore = create<StoreState>((set, get) => {
     setTitleLossData: (data) => set({ titleLossData: data }),
 
     refreshFromBackend: async () => {
-      if (get().loading) {
-        console.log("[STARTUP SEQUENCE - Guard] Backend request already in progress, ignoring duplicate call.");
+      const activeFbUser = auth.currentUser || get().firebaseUser;
+
+      if (!activeFbUser) {
+        console.warn("[AUTH] No authenticated Firebase user present, skipping backend sync.");
+        set({ loading: false, profileSynced: false });
         return;
       }
-      if (!auth.currentUser && localStorage.getItem("oneday_session_active") !== "true") {
-        console.warn("[Auth Step - Sync Skipped] No auth.currentUser and no cached session present.");
+
+      if (get().loading) {
+        console.log("[AUTH] Backend sync already in progress, ignoring duplicate call.");
         return;
       }
 
       const reqVersion = get().profileVersion;
-      console.log(`[PROFILE] request started (version: ${reqVersion})`);
+      console.log("[AUTH] Backend authentication started");
       set({ loading: true, backendError: null });
 
       try {
-        // 60-second timeout for dashboard service
         const timeoutPromise = new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error("Connection timed out. Uplink took more than 60 seconds to respond.")), 60000)
         );
@@ -238,10 +245,10 @@ export const useStore = create<StoreState>((set, get) => {
           timeoutPromise
         ]);
 
-        console.log(`[PROFILE] response received (reqVersion: ${reqVersion}, currentVersion: ${get().profileVersion})`);
+        console.log("[AUTH] Backend response:", data);
 
         if (get().profileVersion > reqVersion) {
-          console.log(`[STALE] ignored response (reqVersion ${reqVersion} < current ${get().profileVersion})`);
+          console.log("[STALE] Ignored response due to higher profile version.");
           set({ loading: false });
           return;
         }
@@ -254,7 +261,7 @@ export const useStore = create<StoreState>((set, get) => {
               titleUnlockData: {
                 title: root?.title || userObj?.title || "IRON MIND",
                 signature: root?.signature || userObj?.signature || "You've proven consistency isn't luck. It's your identity.",
-                level: root?.level || userObj?.level || data.user.level || 1,
+                level: root?.level || userObj?.level || data?.user?.level || 1,
               }
             });
           }
@@ -277,59 +284,51 @@ export const useStore = create<StoreState>((set, get) => {
         if (finalUser) {
           localStorage.setItem("oneday_cached_user", JSON.stringify(finalUser));
         }
+
+        console.log("[AUTH] Profile loaded:", finalUser?.name || finalUser?.email || "User");
+        console.log("[AUTH] needsOnboarding:", !hasCompletedOnboarding(finalUser));
+
         set({
           user: finalUser,
-          habits: safeArray(data.habits),
-          quote: data.quote,
+          habits: safeArray(data?.habits),
+          quote: data?.quote || "Discipline makes it all.",
           loading: false,
           profileSynced: true,
+          backendError: null,
         });
 
-        // Concurrently load chat sessions
         get().fetchSessions();
       } catch (err: any) {
-        console.error("[STARTUP SEQUENCE - Sync Error] refreshFromBackend failed:", err);
+        console.error("[AUTH] Backend sync error:", err);
 
-        const isAuthErr =
-          err?.isAuthError ||
-          err?.response?.status === 401 ||
-          err?.message?.includes("Cannot read properties of undefined") ||
-          err?.message?.includes("length");
-
-        // If backend auth/token error or unauthenticated state, clear stale session and route cleanly to landing
-        if (isAuthErr || !auth.currentUser) {
-          console.warn("[STARTUP SEQUENCE] Token invalid or unauthenticated session. Clearing stale cache and routing to landing.");
-          localStorage.removeItem("oneday_session_active");
-          localStorage.removeItem("oneday_firebase_token");
-          localStorage.removeItem("oneday_cached_user");
-          set({
-            firebaseUser: null,
-            user: null,
-            habits: [],
-            chatSessions: [],
-            chatMessages: [],
-            loading: false,
-            backendError: null,
-            initialized: true,
-            profileSynced: false,
-          });
-          return;
+        // DO NOT log out user or clear firebaseUser if Firebase Auth user exists!
+        // Construct fallback profile or use cached state
+        let activeUser = get().user;
+        if (!activeUser) {
+          activeUser = {
+            id: activeFbUser.uid,
+            userId: activeFbUser.uid,
+            name: activeFbUser.displayName || activeFbUser.email?.split("@")[0] || "Striker",
+            email: activeFbUser.email || "",
+            xp: 0,
+            streak: 0,
+            level: 1,
+            levelProgress: 0,
+            onboarded: false,
+            hasCompletedOnboarding: false,
+            needsOnboarding: true,
+          };
         }
 
-        // If cached user exists, fall back to offline cached state
-        if (get().user) {
-          console.warn("[STARTUP SEQUENCE] Refresh failed but cached user exists, continuing in fallback mode.");
-          set({
-            loading: false,
-            profileSynced: true,
-            backendError: null,
-          });
-          return;
-        }
+        console.log("[AUTH] Fallback user initialized:", activeUser.email);
+        console.log("[AUTH] Profile loaded:", activeUser.name);
+        console.log("[AUTH] needsOnboarding:", !hasCompletedOnboarding(activeUser));
 
         set({
-          backendError: err.message || "Failed to load dashboard data",
+          user: activeUser,
           loading: false,
+          profileSynced: true,
+          backendError: null,
         });
       }
     },
