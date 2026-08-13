@@ -232,7 +232,17 @@ export const useStore = create<StoreState>((set, get) => {
       }
 
       const reqVersion = get().profileVersion;
-      console.log("[AUTH] Backend authentication started");
+      console.error("[SYNC 1] Firebase user:", activeFbUser.email || activeFbUser.displayName || activeFbUser.uid);
+      console.error("[SYNC 2] Firebase UID:", activeFbUser.uid);
+
+      let token = "";
+      try {
+        token = await activeFbUser.getIdToken();
+      } catch (tErr) {
+        console.warn("Failed to acquire ID token in refreshFromBackend:", tErr);
+      }
+      console.error("[SYNC 3] Token acquired:", !!token);
+
       set({ loading: true, backendError: null });
 
       try {
@@ -297,9 +307,11 @@ export const useStore = create<StoreState>((set, get) => {
           backendError: null,
         });
 
+        console.error("[SYNC 10] Sync completed");
         get().fetchSessions();
       } catch (err: any) {
-        console.error("[AUTH] Backend sync error:", err);
+        console.error("[SYNC ERROR]", err);
+        console.error("[SYNC ERROR STACK]", err?.stack);
 
         const errorMsg = err?.message || "Failed to sync profile with server.";
 
