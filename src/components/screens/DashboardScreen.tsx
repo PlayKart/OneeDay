@@ -8,6 +8,7 @@ import { toast } from "react-hot-toast";
 
 import { isHabitScheduledForToday } from "../../lib/habitUtils";
 import { getDynamicGreeting } from "../../utils/greetingUtils";
+import { calculateLevelProgress } from "../../utils";
 
 export function DashboardScreen() {
   const { user, habits, deactivateFreeze, refreshFromBackend, setActiveTab } = useStore();
@@ -59,6 +60,15 @@ export function DashboardScreen() {
   const completedToday = safeHabits.filter(h => h && h.completedToday).length; 
   const totalHabits = todaysHabits.length;
   const completionPercentage = totalHabits === 0 ? 0 : Math.round((completedToday / totalHabits) * 100);
+
+  // Authoritative Level & XP Progression calculation
+  const currentXP = typeof user.xp === "number" && !isNaN(user.xp) ? Math.max(0, user.xp) : 0;
+  const currentLevel = typeof user.level === "number" && !isNaN(user.level) && user.level >= 1 ? Math.floor(user.level) : 1;
+  const xpRequiredForNextLevel = 100;
+  const progressPercentage = calculateLevelProgress(currentXP, currentLevel, xpRequiredForNextLevel);
+
+  // Diagnostic logging
+  console.log(`[XP DEBUG]\ncurrentXP: ${currentXP}\ncurrentLevel: ${currentLevel}\nxpRequiredForNextLevel: ${xpRequiredForNextLevel}\ncalculatedProgress: ${progressPercentage}`);
 
   // Active Freeze Checking
   const isFrozen = user.freeze_until && new Date(user.freeze_until) > new Date();
@@ -222,7 +232,7 @@ export function DashboardScreen() {
                 <span>Level Progression</span>
                 {xpPop && <motion.span initial={{ scale: 0.6 }} animate={{ scale: 1 }} className="text-[8px] font-black uppercase text-amber-300 bg-amber-500/20 px-1 rounded-full">XP UP</motion.span>}
               </div>
-              <div className="text-lg font-black text-white mt-0.5">Level {user.level}</div>
+              <div className="text-lg font-black text-white mt-0.5">Level {currentLevel}</div>
             </div>
             <div className="text-right">
               <div className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Current XP</div>
@@ -230,7 +240,7 @@ export function DashboardScreen() {
                 animate={xpPop ? { scale: [1, 1.15, 1], color: ["#fff", "#fbbf24", "#fff"] } : {}}
                 className="text-sm font-black text-white mt-0.5"
               >
-                {user.xp} <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">XP</span>
+                {currentXP} <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">XP</span>
               </motion.div>
             </div>
           </div>
@@ -238,14 +248,14 @@ export function DashboardScreen() {
             <div className="w-full bg-white/10 h-2 rounded-full overflow-hidden">
               <motion.div 
                 initial={{ width: 0 }}
-                animate={{ width: `${Math.min(100, Math.max(0, user.levelProgress || 0))}%` }}
+                animate={{ width: `${progressPercentage}%` }}
                 transition={{ duration: 0.8, ease: "easeOut" }}
                 className="bg-gradient-to-r from-amber-500 to-amber-300 h-full rounded-full" 
               />
             </div>
             <div className="flex items-center justify-between text-[8px] font-bold text-slate-500 uppercase tracking-widest select-none">
-              <span>{Math.round(user.levelProgress || 0)}% Completed</span>
-              <span>{Math.max(0, 100 - Math.round(user.levelProgress || 0))} XP to next level</span>
+              <span>{Math.round(progressPercentage)}% Completed</span>
+              <span>100 XP to next level</span>
             </div>
           </div>
         </motion.div>
@@ -539,21 +549,21 @@ export function DashboardScreen() {
               )}
               <div className="relative z-10">
                 <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1 flex items-center gap-1">
-                  <span>Level {user.level}</span>
-                  {xpPop && <span className="text-[8px] font-black uppercase text-amber-400 bg-amber-500/10 px-1 rounded-full border border-amber-500/20">+{user.xp - prevXp} XP</span>}
+                  <span>Level {currentLevel}</span>
+                  {xpPop && <span className="text-[8px] font-black uppercase text-amber-400 bg-amber-500/10 px-1 rounded-full border border-amber-500/20">+{currentXP - prevXp} XP</span>}
                 </div>
                 <motion.div 
                   animate={xpPop ? { scale: [1, 1.15, 1], color: ["#fff", "#fbbf24", "#fff"] } : {}}
                   className="text-3xl font-black text-white/90"
                 >
-                  {user.xp} <span className="text-xs text-slate-500 font-bold uppercase tracking-widest">XP</span>
+                  {currentXP} <span className="text-xs text-slate-500 font-bold uppercase tracking-widest">XP</span>
                 </motion.div>
               </div>
               {/* Level Ring */}
               <div className="relative w-10 h-10 flex items-center justify-center relative z-10">
                 <svg className="w-full h-full transform -rotate-90">
                   <circle cx="20" cy="20" r="16" className="stroke-white/10" strokeWidth="4" fill="none" />
-                  <circle cx="20" cy="20" r="16" className="stroke-white" strokeWidth="4" fill="none" strokeDasharray="100" strokeDashoffset={100 - user.levelProgress} strokeLinecap="round" />
+                  <circle cx="20" cy="20" r="16" className="stroke-white" strokeWidth="4" fill="none" strokeDasharray="100" strokeDashoffset={100 - progressPercentage} strokeLinecap="round" />
                 </svg>
               </div>
             </motion.div>

@@ -8,7 +8,7 @@ import { habitService } from '../services/habitService';
 import { chatService } from '../services/chatService';
 import { userService } from '../services/userService';
 import { quoteService } from '../services/quoteService';
-import { safeArray, normalizeCompletedDates, normalizeUser, hasCompletedOnboarding } from '../utils';
+import { safeArray, normalizeCompletedDates, normalizeUser, hasCompletedOnboarding, calculateLevelProgress } from '../utils';
 import { apiRequest } from '../api/client';
 import { 
   User as BackendUser, 
@@ -292,7 +292,13 @@ export const useStore = create<StoreState>((set, get) => {
         const currentXp = get().user?.xp ?? 0;
         const fetchedXp = fetchedUser?.xp ?? 0;
         const finalXp = fetchedXp < currentXp ? currentXp : fetchedXp;
-        const finalUser = fetchedUser ? { ...fetchedUser, xp: finalXp } : fetchedUser;
+        const finalUser = fetchedUser
+          ? {
+              ...fetchedUser,
+              xp: finalXp,
+              levelProgress: calculateLevelProgress(finalXp, fetchedUser.level, 100),
+            }
+          : fetchedUser;
 
         if (finalUser) {
           localStorage.setItem("oneday_cached_user", JSON.stringify(finalUser));

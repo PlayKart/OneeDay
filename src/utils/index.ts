@@ -79,6 +79,48 @@ function isUserOnboarded(rawUser: any): boolean | undefined {
 }
 
 /**
+ * Calculates level progression percentage from authoritative XP and Level values.
+ * Progress = (currentLevelXP / xpRequiredForNextLevel) * 100
+ * Clamped between 0 and 100.
+ */
+export function calculateLevelProgress(
+  xp: number | undefined | null,
+  level: number | undefined | null,
+  xpRequiredForNextLevel: number = 100
+): number {
+  const safeXP = typeof xp === "number" && !isNaN(xp) ? Math.max(0, xp) : 0;
+  const safeLevel = typeof level === "number" && !isNaN(level) && level >= 1 ? Math.floor(level) : 1;
+  const safeRequiredXP = typeof xpRequiredForNextLevel === "number" && !isNaN(xpRequiredForNextLevel) && xpRequiredForNextLevel > 0
+    ? xpRequiredForNextLevel
+    : 100;
+
+  // Determine currentLevelXP based on whether XP is cumulative or per-level
+  let currentLevelXP = safeXP;
+  const levelCumulativeBase = (safeLevel - 1) * safeRequiredXP;
+
+  if (safeXP >= levelCumulativeBase) {
+    currentLevelXP = safeXP - levelCumulativeBase;
+    // If XP is higher than one level worth above base (pending level-up threshold), cap within level
+    if (currentLevelXP > safeRequiredXP) {
+      currentLevelXP = currentLevelXP % safeRequiredXP;
+    }
+  } else {
+    // safeXP is stored directly as per-level XP (less than cumulative base)
+    if (currentLevelXP > safeRequiredXP) {
+      currentLevelXP = currentLevelXP % safeRequiredXP;
+    }
+  }
+
+  const progressPercentage = (currentLevelXP / safeRequiredXP) * 100;
+
+  if (isNaN(progressPercentage) || !isFinite(progressPercentage)) {
+    return 0;
+  }
+
+  return Math.min(100, Math.max(0, progressPercentage));
+}
+
+/**
  * Normalizes backend user response data into a standard User object, prioritizing backend values for streak, xp, level.
  */
 export function normalizeUser(u: any, existingUser?: User | null): User {
@@ -165,9 +207,7 @@ export function normalizeUser(u: any, existingUser?: User | null): User {
 
   const finalLevel = typeof levelVal === "number" ? levelVal : (existingUser?.level ?? 1);
   const finalXp = typeof xpVal === "number" ? xpVal : (existingUser?.xp ?? 0);
-  const currentLevelThreshold = (finalLevel - 1) * 100;
-  const nextLevelThreshold = finalLevel * 100;
-  const calculatedLevelProgress = Math.min(100, Math.max(0, ((finalXp - currentLevelThreshold) / (nextLevelThreshold - currentLevelThreshold)) * 100));
+  const calculatedLevelProgress = calculateLevelProgress(finalXp, finalLevel, 100);
 
   return {
     id:
