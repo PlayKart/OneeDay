@@ -159,7 +159,7 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
             </div>
             
             <div className="flex items-center gap-2 shrink-0">
-              <button 
+              <motion.button 
                 onClick={async () => {
                   if (isPending) return;
                   if (!isToday && !habit.completedToday) {
@@ -200,35 +200,37 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
                   }
                 }}
                 disabled={loading || isPending}
-                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                whileTap={{ scale: 0.85 }}
+                className={`w-12 h-12 rounded-full flex items-center justify-center transition-all cursor-pointer ${
                   isPending
                     ? 'bg-white/10 text-white cursor-wait border border-white/20'
                     : habit.completedToday 
-                      ? 'bg-white text-black hover:bg-red-500 hover:text-white' 
+                      ? 'bg-white text-black hover:bg-red-500 hover:text-white border border-transparent' 
                       : (isToday ? 'bg-white/5 border border-white/10 group-hover:border-white/30 text-transparent hover:text-white' : 'bg-white/5 border border-white/5 opacity-50 cursor-not-allowed')
                 }`}
               >
                 {isPending ? (
-                  <Loader2 size={16} className="animate-spin text-white" />
+                  <Loader2 size={18} className="animate-spin text-white" />
                 ) : (
-                  <Check size={16} className={habit.completedToday ? '' : (isToday ? 'group-hover:text-white/20' : 'text-white/10')} />
+                  <Check size={18} className={habit.completedToday ? '' : (isToday ? 'group-hover:text-white/20' : 'text-white/10')} />
                 )}
-              </button>
+              </motion.button>
               
               <div className="relative">
-                <button
+                <motion.button
                   type="button"
                   aria-label={`Options menu for ${habit.name}`}
                   aria-expanded={activeDropdownId === habit.id}
                   aria-haspopup="true"
+                  whileTap={{ scale: 0.9 }}
                   onClick={(e) => {
                     e.stopPropagation();
                     setActiveDropdownId(prev => prev === habit.id ? null : habit.id);
                   }}
-                  className="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-white transition-colors rounded-xl focus:outline-none focus:ring-2 focus:ring-white/20"
+                  className="w-11 h-11 flex items-center justify-center text-slate-500 hover:text-white transition-colors rounded-xl focus:outline-none focus:ring-2 focus:ring-white/20 cursor-pointer"
                 >
                   <MoreVertical size={16} />
-                </button>
+                </motion.button>
 
                 <AnimatePresence>
                   {activeDropdownId === habit.id && (
@@ -316,19 +318,25 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
     <AnimatePresence>
       {deleteConfirmationHabit && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+          className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-labelledby="delete-habit-modal-title"
           aria-describedby="delete-habit-modal-desc"
         >
+          {/* Backdrop overlay clickable to dismiss */}
+          <div className="absolute inset-0" onClick={() => setDeleteConfirmationHabit(null)} />
+          
           <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="bg-[#111] p-6 rounded-2xl border border-white/10 max-w-sm w-full shadow-2xl relative"
+            initial={{ y: "100%", opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: "100%", opacity: 0 }}
+            transition={{ type: "spring", damping: 30, stiffness: 350 }}
+            className="bg-[#0c0c0c] p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6 rounded-t-[2rem] sm:rounded-2xl border border-white/10 w-full sm:max-w-sm shadow-2xl relative z-10"
           >
+            {/* Native sheet drag handle */}
+            <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-4 block sm:hidden" />
+
             <h3 id="delete-habit-modal-title" className="text-lg font-bold text-white text-center leading-snug">
               Delete Habit?
             </h3>
@@ -340,7 +348,7 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
                 type="button"
                 disabled={isDeleting}
                 onClick={() => setDeleteConfirmationHabit(null)}
-                className="flex-1 py-3 focus:outline-none rounded-xl bg-white/5 text-white font-bold hover:bg-white/10 transition-all uppercase tracking-wider text-xs border border-white/10 disabled:opacity-50"
+                className="flex-1 py-3 focus:outline-none rounded-xl bg-white/5 text-white font-bold hover:bg-white/10 transition-all uppercase tracking-wider text-xs border border-white/10 disabled:opacity-50 cursor-pointer h-12"
               >
                 Cancel
               </button>
@@ -348,7 +356,7 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
                 type="button"
                 disabled={isDeleting}
                 onClick={() => handleConfirmDelete(deleteConfirmationHabit)}
-                className="flex-1 py-3 focus:outline-none rounded-xl bg-red-600 text-white font-bold hover:bg-red-500 transition-all uppercase tracking-wider text-xs shadow-lg shadow-red-600/20 disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 py-3 focus:outline-none rounded-xl bg-red-600 text-white font-bold hover:bg-red-500 transition-all uppercase tracking-wider text-xs shadow-lg shadow-red-600/20 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer h-12"
               >
                 {isDeleting ? (
                   <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
@@ -365,20 +373,27 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
     {/* Custom Confirm Modal */}
     <AnimatePresence>
       {confirmModal.isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-sm">
+          {/* Backdrop overlay clickable to dismiss */}
+          <div className="absolute inset-0" onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })} />
+
           <motion.div 
-            initial={{ scale: 0.9, opacity: 0 }} 
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            className="bg-[#111] p-6 rounded-2xl border border-white/10 max-w-sm w-full shadow-2xl"
+            initial={{ y: "100%", opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: "100%", opacity: 0 }}
+            transition={{ type: "spring", damping: 30, stiffness: 350 }}
+            className="bg-[#0c0c0c] p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6 rounded-t-[2rem] sm:rounded-2xl border border-white/10 w-full sm:max-w-sm shadow-2xl relative z-10"
           >
-            <h3 className="text-lg font-bold mb-8 text-white text-center leading-snug">{confirmModal.title}</h3>
+            {/* Native sheet drag handle */}
+            <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-4 block sm:hidden" />
+
+            <h3 className="text-base font-bold mb-6 text-white text-center leading-snug px-4">{confirmModal.title}</h3>
             <div className="flex gap-3">
               <button 
                 type="button"
                 disabled={isSubmittingModal}
                 onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })} 
-                className="flex-1 py-3 focus:outline-none rounded-xl bg-white/5 text-white font-bold hover:bg-white/10 transition-all uppercase tracking-wider text-xs border border-white/10 disabled:opacity-50"
+                className="flex-1 py-3 focus:outline-none rounded-xl bg-white/5 text-white font-bold hover:bg-white/10 transition-all uppercase tracking-wider text-xs border border-white/10 disabled:opacity-50 cursor-pointer h-12"
               >
                 Nope
               </button>
@@ -394,7 +409,7 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
                     setIsSubmittingModal(false);
                   }
                 }} 
-                className="flex-1 py-3 focus:outline-none rounded-xl bg-white text-black font-bold hover:bg-slate-200 transition-all uppercase tracking-wider text-xs disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 py-3 focus:outline-none rounded-xl bg-white text-black font-bold hover:bg-slate-200 transition-all uppercase tracking-wider text-xs disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer h-12"
               >
                 {isSubmittingModal ? (
                   <Loader2 size={16} className="animate-spin text-black" />

@@ -121,24 +121,33 @@ export function DashboardScreen() {
 
         {/* 3. Quick Stats */}
         <div className="grid grid-cols-2 gap-3 w-full">
-          <div className="bg-white/5 border border-white/10 p-4 rounded-2xl flex flex-col gap-1 w-full">
+          <motion.div 
+            whileTap={{ scale: 0.97 }}
+            className="bg-white/5 border border-white/10 p-4 rounded-2xl flex flex-col gap-1 w-full select-none"
+          >
             <Target className="text-slate-400" size={16} />
             <div className="text-xl font-black text-white">{completionPercentage}%</div>
             <div className="text-[9px] font-bold uppercase text-slate-500 tracking-wider">Today's Progress</div>
-          </div>
-          <div className="bg-white/5 border border-white/10 p-4 rounded-2xl flex flex-col gap-1 w-full">
+          </motion.div>
+          <motion.div 
+            whileTap={{ scale: 0.97 }}
+            className="bg-white/5 border border-white/10 p-4 rounded-2xl flex flex-col gap-1 w-full select-none"
+          >
             <Zap className="text-slate-400" size={16} />
             <div className="text-xl font-black text-white">{completedToday}/{totalHabits}</div>
             <div className="text-[9px] font-bold uppercase text-slate-500 tracking-wider">Habits Done</div>
-          </div>
+          </motion.div>
         </div>
 
         {/* 4. Current Streak */}
-        <div className={`w-full border rounded-2xl p-4 flex items-center justify-between gap-4 backdrop-blur-md ${
-          isFrozen 
-            ? "bg-cyan-950/20 border-cyan-500/30 text-cyan-200" 
-            : "bg-white/5 border-white/10 text-white"
-        }`}>
+        <motion.div 
+          whileTap={{ scale: 0.98 }}
+          className={`w-full border rounded-2xl p-4 flex items-center justify-between gap-4 backdrop-blur-md select-none transition-all duration-300 ${
+            isFrozen 
+              ? "bg-cyan-950/20 border-cyan-500/30 text-cyan-200" 
+              : "bg-white/5 border-white/10 text-white"
+          }`}
+        >
           <div>
             <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">
               {isFrozen ? "Frozen Streak" : "Current Streak"}
@@ -150,10 +159,13 @@ export function DashboardScreen() {
           <div className="text-2xl animate-pulse">
             {isFrozen ? "❄️" : "🔥"}
           </div>
-        </div>
+        </motion.div>
 
         {/* 5. Level & XP Progress */}
-        <div className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col gap-3 backdrop-blur-md">
+        <motion.div 
+          whileTap={{ scale: 0.98 }}
+          className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col gap-3 backdrop-blur-md select-none"
+        >
           <div className="flex items-center justify-between">
             <div>
               <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Level {user.level}</div>
@@ -173,7 +185,7 @@ export function DashboardScreen() {
               style={{ width: `${Math.min(100, Math.max(0, user.levelProgress || 0))}%` }} 
             />
           </div>
-        </div>
+        </motion.div>
 
         {/* 6. Today's Habits */}
         <div className="w-full bg-white/5 border border-white/10 rounded-2xl p-4">
@@ -185,7 +197,11 @@ export function DashboardScreen() {
         </div>
 
         {/* 7. AI Coach Card */}
-        <div className="w-full bg-gradient-to-r from-purple-950/30 via-indigo-950/20 to-purple-950/30 border border-purple-500/30 rounded-2xl p-4 flex items-center justify-between gap-3">
+        <motion.div
+          whileTap={{ scale: 0.98 }}
+          onClick={() => setActiveTab("coach")}
+          className="w-full bg-gradient-to-r from-purple-950/30 via-indigo-950/20 to-purple-950/30 border border-purple-500/30 rounded-2xl p-4 flex items-center justify-between gap-3 cursor-pointer select-none hover:border-purple-500/50 transition-all duration-300"
+        >
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-300 shrink-0">
               <Sparkles size={18} />
@@ -195,13 +211,10 @@ export function DashboardScreen() {
               <p className="text-[10px] text-slate-400 truncate">Personalized strategy & motivation.</p>
             </div>
           </div>
-          <button
-            onClick={() => setActiveTab("coach")}
-            className="px-3 py-2 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 rounded-xl text-purple-300 text-[11px] font-extrabold flex items-center gap-1 shrink-0 transition-all active:scale-95"
-          >
+          <div className="px-3 py-2 bg-purple-500/20 border border-purple-500/40 rounded-xl text-purple-300 text-[11px] font-extrabold flex items-center gap-1 shrink-0">
             Chat <ArrowRight size={14} />
-          </button>
-        </div>
+          </div>
+        </motion.div>
 
         {/* 8. Recent Activity */}
         <div className="w-full bg-white/5 border border-white/10 rounded-2xl p-4">

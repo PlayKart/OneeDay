@@ -797,7 +797,7 @@ export const AICoach = () => {
         </div>
 
         {/* BOTTOM INPUT BAR */}
-        <div className="shrink-0 p-3 md:p-4 bg-[#080808] border-t border-white/10 z-20 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+        <div className="shrink-0 p-3 md:p-4 bg-[#080808] border-t border-white/10 z-20 pb-4">
           <div className="max-w-2xl mx-auto w-full">
             
             {safeChatMessages.length > 0 && safeChatMessages.length < 5 && (
@@ -820,6 +820,11 @@ export const AICoach = () => {
                 rows={1}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
+                onFocus={() => {
+                  setTimeout(() => {
+                    scrollToBottom(true);
+                  }, 150);
+                }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
