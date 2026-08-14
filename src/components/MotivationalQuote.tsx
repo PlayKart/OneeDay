@@ -147,24 +147,24 @@ export const MotivationalQuote = () => {
   if (!user) return null;
 
   return (
-    <div id="mindset-component-wrapper" className="relative z-10 w-full my-4">
-      <div className="relative overflow-hidden bg-black text-white rounded-3xl border border-white/10 p-8 md:p-12 shadow-2xl">
+    <div id="mindset-component-wrapper" className="relative z-10 w-full my-1 sm:my-4">
+      <div className="relative overflow-hidden bg-black text-white rounded-2xl border border-white/10 p-5 sm:p-8 shadow-2xl">
         {/* Subtle decorative glow in background */}
         <div className="absolute -inset-10 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.03),transparent_65%)] pointer-events-none" />
         
         {/* Small label & Timer Row */}
-        <div className="relative z-10 flex flex-row items-center justify-between mb-8 text-xs font-bold uppercase tracking-widest text-zinc-500 select-none">
-          <div className="flex items-center gap-2">
-            <Sparkles size={14} className="text-zinc-400 animate-pulse" />
-            <span className="text-[10px] text-zinc-400 tracking-[0.2em] font-extrabold">AI Mindset</span>
+        <div className="relative z-10 flex flex-row items-center justify-between mb-4 sm:mb-6 text-[10px] font-bold uppercase tracking-widest text-zinc-500 select-none">
+          <div className="flex items-center gap-1.5">
+            <Sparkles size={12} className="text-zinc-400 animate-pulse" />
+            <span className="text-[9px] text-zinc-400 tracking-[0.2em] font-extrabold">AI Mindset</span>
           </div>
-          <div className="font-mono text-[9px] text-zinc-500 tracking-wider">
-            Next mindset in <span className="text-zinc-400">{formatTime(timeLeft)}</span>
+          <div className="font-mono text-[8px] text-zinc-500 tracking-wider">
+            Next in <span className="text-zinc-400 font-bold">{formatTime(timeLeft)}</span>
           </div>
         </div>
 
         {/* Mindset Content (large typography, visual focus) */}
-        <div className="relative z-10 min-h-[120px] flex flex-col justify-center">
+        <div className="relative z-10 min-h-[60px] sm:min-h-[100px] flex flex-col justify-center">
           <AnimatePresence mode="wait">
             {loading ? (
               <motion.div
@@ -173,24 +173,24 @@ export const MotivationalQuote = () => {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.3 }}
-                className="space-y-4 animate-pulse"
+                className="space-y-3 animate-pulse"
               >
-                <div className="h-7 bg-zinc-900 rounded-lg w-5/6" />
-                <div className="h-7 bg-zinc-900 rounded-lg w-2/3" />
-                <div className="h-3 bg-zinc-900/50 rounded-lg w-1/4 mt-6" />
+                <div className="h-5 bg-zinc-900 rounded-md w-5/6" />
+                <div className="h-5 bg-zinc-900 rounded-md w-2/3" />
+                <div className="h-2.5 bg-zinc-900/50 rounded-md w-1/4 mt-4" />
               </motion.div>
             ) : (
               <motion.div
                 key={currentMindset}
-                initial={{ opacity: 0, y: 12 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -12 }}
-                transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
               >
-                <h2 className="text-2xl md:text-4xl font-semibold tracking-tight leading-snug text-zinc-100 font-sans">
+                <h2 className="text-sm sm:text-lg md:text-xl font-medium tracking-tight leading-relaxed text-zinc-200 font-sans">
                   "{currentMindset}"
                 </h2>
-                <div className="mt-8 flex items-center gap-4 text-[9px] text-zinc-500 font-bold tracking-[0.2em] uppercase select-none">
+                <div className="mt-4 sm:mt-6 flex items-center gap-3 text-[8px] text-zinc-500 font-bold tracking-[0.2em] uppercase select-none">
                   <span>Protocol OneDay.v1</span>
                   <span className="w-1 h-1 rounded-full bg-zinc-800" />
                   <span>Mindset Feed</span>
