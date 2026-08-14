@@ -16,6 +16,7 @@ export const HabitList = ({ previewMode = false, onCreateClick }: { previewMode?
   const [deleteConfirmationHabit, setDeleteConfirmationHabit] = useState<Habit | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSubmittingModal, setIsSubmittingModal] = useState(false);
+  const [floatingXp, setFloatingXp] = useState<Record<string, number>>({});
 
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -187,6 +188,7 @@ export const HabitList = ({ previewMode = false, onCreateClick }: { previewMode?
                     try {
                       const res = await completeHabit(habit.id);
                       const xpAwarded = extractXpAwarded(res, habit.difficulty);
+                      setFloatingXp(prev => ({ ...prev, [habit.id]: xpAwarded }));
                       toast.success(`+${xpAwarded} XP`);
                       if (typeof navigator !== 'undefined' && navigator.vibrate) {
                         navigator.vibrate([15, 30]);
@@ -199,7 +201,9 @@ export const HabitList = ({ previewMode = false, onCreateClick }: { previewMode?
                 }}
                 disabled={loading || isPending}
                 whileTap={{ scale: 0.85 }}
-                className={`w-12 h-12 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+                animate={habit.completedToday ? { scale: [1, 1.25, 1], rotate: [0, 10, -10, 0] } : {}}
+                transition={{ duration: 0.4 }}
+                className={`w-12 h-12 rounded-full flex items-center justify-center transition-all cursor-pointer relative ${
                   isPending
                     ? 'bg-white/10 text-white cursor-wait border border-white/20'
                     : habit.completedToday 
@@ -213,6 +217,27 @@ export const HabitList = ({ previewMode = false, onCreateClick }: { previewMode?
                   <Check size={18} className={habit.completedToday ? '' : (isToday ? 'text-white/40 sm:group-hover:text-white/20' : 'text-white/10')} />
                 )}
               </motion.button>
+
+              <AnimatePresence>
+                {floatingXp[habit.id] !== undefined && (
+                  <motion.div
+                    key={`xp-${habit.id}`}
+                    initial={{ opacity: 0, y: 10, scale: 0.8 }}
+                    animate={{ opacity: [0, 1, 1, 0], y: [-10, -45, -55, -60], scale: [0.9, 1.25, 1.1, 0.8] }}
+                    transition={{ duration: 1.1, times: [0, 0.2, 0.8, 1], ease: "easeOut" }}
+                    onAnimationComplete={() => {
+                      setFloatingXp(prev => {
+                        const copy = { ...prev };
+                        delete copy[habit.id];
+                        return copy;
+                      });
+                    }}
+                    className="absolute -top-4 right-14 pointer-events-none text-amber-400 font-black text-[11px] uppercase tracking-widest drop-shadow-[0_0_12px_rgba(245,158,11,0.7)] whitespace-nowrap select-none z-[60]"
+                  >
+                    +{floatingXp[habit.id]} XP
+                  </motion.div>
+                )}
+              </AnimatePresence>
               
               <div className="relative">
                 <motion.button

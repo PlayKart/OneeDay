@@ -16,6 +16,27 @@ export function DashboardScreen() {
   const [greeting] = useState(() => getDynamicGreeting((user as any)?.greeting));
   const [isStreakSheetOpen, setIsStreakSheetOpen] = useState(false);
 
+  // Premium XP & Level change tracking
+  const [prevXp, setPrevXp] = useState<number>(user?.xp ?? 0);
+  const [prevLevel, setPrevLevel] = useState<number>(user?.level ?? 1);
+  const [xpPop, setXpPop] = useState(false);
+  const [showLevelUp, setShowLevelUp] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    if (user.xp !== prevXp) {
+      setXpPop(true);
+      const timer = setTimeout(() => setXpPop(false), 900);
+      setPrevXp(user.xp);
+    }
+    if (user.level > prevLevel) {
+      setShowLevelUp(true);
+      setPrevLevel(user.level);
+    } else if (user.level < prevLevel) {
+      setPrevLevel(user.level);
+    }
+  }, [user?.xp, user?.level, prevXp, prevLevel]);
+
   // Refresh fresh user data from backend whenever Dashboard is opened
   useEffect(() => {
     refreshFromBackend();
@@ -183,19 +204,37 @@ export function DashboardScreen() {
         {/* 6. Level & XP Progress */}
         <motion.div 
           whileTap={{ scale: 0.98 }}
-          className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col gap-3 backdrop-blur-md select-none"
+          animate={xpPop ? { scale: [1, 1.02, 1], borderColor: ["rgba(255,255,255,0.1)", "rgba(245,158,11,0.4)", "rgba(255,255,255,0.1)"] } : {}}
+          transition={{ duration: 0.4 }}
+          className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col gap-3 backdrop-blur-md select-none relative overflow-hidden"
         >
-          <div className="flex items-center justify-between">
+          {xpPop && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: [0, 0.12, 0] }}
+              transition={{ duration: 0.6 }}
+              className="absolute inset-0 bg-amber-500 rounded-2xl pointer-events-none filter blur-xl"
+            />
+          )}
+          <div className="flex items-center justify-between relative z-10">
             <div>
-              <div className="text-[9px] font-bold uppercase tracking-widest text-amber-400">Level Progression</div>
+              <div className="text-[9px] font-bold uppercase tracking-widest text-amber-400 flex items-center gap-1">
+                <span>Level Progression</span>
+                {xpPop && <motion.span initial={{ scale: 0.6 }} animate={{ scale: 1 }} className="text-[8px] font-black uppercase text-amber-300 bg-amber-500/20 px-1 rounded-full">XP UP</motion.span>}
+              </div>
               <div className="text-lg font-black text-white mt-0.5">Level {user.level}</div>
             </div>
             <div className="text-right">
               <div className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Current XP</div>
-              <div className="text-sm font-black text-white mt-0.5">{user.xp} <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">XP</span></div>
+              <motion.div 
+                animate={xpPop ? { scale: [1, 1.15, 1], color: ["#fff", "#fbbf24", "#fff"] } : {}}
+                className="text-sm font-black text-white mt-0.5"
+              >
+                {user.xp} <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">XP</span>
+              </motion.div>
             </div>
           </div>
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 relative z-10">
             <div className="w-full bg-white/10 h-2 rounded-full overflow-hidden">
               <motion.div 
                 initial={{ width: 0 }}
@@ -302,7 +341,15 @@ export function DashboardScreen() {
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: "100%", opacity: 0 }}
               transition={{ type: "spring", damping: 30, stiffness: 350 }}
-              className="bg-[#0c0c0c] p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6 rounded-t-[2rem] sm:rounded-2xl border border-white/10 w-full sm:max-w-sm shadow-2xl relative z-10 text-left"
+              drag="y"
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={{ top: 0.1, bottom: 0.8 }}
+              onDragEnd={(e, info) => {
+                if (info.offset.y > 100) {
+                  setIsStreakSheetOpen(false);
+                }
+              }}
+              className="bg-[#0c0c0c] p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6 rounded-t-[2rem] sm:rounded-2xl border border-white/10 w-full sm:max-w-sm shadow-2xl relative z-10 text-left touch-none"
             >
               {/* Native sheet drag handle */}
               <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-6 block sm:hidden" />
@@ -477,19 +524,39 @@ export function DashboardScreen() {
               </div>
             </div>
             
-            <div className="bg-white/5 border border-white/10 rounded-2xl px-6 py-4 flex items-center justify-between gap-6 md:grow-0 backdrop-blur-md">
-              <div>
-                <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Level {user.level}</div>
-                <div className="text-3xl font-black text-white/90">{user.xp} <span className="text-xs text-slate-500 font-bold uppercase tracking-widest">XP</span></div>
+            <motion.div 
+              animate={xpPop ? { scale: [1, 1.03, 1], borderColor: ["rgba(255,255,255,0.1)", "rgba(245,158,11,0.4)", "rgba(255,255,255,0.1)"] } : {}}
+              transition={{ duration: 0.4 }}
+              className="bg-white/5 border border-white/10 rounded-2xl px-6 py-4 flex items-center justify-between gap-6 md:grow-0 backdrop-blur-md relative overflow-hidden"
+            >
+              {xpPop && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: [0, 0.1, 0] }}
+                  transition={{ duration: 0.6 }}
+                  className="absolute inset-0 bg-amber-500 rounded-2xl pointer-events-none filter blur-lg"
+                />
+              )}
+              <div className="relative z-10">
+                <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1 flex items-center gap-1">
+                  <span>Level {user.level}</span>
+                  {xpPop && <span className="text-[8px] font-black uppercase text-amber-400 bg-amber-500/10 px-1 rounded-full border border-amber-500/20">+{user.xp - prevXp} XP</span>}
+                </div>
+                <motion.div 
+                  animate={xpPop ? { scale: [1, 1.15, 1], color: ["#fff", "#fbbf24", "#fff"] } : {}}
+                  className="text-3xl font-black text-white/90"
+                >
+                  {user.xp} <span className="text-xs text-slate-500 font-bold uppercase tracking-widest">XP</span>
+                </motion.div>
               </div>
               {/* Level Ring */}
-              <div className="relative w-10 h-10 flex items-center justify-center">
+              <div className="relative w-10 h-10 flex items-center justify-center relative z-10">
                 <svg className="w-full h-full transform -rotate-90">
                   <circle cx="20" cy="20" r="16" className="stroke-white/10" strokeWidth="4" fill="none" />
                   <circle cx="20" cy="20" r="16" className="stroke-white" strokeWidth="4" fill="none" strokeDasharray="100" strokeDashoffset={100 - user.levelProgress} strokeLinecap="round" />
                 </svg>
               </div>
-            </div>
+            </motion.div>
           </div>
         </header>
 
@@ -516,6 +583,55 @@ export function DashboardScreen() {
         </section>
 
       </motion.div>
+
+      {/* Level Up Premium Celebration Overlay */}
+      <AnimatePresence>
+        {showLevelUp && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/90 backdrop-blur-md"
+              onClick={() => setShowLevelUp(false)}
+            />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 30 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 30 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative bg-[#0c0c0c] border border-amber-500/35 rounded-[2rem] p-8 max-w-sm w-full shadow-[0_0_50px_rgba(245,158,11,0.25)] space-y-6 z-10 text-center overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-gradient-to-b from-amber-500/10 via-transparent to-transparent pointer-events-none" />
+
+              <div className="w-16 h-16 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center justify-center mx-auto text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.15)]">
+                <Trophy size={32} strokeWidth={2.5} />
+              </div>
+
+              <div className="space-y-2">
+                <div className="text-[10px] font-black tracking-widest text-amber-400 uppercase">PROTOCOL UPGRADE</div>
+                <h3 className="text-2xl font-black tracking-tighter text-white uppercase">Level {user.level} Unlocked</h3>
+                <p className="text-slate-400 text-xs leading-relaxed max-w-[240px] mx-auto">
+                  Your commitment is registering at elite level. Keep backing up your claims with daily execution.
+                </p>
+              </div>
+
+              <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4 flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Upgrade Bonus</span>
+                <span className="text-xs font-black text-amber-400">+100 Max Capacity</span>
+              </div>
+
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                onClick={() => setShowLevelUp(false)}
+                className="w-full bg-white hover:bg-slate-200 text-black font-black uppercase tracking-widest text-xs py-4 rounded-xl h-12 transition-all cursor-pointer shadow-lg"
+              >
+                Accept Progression
+              </motion.button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

@@ -867,16 +867,20 @@ export const AICoach = () => {
 
           {/* STREAMING / TYPING LOADER */}
           {chatLoading && (
-            <div className="flex items-start gap-4 max-w-3xl mx-auto">
+            <motion.div 
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-start gap-4 max-w-3xl mx-auto"
+            >
               <div className="w-7 h-7 rounded-full bg-white/5 border border-white/10 text-white flex items-center justify-center shrink-0">
                 <Bot size={11} />
               </div>
-              <div className="py-2.5 px-3 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              <div className="py-2.5 px-3 flex items-center gap-1.5 bg-white/5 border border-white/5 rounded-2xl rounded-tl-sm">
+                <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
               </div>
-            </div>
+            </motion.div>
           )}
           {/* Anchor for auto-scroll */}
           <div ref={messagesEndRef} className="h-4 shrink-0" />
