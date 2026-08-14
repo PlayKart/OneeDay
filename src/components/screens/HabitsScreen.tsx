@@ -36,7 +36,7 @@ export function HabitsScreen() {
       </section>
 
       {/* Mobile Reachable Floating Action Button */}
-      <div className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-6 z-40 sm:hidden">
+      <div className="fixed bottom-[calc(7.2rem+env(safe-area-inset-bottom))] right-6 z-[60] sm:hidden">
         <motion.button
           whileTap={{ scale: 0.9 }}
           onClick={() => setIsModalOpen(true)}
