@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { toast } from "react-hot-toast";
 import { PrivacyPage } from "../PrivacyPage";
 import { TermsPage } from "../TermsPage";
-import { AboutMeSection } from "../AboutMeSection";
+import { ProfileScreen } from "./ProfileScreen";
 
 export function SettingsScreen() {
   const { user, firebaseUser, freezeStreak, deactivateFreeze, resetProgress, deleteAccount } = useStore();
@@ -17,8 +17,28 @@ export function SettingsScreen() {
   const [confirmDeactivate, setConfirmDeactivate] = useState(false);
   const [deactivating, setDeactivating] = useState(false);
 
-  // In-app navigation view for Privacy Policy & Terms & Conditions
-  const [settingsView, setSettingsView] = useState<"main" | "privacy" | "terms">("main");
+  // In-app navigation view for Privacy Policy, Terms, and Profile
+  const [settingsView, setSettingsView] = useState<"main" | "privacy" | "terms" | "profile">("main");
+
+  // Sync internal view navigation with browser history for natural back gesture
+  const handleViewChange = (view: "main" | "privacy" | "terms" | "profile") => {
+    setSettingsView(view);
+    window.history.pushState({ settingsView: view }, "", "");
+  };
+
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      if (event.state && event.state.settingsView) {
+        setSettingsView(event.state.settingsView);
+      } else {
+        setSettingsView("main");
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, []);
 
   // Confirmation dialogs state
   const [confirmSignOut, setConfirmSignOut] = useState(false);
@@ -104,13 +124,23 @@ export function SettingsScreen() {
     return (
       <div className="p-6 md:p-8 max-w-3xl mx-auto space-y-8">
         <button
-          onClick={() => setSettingsView("main")}
+          onClick={() => {
+            setSettingsView("main");
+            if (window.history.state?.settingsView === "privacy") {
+              window.history.back();
+            }
+          }}
           className="group flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm font-bold tracking-tight cursor-pointer"
         >
           <ArrowLeft size={16} className="transform group-hover:-translate-x-1 transition-transform" />
           Back to Settings
         </button>
-        <PrivacyPage onBack={() => setSettingsView("main")} />
+        <PrivacyPage onBack={() => {
+          setSettingsView("main");
+          if (window.history.state?.settingsView === "privacy") {
+            window.history.back();
+          }
+        }} />
       </div>
     );
   }
@@ -119,14 +149,37 @@ export function SettingsScreen() {
     return (
       <div className="p-6 md:p-8 max-w-3xl mx-auto space-y-8">
         <button
-          onClick={() => setSettingsView("main")}
+          onClick={() => {
+            setSettingsView("main");
+            if (window.history.state?.settingsView === "terms") {
+              window.history.back();
+            }
+          }}
           className="group flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm font-bold tracking-tight cursor-pointer"
         >
           <ArrowLeft size={16} className="transform group-hover:-translate-x-1 transition-transform" />
           Back to Settings
         </button>
-        <TermsPage onBack={() => setSettingsView("main")} />
+        <TermsPage onBack={() => {
+          setSettingsView("main");
+          if (window.history.state?.settingsView === "terms") {
+            window.history.back();
+          }
+        }} />
       </div>
+    );
+  }
+
+  if (settingsView === "profile") {
+    return (
+      <ProfileScreen
+        onBack={() => {
+          setSettingsView("main");
+          if (window.history.state?.settingsView === "profile") {
+            window.history.back();
+          }
+        }}
+      />
     );
   }
 
@@ -144,8 +197,32 @@ export function SettingsScreen() {
         </p>
       </header>
 
-      {/* About Me Section */}
-      <AboutMeSection />
+      {/* PROFILE CARD */}
+      <section className="space-y-4">
+        <h2 className="text-[10px] font-black tracking-widest uppercase text-slate-500 ml-2">Identity</h2>
+        <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6 space-y-4 shadow-xl relative overflow-hidden">
+          <div className="absolute inset-0 bg-purple-500/5 blur-3xl rounded-full -top-12 -right-12 w-48 h-48" />
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 shrink-0">
+              <UserIcon size={22} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h3 className="text-base font-black text-white">Your Profile</h3>
+              <p className="text-slate-400 text-xs leading-relaxed mt-1">
+                Manage your personal information, hobbies, favorite sports, and discipline goals.
+              </p>
+            </div>
+          </div>
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            onClick={() => handleViewChange("profile")}
+            className="w-full py-4 bg-white hover:bg-slate-200 text-black font-black uppercase tracking-widest text-xs rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 h-12"
+          >
+            <span>View Profile</span>
+            <ChevronRight size={14} strokeWidth={3} />
+          </motion.button>
+        </div>
+      </section>
 
       {/* Account Section */}
       <section className="space-y-4">
