@@ -39,6 +39,7 @@ interface StoreState {
   pendingHabitIds: Set<string>;
   titleUnlockData: { title: string; signature: string; level: number } | null;
   titleLossData: { title: string; signature: string; reason?: string } | null;
+  levelUpData: { previousLevel: number; currentLevel: number; xp: number; progress: number } | null;
 
   // Multi-session chat state
   chatSessions: ChatSession[];
@@ -53,6 +54,7 @@ interface StoreState {
   setActiveTab: (tab: TabState) => void;
   setTitleUnlockData: (data: { title: string; signature: string; level: number } | null) => void;
   setTitleLossData: (data: { title: string; signature: string; reason?: string } | null) => void;
+  setLevelUpData: (data: { previousLevel: number; currentLevel: number; xp: number; progress: number } | null) => void;
   refreshFromBackend: () => Promise<void>;
   addHabit: (habitData: Partial<Habit>) => Promise<void>;
   editHabit: (habitId: string, habitData: Partial<Habit>) => Promise<void>;
@@ -188,6 +190,7 @@ export const useStore = create<StoreState>((set, get) => {
     pendingHabitIds: new Set<string>(),
     titleUnlockData: null,
     titleLossData: null,
+    levelUpData: null,
 
     chatSessions: [],
     activeChatId: null,
@@ -217,6 +220,7 @@ export const useStore = create<StoreState>((set, get) => {
     setActiveTab: (tab) => set({ activeTab: tab }),
     setTitleUnlockData: (data) => set({ titleUnlockData: data }),
     setTitleLossData: (data) => set({ titleLossData: data }),
+    setLevelUpData: (data) => set({ levelUpData: data }),
 
     refreshFromBackend: async () => {
       const activeFbUser = auth.currentUser || get().firebaseUser;
@@ -459,6 +463,8 @@ export const useStore = create<StoreState>((set, get) => {
         nextLevel = Math.max(currentLevel, Math.floor(newTotalXp / 100) + 1);
         nextProgress = calculateLevelProgress(newTotalXp, nextLevel, 100);
 
+        const isLevelUp = nextLevel > currentLevel;
+
         const updatedUser: BackendUser | null = state.user
           ? {
               ...state.user,
@@ -494,6 +500,16 @@ export const useStore = create<StoreState>((set, get) => {
           pendingHabitIds: nextPending,
           user: updatedUser,
           habits: updatedHabits,
+          ...(isLevelUp
+            ? {
+                levelUpData: {
+                  previousLevel: currentLevel,
+                  currentLevel: nextLevel,
+                  xp: newTotalXp,
+                  progress: nextProgress,
+                },
+              }
+            : {}),
         };
       });
 

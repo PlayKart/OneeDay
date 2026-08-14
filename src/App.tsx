@@ -32,6 +32,7 @@ const LandingScreen = lazy(() => import('./components/screens/LandingScreen').th
 import { MainLayout } from './components/MainLayout';
 import { TitleUnlockModal } from './components/TitleUnlockModal';
 import { TitleLossModal } from './components/TitleLossModal';
+import { LevelUpModal } from './components/LevelUpAnimation';
 import { OnboardingModal } from './components/OnboardingModal';
 import { AppIntroFlow } from './components/AppIntroFlow';
 import { hasCompletedOnboarding } from './utils';
@@ -417,6 +418,7 @@ export default function App() {
         </MainLayout>
         <TitleUnlockModal />
         <TitleLossModal />
+        <LevelUpModal />
       </div>
     </div>
   );
