@@ -32,7 +32,7 @@ export function HabitsScreen() {
       </header>
 
       <section className="mt-8">
-        <HabitList />
+        <HabitList onCreateClick={() => setIsModalOpen(true)} />
       </section>
 
       <AnimatePresence>

@@ -8,7 +8,7 @@ import { EditHabitModal } from './EditHabitModal';
 import { getHabitIconComponent, getHabitColorTheme } from '../lib/habitIcons';
 import { getXpForDifficulty, extractXpAwarded, toDisplayDifficulty } from '../utils';
 
-export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) => {
+export const HabitList = ({ previewMode = false, onCreateClick }: { previewMode?: boolean; onCreateClick?: () => void }) => {
   const { habits, completeHabit, undoHabit, deleteHabit, refreshFromBackend, loading, pendingHabitIds } = useStore();
   
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
@@ -183,20 +183,18 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
                       }
                     });
                   } else if (!loading) {
-                    setConfirmModal({
-                      isOpen: true,
-                      title: "Don't lie to yourself bro , You did it or not ?",
-                      action: async () => {
-                        try {
-                          const res = await completeHabit(habit.id);
-                          const xpAwarded = extractXpAwarded(res, habit.difficulty);
-                          toast.success(`+${xpAwarded} XP`);
-                        } catch (e: any) {
-                          const errorMessage = e?.response?.data?.error || e?.message || "Failed to complete habit";
-                          toast.error(errorMessage);
-                        }
+                    // Tap-and-Go Immediate completion for fluid responsiveness & game feel
+                    try {
+                      const res = await completeHabit(habit.id);
+                      const xpAwarded = extractXpAwarded(res, habit.difficulty);
+                      toast.success(`+${xpAwarded} XP`);
+                      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                        navigator.vibrate([15, 30]);
                       }
-                    });
+                    } catch (e: any) {
+                      const errorMessage = e?.response?.data?.error || e?.message || "Failed to complete habit";
+                      toast.error(errorMessage);
+                    }
                   }
                 }}
                 disabled={loading || isPending}
@@ -206,13 +204,13 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
                     ? 'bg-white/10 text-white cursor-wait border border-white/20'
                     : habit.completedToday 
                       ? 'bg-white text-black hover:bg-red-500 hover:text-white border border-transparent' 
-                      : (isToday ? 'bg-white/5 border border-white/10 group-hover:border-white/30 text-transparent hover:text-white' : 'bg-white/5 border border-white/5 opacity-50 cursor-not-allowed')
+                      : (isToday ? 'bg-white/5 border border-white/10 group-hover:border-white/30 text-white/30 sm:text-transparent sm:hover:text-white' : 'bg-white/5 border border-white/5 opacity-50 cursor-not-allowed')
                 }`}
               >
                 {isPending ? (
                   <Loader2 size={18} className="animate-spin text-white" />
                 ) : (
-                  <Check size={18} className={habit.completedToday ? '' : (isToday ? 'group-hover:text-white/20' : 'text-white/10')} />
+                  <Check size={18} className={habit.completedToday ? '' : (isToday ? 'text-white/40 sm:group-hover:text-white/20' : 'text-white/10')} />
                 )}
               </motion.button>
               
@@ -298,11 +296,27 @@ export const HabitList = ({ previewMode = false }: { previewMode?: boolean }) =>
           </motion.div>
         )})}
 
-        {(displayHabits || []).length === 0 && (
-          <div className="col-span-full py-12 text-center bg-white/[0.02] rounded-2xl border border-white/5 border-dashed">
-            <p className="text-slate-600 font-bold uppercase tracking-[0.2em] text-[10px]">
-              {previewMode ? "All caught up for today" : "No active habits"}
+        {(guardedDisplayHabits || []).length === 0 && (
+          <div className="col-span-full py-16 px-6 text-center bg-white/[0.01] rounded-[2rem] border border-white/5 border-dashed flex flex-col items-center justify-center min-h-[340px]">
+            <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-2xl mb-4 shadow-[0_0_30px_rgba(255,255,255,0.02)] select-none">
+              🌱
+            </div>
+            <h3 className="text-zinc-300 font-extrabold uppercase tracking-[0.25em] text-xs mb-2">
+              NO ACTIVE HABITS
+            </h3>
+            <p className="text-slate-500 text-xs max-w-[280px] mx-auto leading-relaxed mb-8">
+              Every master was once a beginner. Establish your daily discipline protocol today and build your streak, one day at a time.
             </p>
+            {onCreateClick && (
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={onCreateClick}
+                className="w-full max-w-[260px] py-4 bg-white text-black font-black uppercase tracking-widest text-xs rounded-xl shadow-xl hover:bg-slate-200 transition-all cursor-pointer flex items-center justify-center gap-2 h-14"
+              >
+                <Plus size={16} strokeWidth={3} />
+                <span>Create your first habit</span>
+              </motion.button>
+            )}
           </div>
         )}
       </div>
