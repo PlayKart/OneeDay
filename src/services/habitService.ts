@@ -31,15 +31,15 @@ export const habitService = {
 
       return {
         id: String(h.id || h._id),
-        name: String(h.name || "Untitled Habit"),
+        name: String(h.title || h.name || "Untitled Habit"),
         completedToday: finalCompletedToday,
         completedDates: finalCompletedDates,
         repeatType: h.repeatType || h.repeat_type || "every_day",
         customDays: safeArray<string>(h.customDays || h.custom_days),
         difficulty: h.difficulty || "Medium",
-        notes: h.notes || "",
+        notes: h.notes || h.description || "",
         icon: h.icon || "dumbbell",
-        category: h.category || "emerald",
+        category: h.category || h.color || "emerald",
         reminderTime: h.reminderTime || h.reminder_time || "",
       };
     });
@@ -61,14 +61,17 @@ export const habitService = {
     // 2. Prepare payload matching both snake_case and camelCase
     const payload = {
       name: habitData.name.trim(),
+      title: habitData.name.trim(),
       repeatType: habitData.repeatType || "every_day",
       repeat_type: habitData.repeatType || "every_day",
       customDays: habitData.customDays || [],
       custom_days: habitData.customDays || [],
       difficulty: habitData.difficulty || "Medium",
       notes: habitData.notes || "",
+      description: habitData.notes || "",
       icon: habitData.icon || "dumbbell",
       category: habitData.category || "emerald",
+      color: habitData.category || "emerald",
       reminderTime: habitData.reminderTime || "",
       reminder_time: habitData.reminderTime || "",
     };
@@ -110,15 +113,15 @@ export const habitService = {
 
     return {
       id: String(h?.id || h?._id || `habit_${Date.now()}`),
-      name: h?.name || payload.name,
+      name: h?.title || h?.name || payload.name,
       completedToday: finalCompletedToday,
       completedDates: finalCompletedToday && !completedDates.includes(today) ? [...completedDates, today] : completedDates,
       repeatType: h?.repeatType || h?.repeat_type || payload.repeatType,
       customDays: safeArray<string>(h?.customDays || h?.custom_days || payload.customDays),
       difficulty: h?.difficulty || payload.difficulty,
-      notes: h?.notes ?? payload.notes,
+      notes: h?.notes ?? h?.description ?? payload.notes,
       icon: h?.icon || payload.icon,
-      category: h?.category || payload.category,
+      category: h?.category || h?.color || payload.category,
       reminderTime: h?.reminderTime || h?.reminder_time || payload.reminderTime,
     };
   },
@@ -128,14 +131,17 @@ export const habitService = {
       habitId: habitId,
       habit_id: habitId,
       name: habitData.name,
+      title: habitData.name,
       repeatType: habitData.repeatType,
       repeat_type: habitData.repeatType,
       customDays: habitData.customDays,
       custom_days: habitData.customDays,
       difficulty: habitData.difficulty,
       notes: habitData.notes,
+      description: habitData.notes,
       icon: habitData.icon,
       category: habitData.category,
+      color: habitData.category,
       reminderTime: habitData.reminderTime,
       reminder_time: habitData.reminderTime,
     };
@@ -177,15 +183,15 @@ export const habitService = {
 
     return {
       id: String(h?.id || habitId),
-      name: h?.name || payload.name,
+      name: h?.title || h?.name || payload.name,
       completedToday: finalCompletedToday,
       completedDates: finalCompletedToday && !completedDates.includes(today) ? [...completedDates, today] : completedDates,
       repeatType: h?.repeatType || h?.repeat_type || payload.repeatType,
       customDays: safeArray<string>(h?.customDays || h?.custom_days || payload.customDays),
       difficulty: h?.difficulty || payload.difficulty,
-      notes: h?.notes ?? payload.notes,
+      notes: h?.notes ?? h?.description ?? payload.notes,
       icon: h?.icon || payload.icon,
-      category: h?.category || payload.category,
+      category: h?.category || h?.color || payload.category,
       reminderTime: h?.reminderTime || h?.reminder_time || payload.reminderTime,
     };
   },

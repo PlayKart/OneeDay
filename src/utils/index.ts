@@ -163,6 +163,12 @@ export function normalizeUser(u: any, existingUser?: User | null): User {
   const rawOnboarded = isUserOnboarded(rawUser);
   const isCompleted = rawOnboarded !== undefined ? rawOnboarded : false;
 
+  const finalLevel = typeof levelVal === "number" ? levelVal : (existingUser?.level ?? 1);
+  const finalXp = typeof xpVal === "number" ? xpVal : (existingUser?.xp ?? 0);
+  const currentLevelThreshold = (finalLevel - 1) * 100;
+  const nextLevelThreshold = finalLevel * 100;
+  const calculatedLevelProgress = Math.min(100, Math.max(0, ((finalXp - currentLevelThreshold) / (nextLevelThreshold - currentLevelThreshold)) * 100));
+
   return {
     id:
       findFirstString(["id", "userId", "user_id"]) ||
@@ -175,14 +181,11 @@ export function normalizeUser(u: any, existingUser?: User | null): User {
       existingUser?.name ||
       "Striker",
     email: findFirstString(["email"]) || existingUser?.email || "",
-    xp: typeof xpVal === "number" ? xpVal : (existingUser?.xp ?? 0),
+    xp: finalXp,
     streak: typeof streakVal === "number" ? streakVal : (existingUser?.streak ?? 0),
     currentStreak: typeof streakVal === "number" ? streakVal : (existingUser?.currentStreak ?? existingUser?.streak ?? 0),
-    level: typeof levelVal === "number" ? levelVal : (existingUser?.level ?? 1),
-    levelProgress:
-      typeof levelProgressVal === "number"
-        ? levelProgressVal
-        : (existingUser?.levelProgress ?? 0),
+    level: finalLevel,
+    levelProgress: calculatedLevelProgress,
     freezeUntil:
       findFirstString(["freezeUntil", "freeze_until"]) ||
       rawUser?.freezeUntil ||
