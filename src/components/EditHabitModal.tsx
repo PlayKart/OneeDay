@@ -25,6 +25,7 @@ export function EditHabitModal({ habit, onClose }: EditHabitModalProps) {
   const [selectedColor, setSelectedColor] = useState(habit.category || "emerald");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -97,23 +98,21 @@ export function EditHabitModal({ habit, onClose }: EditHabitModalProps) {
   };
 
   const handleDelete = async () => {
-    if (window.confirm("Are you sure you want to delete this habit?")) {
-      setIsDeleting(true);
-      try {
-        await deleteHabit(habit.id);
-        await refreshFromBackend();
-        toast.success("Habit deleted successfully!");
-        onClose();
-      } catch (err: any) {
-        console.error("Failed to delete habit:", err);
-        const errorMessage = err?.response?.data?.error 
-          || err?.response?.data?.message 
-          || err?.message 
-          || "Failed to delete habit";
-        toast.error(errorMessage);
-      } finally {
-        setIsDeleting(false);
-      }
+    setIsDeleting(true);
+    try {
+      await deleteHabit(habit.id);
+      await refreshFromBackend();
+      toast.success("Habit deleted successfully!");
+      onClose();
+    } catch (err: any) {
+      console.error("Failed to delete habit:", err);
+      const errorMessage = err?.response?.data?.error 
+        || err?.response?.data?.message 
+        || err?.message 
+        || "Failed to delete habit";
+      toast.error(errorMessage);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -141,7 +140,7 @@ export function EditHabitModal({ habit, onClose }: EditHabitModalProps) {
         <div className="flex justify-between items-center mb-6 shrink-0">
           <h2 className="text-xl font-bold tracking-tighter">Edit Habit</h2>
           <div className="flex gap-2">
-            <button type="button" onClick={handleDelete} disabled={isDeleting} className="p-2 bg-red-500/10 rounded-full hover:bg-red-500/20 text-red-500 transition-colors disabled:opacity-50">
+            <button type="button" onClick={() => setShowDeleteConfirm(true)} disabled={isDeleting} className="p-2 bg-red-500/10 rounded-full hover:bg-red-500/20 text-red-500 transition-colors disabled:opacity-50" title="Delete Habit">
               <Trash size={20} />
             </button>
             <button type="button" onClick={onClose} className="p-2 bg-white/5 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors">
@@ -277,24 +276,59 @@ export function EditHabitModal({ habit, onClose }: EditHabitModalProps) {
         </div>
 
         <div className="mt-4 shrink-0 pt-4 border-t border-white/10 pb-8 sm:pb-0">
-          <button 
-            type="submit"
-            onClick={handleSave}
-            disabled={isSubmitting || isDeleting}
-            className="w-full bg-white text-black font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-slate-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-             {isSubmitting ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
-                  <span>Saving...</span>
-                </div>
-             ) : (
-                <>
-                  <Check size={20} />
-                  <span>Save</span>
-                </>
-             )}
-          </button>
+          {showDeleteConfirm ? (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-4"
+            >
+              <div className="text-center">
+                <p className="text-sm font-black uppercase tracking-wider text-red-500">Delete Habit Protocol</p>
+                <p className="text-xs text-slate-400 mt-1">This operation is permanent. All streak metrics will be terminated.</p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(false)}
+                  disabled={isDeleting}
+                  className="flex-1 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold py-3 rounded-xl text-xs uppercase tracking-wider transition-all h-12"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl text-xs uppercase tracking-wider transition-all h-12 flex items-center justify-center gap-1.5 shadow-lg shadow-red-500/10"
+                >
+                  {isDeleting ? (
+                    <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    "Delete Protocol"
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          ) : (
+            <button 
+              type="submit"
+              onClick={handleSave}
+              disabled={isSubmitting || isDeleting}
+              className="w-full bg-white text-black font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-slate-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+               {isSubmitting ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                    <span>Saving...</span>
+                  </div>
+               ) : (
+                  <>
+                    <Check size={20} />
+                    <span>Save</span>
+                  </>
+               )}
+            </button>
+          )}
         </div>
       </motion.form>
     </div>

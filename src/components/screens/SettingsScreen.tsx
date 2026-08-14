@@ -368,7 +368,7 @@ export function SettingsScreen() {
       {/* 1. SIGN OUT CONFIRMATION MODAL */}
       <AnimatePresence>
         {confirmSignOut && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -377,11 +377,13 @@ export function SettingsScreen() {
               onClick={() => setConfirmSignOut(false)}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="relative bg-[#0c0c0c] border border-white/10 rounded-[2rem] p-8 max-w-sm w-full shadow-2xl space-y-6 z-10 text-center"
+              initial={{ opacity: 0, y: "100%" }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative bg-[#0c0c0c] border border-white/10 rounded-t-[2rem] sm:rounded-[2rem] p-8 max-w-sm w-full shadow-2xl space-y-6 z-10 text-center pb-[calc(2rem+env(safe-area-inset-bottom))] sm:pb-8"
             >
+              <div className="w-12 h-1bg-white/20 rounded-full mx-auto mb-2 block sm:hidden" />
               <div className="w-12 h-12 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center mx-auto text-white">
                 <LogOut size={22} />
               </div>
@@ -395,14 +397,14 @@ export function SettingsScreen() {
                 <button
                   type="button"
                   onClick={handleSignOutConfirm}
-                  className="w-full bg-white text-black font-extrabold py-3 rounded-xl text-xs uppercase tracking-wider hover:bg-slate-200 transition-all cursor-pointer"
+                  className="w-full bg-white text-black font-extrabold py-3.5 rounded-xl text-xs uppercase tracking-wider hover:bg-slate-200 transition-all cursor-pointer h-12 flex items-center justify-center"
                 >
                   Sign Out
                 </button>
                 <button
                   type="button"
                   onClick={() => setConfirmSignOut(false)}
-                  className="w-full bg-white/5 text-slate-400 border border-white/5 font-extrabold py-3 rounded-xl text-xs uppercase tracking-wider hover:bg-white/10 hover:text-white transition-all cursor-pointer"
+                  className="w-full bg-white/5 text-slate-400 border border-white/5 font-extrabold py-3 rounded-xl text-xs uppercase tracking-wider hover:bg-white/10 hover:text-white transition-all cursor-pointer h-12 flex items-center justify-center"
                 >
                   Cancel
                 </button>
@@ -415,7 +417,7 @@ export function SettingsScreen() {
       {/* 2. RESET PROGRESS CONFIRMATION MODAL */}
       <AnimatePresence>
         {confirmReset && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -424,11 +426,13 @@ export function SettingsScreen() {
               onClick={() => { if (!resetting) setConfirmReset(false); }}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="relative bg-[#0c0c0c] border border-red-500/25 rounded-[2rem] p-8 max-w-sm w-full shadow-[0_0_50px_rgba(239,68,68,0.15)] space-y-6 z-10 text-center"
+              initial={{ opacity: 0, y: "100%" }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative bg-[#0c0c0c] border border-red-500/25 rounded-t-[2rem] sm:rounded-[2rem] p-8 max-w-sm w-full shadow-[0_0_50px_rgba(239,68,68,0.15)] space-y-6 z-10 text-center pb-[calc(2rem+env(safe-area-inset-bottom))] sm:pb-8"
             >
+              <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-2 block sm:hidden" />
               <div className="w-12 h-12 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-center mx-auto text-red-400">
                 <AlertTriangle size={22} />
               </div>
@@ -443,7 +447,7 @@ export function SettingsScreen() {
                   type="button"
                   disabled={resetting}
                   onClick={handleResetConfirm}
-                  className="w-full bg-red-500 text-white font-extrabold py-3 rounded-xl text-xs uppercase tracking-wider hover:bg-red-600 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="w-full bg-red-500 text-white font-extrabold py-3.5 rounded-xl text-xs uppercase tracking-wider hover:bg-red-600 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 h-12"
                 >
                   {resetting ? (
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -455,7 +459,7 @@ export function SettingsScreen() {
                   type="button"
                   disabled={resetting}
                   onClick={() => setConfirmReset(false)}
-                  className="w-full bg-white/5 text-slate-400 border border-white/5 font-extrabold py-3 rounded-xl text-xs uppercase tracking-wider hover:bg-white/10 hover:text-white transition-all cursor-pointer"
+                  className="w-full bg-white/5 text-slate-400 border border-white/5 font-extrabold py-3 rounded-xl text-xs uppercase tracking-wider hover:bg-white/10 hover:text-white transition-all cursor-pointer h-12 flex items-center justify-center"
                 >
                   Cancel
                 </button>
@@ -468,7 +472,7 @@ export function SettingsScreen() {
       {/* 3. DELETE ACCOUNT CONFIRMATION MODAL */}
       <AnimatePresence>
         {confirmDelete && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -477,11 +481,13 @@ export function SettingsScreen() {
               onClick={() => { if (!deleting) setConfirmDelete(false); }}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="relative bg-[#0c0c0c] border border-red-500/30 rounded-[2rem] p-8 max-w-sm w-full shadow-[0_0_50px_rgba(239,68,68,0.2)] space-y-6 z-10 text-center"
+              initial={{ opacity: 0, y: "100%" }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative bg-[#0c0c0c] border border-red-500/30 rounded-t-[2rem] sm:rounded-[2rem] p-8 max-w-sm w-full shadow-[0_0_50px_rgba(239,68,68,0.2)] space-y-6 z-10 text-center pb-[calc(2rem+env(safe-area-inset-bottom))] sm:pb-8"
             >
+              <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-2 block sm:hidden" />
               <div className="w-12 h-12 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-center mx-auto text-red-400">
                 <Trash2 size={22} />
               </div>
@@ -496,7 +502,7 @@ export function SettingsScreen() {
                   type="button"
                   disabled={deleting}
                   onClick={handleDeleteAccountConfirm}
-                  className="w-full bg-red-600 text-white font-extrabold py-3 rounded-xl text-xs uppercase tracking-wider hover:bg-red-700 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="w-full bg-red-600 text-white font-extrabold py-3.5 rounded-xl text-xs uppercase tracking-wider hover:bg-red-700 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 h-12"
                 >
                   {deleting ? (
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -508,7 +514,7 @@ export function SettingsScreen() {
                   type="button"
                   disabled={deleting}
                   onClick={() => setConfirmDelete(false)}
-                  className="w-full bg-white/5 text-slate-400 border border-white/5 font-extrabold py-3 rounded-xl text-xs uppercase tracking-wider hover:bg-white/10 hover:text-white transition-all cursor-pointer"
+                  className="w-full bg-white/5 text-slate-400 border border-white/5 font-extrabold py-3 rounded-xl text-xs uppercase tracking-wider hover:bg-white/10 hover:text-white transition-all cursor-pointer h-12 flex items-center justify-center"
                 >
                   Cancel
                 </button>
@@ -521,7 +527,7 @@ export function SettingsScreen() {
       {/* Dynamic Confirmation Modal for Streak freezing */}
       <AnimatePresence>
         {showFreezeConfirm && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4">
             {/* Backdrop overlay */}
             <motion.div
               initial={{ opacity: 0 }}
@@ -533,11 +539,13 @@ export function SettingsScreen() {
             
             {/* Modal Body */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="relative bg-[#0c0c0c] border border-cyan-500/25 rounded-[2rem] p-8 max-w-md w-full shadow-[0_0_50px_rgba(6,182,212,0.15)] space-y-6 z-10"
+              initial={{ opacity: 0, y: "100%" }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative bg-[#0c0c0c] border border-cyan-500/25 rounded-t-[2rem] sm:rounded-[2rem] p-8 max-w-md w-full shadow-[0_0_50px_rgba(6,182,212,0.15)] space-y-6 z-10 pb-[calc(2.5rem+env(safe-area-inset-bottom))] sm:pb-8"
             >
+              <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-2 block sm:hidden shrink-0" />
               {/* Header */}
               <div className="flex justify-between items-start">
                 <div className="flex items-center gap-2 text-cyan-400">
@@ -630,7 +638,7 @@ export function SettingsScreen() {
                   type="button"
                   disabled={activating}
                   onClick={() => setShowFreezeConfirm(false)}
-                  className="w-full bg-white/5 text-slate-400 border border-white/5 font-extrabold py-3 rounded-xl text-xs uppercase tracking-wider hover:bg-white/10 hover:text-white transition-all h-11 cursor-pointer"
+                  className="w-full bg-white/5 text-slate-400 border border-white/5 font-extrabold py-3 rounded-xl text-xs uppercase tracking-wider hover:bg-white/10 hover:text-white transition-all h-12 cursor-pointer flex items-center justify-center"
                 >
                   Cancel
                 </button>

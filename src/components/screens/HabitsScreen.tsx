@@ -35,6 +35,18 @@ export function HabitsScreen() {
         <HabitList onCreateClick={() => setIsModalOpen(true)} />
       </section>
 
+      {/* Mobile Reachable Floating Action Button */}
+      <div className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-6 z-40 sm:hidden">
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          onClick={() => setIsModalOpen(true)}
+          className="w-14 h-14 bg-white text-black rounded-full shadow-[0_8px_30px_rgba(255,255,255,0.25)] flex items-center justify-center border border-white/20 hover:bg-slate-200 transition-all cursor-pointer active:scale-95"
+          title="Create New Habit"
+        >
+          <Plus size={24} strokeWidth={2.5} />
+        </motion.button>
+      </div>
+
       <AnimatePresence>
         {isModalOpen && (
           <CreateHabitModal onClose={() => setIsModalOpen(false)} />
