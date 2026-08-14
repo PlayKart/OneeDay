@@ -158,14 +158,26 @@ export const AICoach = () => {
     
     userJustSentRef.current = true;
     scrollToBottom(true);
-    await sendChatMessage(textToSend);
+    try {
+      await sendChatMessage(textToSend);
+    } catch (err) {
+      console.error("Failed to send message:", err);
+      setInput(textToSend);
+      toast.error("Delivery failed. Restored your input.");
+    }
   };
 
   const handleChipClick = async (prompt: string) => {
     if (chatLoading) return;
     userJustSentRef.current = true;
     scrollToBottom(true);
-    await sendChatMessage(prompt);
+    try {
+      await sendChatMessage(prompt);
+    } catch (err) {
+      console.error("Failed to send prompt:", err);
+      setInput(prompt);
+      toast.error("Failed to send prompt. Copied to input box.");
+    }
   };
 
   const handleStartNewChat = async () => {
@@ -296,13 +308,13 @@ export const AICoach = () => {
   const safeChatMessages = Array.isArray(chatMessages) ? chatMessages : [];
 
   const quickPrompts = [
-    { label: "Build Discipline", text: "Help me build rock-solid discipline today." },
-    { label: "Study", text: "Help me design an effective study revision plan." },
-    { label: "Workout", text: "Give me an intense workout routine for today." },
-    { label: "Sports", text: "Help me optimize my athletic training and competitive sports performance." },
-    { label: "Productivity", text: "How can I double my focus and productivity today?" },
-    { label: "Motivation", text: "Give me a direct, no-nonsense motivational push." },
-    { label: "Life", text: "Give me strategic advice on balancing my life goals and personal growth." }
+    { label: "Build Discipline", text: "Help me build rock-solid discipline today.", desc: "Command focus & kill excuses", icon: "🛡️" },
+    { label: "Study", text: "Help me design an effective study revision plan.", desc: "Accelerate cognitive absorption", icon: "📚" },
+    { label: "Workout", text: "Give me an intense workout routine for today.", desc: "Unleash metabolic energy", icon: "⚡" },
+    { label: "Sports", text: "Help me optimize my athletic training and competitive sports performance.", desc: "Dominate the competition", icon: "🏆" },
+    { label: "Productivity", text: "How can I double my focus and productivity today?", desc: "Optimize deep work blocks", icon: "🎯" },
+    { label: "Motivation", text: "Give me a direct, no-nonsense motivational push.", desc: "Ignite the drive within", icon: "🔥" },
+    { label: "Life", text: "Give me strategic advice on balancing my life goals and personal growth.", desc: "Sustain absolute alignment", icon: "🌱" }
   ];
 
   return (
@@ -633,27 +645,67 @@ export const AICoach = () => {
             </div>
           ) : safeChatMessages.length === 0 ? (
             /* EMPTY STATE: "What are we conquering today?" */
-            <div className="max-w-xl mx-auto text-center py-16 md:py-24 flex flex-col items-center justify-center select-none">
-              <div className="mb-6">
-                <MonolithLogo size={64} />
-              </div>
-              <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight mb-2 text-white">What are we conquering today?</h2>
-              <p className="text-slate-400 text-xs md:text-sm leading-relaxed max-w-sm mb-8">
-                I remember every conversation separately.
-              </p>
+            <div className="max-w-2xl mx-auto text-center py-12 md:py-20 flex flex-col items-center justify-center select-none px-4">
+              <motion.div 
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+                className="mb-6 relative"
+              >
+                <div className="absolute inset-0 bg-purple-500/10 blur-2xl rounded-full scale-125" />
+                <MonolithLogo size={72} />
+              </motion.div>
+              
+              <motion.h2 
+                initial={{ y: 10, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.1, duration: 0.5 }}
+                className="text-2xl md:text-3xl font-black tracking-tight mb-3 text-white bg-clip-text"
+              >
+                What are we conquering today?
+              </motion.h2>
+              
+              <motion.p 
+                initial={{ y: 10, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.2, duration: 0.5 }}
+                className="text-slate-400 text-xs md:text-sm leading-relaxed max-w-md mb-10"
+              >
+                Select your primary training focus protocol below to activate your personal coach, or construct a custom request.
+              </motion.p>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 w-full max-w-md">
+              <motion.div 
+                initial={{ y: 15, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.3, duration: 0.6 }}
+                className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full max-w-xl"
+              >
                 {quickPrompts.map((p, idx) => (
-                  <button
+                  <motion.button
                     key={idx}
                     onClick={() => handleChipClick(p.text)}
                     disabled={chatLoading}
-                    className="text-xs font-bold p-3.5 rounded-xl bg-[#111111] hover:bg-white hover:text-black border border-white/10 text-slate-300 transition-all cursor-pointer text-center disabled:opacity-50 active:scale-95 shadow-md"
+                    whileTap={{ scale: 0.96 }}
+                    whileHover={{ scale: 1.01 }}
+                    className="group flex items-start gap-4 p-4 rounded-2xl bg-[#0C0C0C] hover:bg-[#121212] border border-white/5 hover:border-purple-500/30 text-left transition-all cursor-pointer disabled:opacity-50 shadow-lg relative overflow-hidden"
                   >
-                    {p.label}
-                  </button>
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                    
+                    <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0 text-lg group-hover:bg-purple-500/10 group-hover:border-purple-500/20 transition-all shadow-inner">
+                      {p.icon}
+                    </div>
+                    
+                    <div className="min-w-0 flex-1">
+                      <h4 className="text-xs font-black uppercase tracking-wider text-slate-100 group-hover:text-purple-400 transition-colors">
+                        {p.label}
+                      </h4>
+                      <p className="text-[10px] text-slate-500 font-semibold leading-relaxed mt-0.5 group-hover:text-slate-400 transition-colors">
+                        {p.desc}
+                      </p>
+                    </div>
+                  </motion.button>
                 ))}
-              </div>
+              </motion.div>
             </div>
           ) : (
             safeChatMessages.map((msg) => {
@@ -707,6 +759,40 @@ export const AICoach = () => {
                         ) : (
                           msg.content
                         )}
+                      </div>
+                    ) : msg.content.startsWith('⚠️') ? (
+                      /* ASSISTANT ERROR ALERT BOX */
+                      <div className="bg-red-500/10 border border-red-500/25 text-red-200 px-5 py-4 rounded-[20px] rounded-tl-sm text-xs flex flex-col gap-3 max-w-sm mt-1 shadow-[0_10px_30px_rgba(239,68,68,0.1)]">
+                        <div className="flex items-center gap-2 font-black uppercase tracking-widest text-[10px] text-red-400">
+                          <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping" />
+                          <span>Uplink Interrupt</span>
+                        </div>
+                        <p className="text-slate-300 font-semibold leading-relaxed">
+                          {msg.content.replace('⚠️', '').trim() || "The connection was interrupted. Let's try sending that again."}
+                        </p>
+                        <button
+                          onClick={async () => {
+                            const msgIndex = safeChatMessages.findIndex(m => m.id === msg.id);
+                            let lastUserText = "";
+                            if (msgIndex > 0) {
+                              const precedingMsgs = safeChatMessages.slice(0, msgIndex);
+                              const lastUserMsg = precedingMsgs.reverse().find(m => m.role === 'user');
+                              if (lastUserMsg) {
+                                lastUserText = lastUserMsg.content;
+                              }
+                            }
+                            if (lastUserText) {
+                              await handleDeleteMessageLocal(msg.id);
+                              handleChipClick(lastUserText);
+                            } else {
+                              toast.error("Could not find prompt context to retry");
+                            }
+                          }}
+                          className="w-full py-2.5 bg-red-500 text-white font-black uppercase tracking-widest text-[10px] rounded-xl hover:bg-red-600 active:scale-95 transition-all cursor-pointer h-10 flex items-center justify-center gap-2 shadow-lg"
+                        >
+                          <RotateCcw size={12} strokeWidth={3} />
+                          <span>Retry Request</span>
+                        </button>
                       </div>
                     ) : (
                       /* ASSISTANT MESSAGE */
@@ -814,7 +900,10 @@ export const AICoach = () => {
               </div>
             )}
 
-            <form onSubmit={handleSend} className="relative w-full flex items-end gap-2 bg-[#0E0E0E] border border-white/10 rounded-2xl p-2 px-3 shadow-2xl focus-within:border-white/25 transition-all">
+            <form onSubmit={(e) => {
+              if (chatLoading) return;
+              handleSend(e);
+            }} className="relative w-full flex items-end gap-2 bg-[#0E0E0E] border border-white/10 rounded-2xl p-2 pl-3.5 pr-2 shadow-2xl focus-within:border-purple-500/30 transition-all">
               <textarea
                 ref={textareaRef}
                 rows={1}
@@ -828,25 +917,28 @@ export const AICoach = () => {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
-                    handleSend(e);
+                    if (!chatLoading) {
+                      handleSend(e);
+                    }
                   }
                 }}
                 placeholder={chatLoading ? "Coach is generating strategy..." : "Message your Monolith AI Coach..."}
                 disabled={chatLoading}
-                className="flex-1 bg-transparent border-0 outline-none text-white text-sm placeholder:text-slate-500 focus:ring-0 focus:outline-none resize-none py-2 px-1 max-h-48 overflow-y-auto scrollbar-hide leading-relaxed"
+                className="flex-1 bg-transparent border-0 outline-none text-white text-sm placeholder:text-slate-500 focus:ring-0 focus:outline-none resize-none py-3 px-1 max-h-48 overflow-y-auto scrollbar-hide leading-relaxed animate-none"
               />
 
-              <button
+              <motion.button
                 type="submit"
                 disabled={chatLoading || !input.trim()}
-                className="p-2.5 bg-white text-black hover:bg-slate-200 transition-colors rounded-xl disabled:opacity-40 disabled:hover:bg-white cursor-pointer active:scale-95 shrink-0 flex items-center justify-center"
+                whileTap={{ scale: 0.94 }}
+                className="w-12 h-12 bg-white text-black hover:bg-slate-200 transition-colors rounded-xl disabled:opacity-20 cursor-pointer flex items-center justify-center shrink-0 shadow-lg active:scale-95"
               >
                 {chatLoading ? (
-                  <span className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin block" />
+                  <span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin block" />
                 ) : (
-                  <Send size={13} />
+                  <Send size={15} strokeWidth={2.5} />
                 )}
-              </button>
+              </motion.button>
             </form>
           </div>
         </div>
