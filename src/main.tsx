@@ -34,15 +34,25 @@ window.addEventListener("vite:preloadError", (event) => {
   handleAutoReload("Failed to fetch dynamically imported module");
 });
 
-// 2. Global error listener for dynamic import errors
+// 2. Global error listener for dynamic import errors and root diagnosis
 window.addEventListener("error", (event) => {
+  const error = event.error;
+  console.error("[ROOT ERROR]", error);
+  console.error("[ROOT ERROR MESSAGE]", error?.message || event.message);
+  console.error("[ROOT ERROR STACK]", error?.stack);
+
   if (isDynamicImportError(event.error) || isDynamicImportError(event.message)) {
     handleAutoReload(event.error || event.message);
   }
 });
 
-// 3. Unhandled rejection listener for failed module imports
+// 3. Unhandled rejection listener for failed module imports and root diagnosis
 window.addEventListener("unhandledrejection", (event) => {
+  const reason = event.reason;
+  console.error("[ROOT ERROR]", reason);
+  console.error("[ROOT ERROR MESSAGE]", reason?.message || String(reason));
+  console.error("[ROOT ERROR STACK]", reason?.stack);
+
   if (isDynamicImportError(event.reason)) {
     handleAutoReload(event.reason);
   }

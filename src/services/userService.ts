@@ -11,8 +11,10 @@ export const userService = {
     console.error("[SYNC 4] GET /api/users started");
     try {
       const res = await apiClient.get<User | { user: User }>("/api/users");
+      console.log("[TRACE] /api/users raw response", res.data);
       console.error("[SYNC 5] Raw /api/users response:", res.data);
       const userObj = normalizeUser(res.data, existingUser || useStore.getState().user || undefined);
+      console.log("[TRACE] /api/users normalized response", userObj);
       console.error("[SYNC 6] Normalized /api/users data:", userObj);
       console.error("[SYNC 7] User object:", userObj);
       console.error("[SYNC 8] Profile object:", userObj);
@@ -22,7 +24,7 @@ export const userService = {
       console.error("[SYNC ERROR]", err);
       console.error("[SYNC ERROR STACK]", err?.stack);
 
-      const fbUser = auth.currentUser;
+      const fbUser = auth.currentUser || useStore.getState().firebaseUser;
       const errorMsg = err?.message || String(err);
       const isMissingBackendUser =
         errorMsg.includes("reading 'length'") ||

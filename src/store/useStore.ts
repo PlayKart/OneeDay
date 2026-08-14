@@ -219,6 +219,7 @@ export const useStore = create<StoreState>((set, get) => {
 
     refreshFromBackend: async () => {
       const activeFbUser = auth.currentUser || get().firebaseUser;
+      console.log("[TRACE] auth.currentUser", activeFbUser ? { uid: activeFbUser.uid, email: activeFbUser.email } : null);
 
       if (!activeFbUser) {
         console.warn("[AUTH] No authenticated Firebase user present, skipping backend sync.");
@@ -241,6 +242,7 @@ export const useStore = create<StoreState>((set, get) => {
       } catch (tErr) {
         console.warn("Failed to acquire ID token in refreshFromBackend:", tErr);
       }
+      console.log("[TRACE] token", token ? `${token.substring(0, 15)}... [length: ${token.length}]` : null);
       console.error("[SYNC 3] Token acquired:", !!token);
 
       set({ loading: true, backendError: null });
@@ -255,6 +257,7 @@ export const useStore = create<StoreState>((set, get) => {
           timeoutPromise
         ]);
 
+        console.log("[TRACE] dashboard state", data);
         console.log("[AUTH] Backend response:", data);
 
         if (get().profileVersion > reqVersion) {
@@ -294,6 +297,10 @@ export const useStore = create<StoreState>((set, get) => {
         if (finalUser) {
           localStorage.setItem("oneday_cached_user", JSON.stringify(finalUser));
         }
+
+        console.log("[TRACE] user state", finalUser);
+        console.log("[TRACE] profile state", finalUser);
+        console.log("[TRACE] onboarding state", finalUser ? { onboarded: finalUser.onboarded, hasCompletedOnboarding: finalUser.hasCompletedOnboarding, onboardingStep: finalUser.onboardingStep } : null);
 
         console.log("[AUTH] Profile loaded:", finalUser?.name || finalUser?.email || "User");
         console.log("[AUTH] needsOnboarding:", !hasCompletedOnboarding(finalUser));

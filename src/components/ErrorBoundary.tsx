@@ -23,6 +23,9 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("[ROOT ERROR]", error);
+    console.error("[ROOT ERROR MESSAGE]", error?.message);
+    console.error("[ROOT ERROR STACK]", error?.stack);
     console.error("Uncaught Error Boundary catch:", error, errorInfo);
 
     // Check for dynamic import chunk failure
