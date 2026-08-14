@@ -57,7 +57,7 @@ export function DashboardScreen() {
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   const safeHabits = Array.isArray(habits) ? habits : [];
   const todaysHabits = safeHabits.filter(isHabitScheduledForToday);
-  const completedToday = safeHabits.filter(h => h && h.completedToday).length; 
+  const completedToday = todaysHabits.filter(h => h && h.completedToday).length; 
   const totalHabits = todaysHabits.length;
   const completionPercentage = totalHabits === 0 ? 0 : Math.round((completedToday / totalHabits) * 100);
 

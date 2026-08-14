@@ -185,6 +185,8 @@ export function normalizeUser(u: any, existingUser?: User | null): User {
   ]);
 
   const xpVal = findFirstNumber(["totalXP", "total_xp", "totalXp", "xp", "experience", "currentXp", "current_xp"]);
+  const xpAwardedVal = findFirstNumber(["xpAwarded", "xp_awarded", "xpEarned", "xp_earned"]);
+  const xpDeductedVal = findFirstNumber(["xpDeducted", "xp_deducted", "xpLost", "xp_lost"]);
 
   const levelVal = findFirstNumber(["level", "currentLevel", "current_level"]);
 
@@ -205,8 +207,19 @@ export function normalizeUser(u: any, existingUser?: User | null): User {
   const rawOnboarded = isUserOnboarded(rawUser);
   const isCompleted = rawOnboarded !== undefined ? rawOnboarded : false;
 
-  const finalLevel = typeof levelVal === "number" ? levelVal : (existingUser?.level ?? 1);
-  const finalXp = typeof xpVal === "number" ? xpVal : (existingUser?.xp ?? 0);
+  let finalXp = existingUser?.xp ?? 0;
+  if (typeof xpVal === "number") {
+    finalXp = xpVal;
+  } else if (typeof xpAwardedVal === "number") {
+    finalXp = (existingUser?.xp ?? 0) + xpAwardedVal;
+  } else if (typeof xpDeductedVal === "number") {
+    finalXp = Math.max(0, (existingUser?.xp ?? 0) - xpDeductedVal);
+  }
+
+  const computedLevel = Math.max(1, Math.floor(finalXp / 100) + 1);
+  const finalLevel = typeof levelVal === "number"
+    ? Math.max(levelVal, computedLevel)
+    : (existingUser?.level ? Math.max(existingUser.level, computedLevel) : computedLevel);
   const calculatedLevelProgress = calculateLevelProgress(finalXp, finalLevel, 100);
 
   return {
@@ -418,9 +431,11 @@ export function extractXpAwarded(res: any, habitDifficulty?: string): number {
     const val =
       root.xpAwarded ??
       root.xp_awarded ??
+      root.xpEarned ??
       root.xp_earned ??
       res.xpAwarded ??
       res.xp_awarded ??
+      res.xpEarned ??
       res.xp_earned;
     if (typeof val === "number" && !isNaN(val)) {
       return val;

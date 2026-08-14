@@ -8,7 +8,8 @@ import { habitService } from '../services/habitService';
 import { chatService } from '../services/chatService';
 import { userService } from '../services/userService';
 import { quoteService } from '../services/quoteService';
-import { safeArray, normalizeCompletedDates, normalizeUser, hasCompletedOnboarding, calculateLevelProgress } from '../utils';
+import { safeArray, normalizeCompletedDates, normalizeUser, hasCompletedOnboarding, calculateLevelProgress, getXpForDifficulty, extractXpAwarded } from '../utils';
+import { isHabitScheduledForToday } from '../lib/habitUtils';
 import { apiRequest } from '../api/client';
 import { 
   User as BackendUser, 
@@ -288,15 +289,38 @@ export const useStore = create<StoreState>((set, get) => {
             });
           }
         }
+        const todayStr = new Date().toISOString().split("T")[0];
+        const incomingHabits = safeArray<Habit>(data?.habits);
+        const currentHabits = get().habits;
+        const mergedHabits = incomingHabits.map((inc) => {
+          const local = currentHabits.find((h) => h.id === inc.id);
+          if (local?.completedToday && !inc.completedToday) {
+            const isPending = get().pendingHabitIds.has(inc.id);
+            const hasToday = local.completedDates?.includes(todayStr);
+            if (isPending || hasToday) {
+              return {
+                ...inc,
+                completedToday: true,
+                completedDates: inc.completedDates?.includes(todayStr)
+                  ? inc.completedDates
+                  : [...(inc.completedDates || []), todayStr],
+              };
+            }
+          }
+          return inc;
+        });
+
         const fetchedUser = normalizeUser(data, get().user);
         const currentXp = get().user?.xp ?? 0;
         const fetchedXp = fetchedUser?.xp ?? 0;
-        const finalXp = fetchedXp < currentXp ? currentXp : fetchedXp;
+        const finalXp = Math.max(currentXp, fetchedXp);
+        const finalLevel = Math.max(fetchedUser?.level ?? 1, get().user?.level ?? 1, Math.floor(finalXp / 100) + 1);
         const finalUser = fetchedUser
           ? {
               ...fetchedUser,
               xp: finalXp,
-              levelProgress: calculateLevelProgress(finalXp, fetchedUser.level, 100),
+              level: finalLevel,
+              levelProgress: calculateLevelProgress(finalXp, finalLevel, 100),
             }
           : fetchedUser;
 
@@ -313,7 +337,7 @@ export const useStore = create<StoreState>((set, get) => {
 
         set({
           user: finalUser,
-          habits: safeArray(data?.habits),
+          habits: mergedHabits.length > 0 ? mergedHabits : (currentHabits.length > 0 ? currentHabits : incomingHabits),
           quote: data?.quote || "Discipline makes it all.",
           loading: false,
           profileSynced: true,
@@ -404,28 +428,78 @@ export const useStore = create<StoreState>((set, get) => {
         return;
       }
 
+      const targetHabit = get().habits.find((h) => h.id === habitId);
+      if (targetHabit?.completedToday) {
+        console.warn(`[useStore] Habit ${habitId} is already completed today. Ignoring duplicate complete.`);
+        return;
+      }
+
       const originalHabits = get().habits;
       const originalUser = get().user;
       const today = new Date().toISOString().split("T")[0];
+      const earnedXp = getXpForDifficulty(targetHabit?.difficulty);
+
+      let prevXp = 0;
+      let newTotalXp = 0;
+      let nextLevel = 1;
+      let nextProgress = 0;
+      let completedTodayCount = 0;
+      let totalTodayCount = 0;
+      let todayPct = 0;
 
       set((state) => {
         const nextPending = new Set(state.pendingHabitIds);
         nextPending.add(habitId);
+
+        prevXp = typeof state.user?.xp === "number" && !isNaN(state.user.xp) ? Math.max(0, state.user.xp) : 0;
+        newTotalXp = prevXp + earnedXp;
+        const currentLevel = typeof state.user?.level === "number" && !isNaN(state.user.level) && state.user.level >= 1
+          ? Math.floor(state.user.level)
+          : 1;
+        nextLevel = Math.max(currentLevel, Math.floor(newTotalXp / 100) + 1);
+        nextProgress = calculateLevelProgress(newTotalXp, nextLevel, 100);
+
+        const updatedUser: BackendUser | null = state.user
+          ? {
+              ...state.user,
+              xp: newTotalXp,
+              level: nextLevel,
+              levelProgress: nextProgress,
+            }
+          : null;
+
+        if (updatedUser) {
+          localStorage.setItem("oneday_cached_user", JSON.stringify(updatedUser));
+        }
+
+        const updatedHabits = state.habits.map((h) =>
+          h.id === habitId
+            ? {
+                ...h,
+                completedToday: true,
+                completedDates: h.completedDates?.includes(today)
+                  ? h.completedDates
+                  : [...(h.completedDates || []), today],
+              }
+            : h
+        );
+
+        const safeHabitsList = Array.isArray(updatedHabits) ? updatedHabits : [];
+        const scheduledTodayList = safeHabitsList.filter(isHabitScheduledForToday);
+        completedTodayCount = scheduledTodayList.filter((h) => h.completedToday).length;
+        totalTodayCount = scheduledTodayList.length;
+        todayPct = totalTodayCount === 0 ? 0 : Math.round((completedTodayCount / totalTodayCount) * 100);
+
         return {
           pendingHabitIds: nextPending,
-          habits: state.habits.map((h) =>
-            h.id === habitId
-              ? {
-                  ...h,
-                  completedToday: true,
-                  completedDates: h.completedDates?.includes(today)
-                    ? h.completedDates
-                    : [...(h.completedDates || []), today],
-                }
-              : h
-          ),
+          user: updatedUser,
+          habits: updatedHabits,
         };
       });
+
+      console.log(
+        `[HABIT COMPLETION]\nhabitId: ${habitId}\nearnedXP: ${earnedXp}\npreviousXP: ${prevXp}\nnewXP: ${newTotalXp}\ncompletedToday: ${completedTodayCount}\ntotalToday: ${totalTodayCount}\ntodayPercentage: ${todayPct}%\nlevel: ${nextLevel}\nlevelProgress: ${nextProgress}%`
+      );
 
       try {
         const res = await habitService.completeHabit(habitId);
@@ -444,7 +518,7 @@ export const useStore = create<StoreState>((set, get) => {
             titleUnlockData: {
               title: root?.title || userObj?.title || "IRON MIND",
               signature: root?.signature || userObj?.signature || "You've proven consistency isn't luck. It's your identity.",
-              level: root?.level || userObj?.level || originalUser?.level || 1,
+              level: root?.level || userObj?.level || nextLevel,
             }
           });
         }
@@ -458,13 +532,37 @@ export const useStore = create<StoreState>((set, get) => {
           });
         }
 
-        const updatedUser = normalizeUser(res, originalUser);
-
         set((state) => {
           const nextPending = new Set(state.pendingHabitIds);
           nextPending.delete(habitId);
+
+          const normalizedUser = normalizeUser(res, state.user);
+          const currentXp = state.user?.xp ?? newTotalXp;
+          const resXp = normalizedUser?.xp ?? 0;
+          const finalXp = Math.max(currentXp, resXp);
+          const finalLevel = Math.max(
+            normalizedUser?.level ?? 1,
+            state.user?.level ?? 1,
+            Math.floor(finalXp / 100) + 1
+          );
+          const finalProgress = calculateLevelProgress(finalXp, finalLevel, 100);
+
+          const finalUser = state.user
+            ? {
+                ...state.user,
+                ...normalizedUser,
+                xp: finalXp,
+                level: finalLevel,
+                levelProgress: finalProgress,
+              }
+            : normalizedUser;
+
+          if (finalUser) {
+            localStorage.setItem("oneday_cached_user", JSON.stringify(finalUser));
+          }
+
           return {
-            user: updatedUser,
+            user: finalUser,
             pendingHabitIds: nextPending,
           };
         });
@@ -507,24 +605,61 @@ export const useStore = create<StoreState>((set, get) => {
         return;
       }
 
+      const targetHabit = get().habits.find((h) => h.id === habitId);
+      if (!targetHabit?.completedToday) {
+        console.warn(`[useStore] Habit ${habitId} is not completed today. Ignoring undo.`);
+        return;
+      }
+
       const originalHabits = get().habits;
       const originalUser = get().user;
       const today = new Date().toISOString().split("T")[0];
+      const earnedXp = getXpForDifficulty(targetHabit?.difficulty);
+
+      let prevXp = 0;
+      let newTotalXp = 0;
+      let nextLevel = 1;
+      let nextProgress = 0;
 
       set((state) => {
         const nextPending = new Set(state.pendingHabitIds);
         nextPending.add(habitId);
+
+        prevXp = typeof state.user?.xp === "number" && !isNaN(state.user.xp) ? Math.max(0, state.user.xp) : 0;
+        newTotalXp = Math.max(0, prevXp - earnedXp);
+        const currentLevel = typeof state.user?.level === "number" && !isNaN(state.user.level) && state.user.level >= 1
+          ? Math.floor(state.user.level)
+          : 1;
+        nextLevel = Math.max(1, Math.floor(newTotalXp / 100) + 1);
+        nextProgress = calculateLevelProgress(newTotalXp, nextLevel, 100);
+
+        const updatedUser: BackendUser | null = state.user
+          ? {
+              ...state.user,
+              xp: newTotalXp,
+              level: nextLevel,
+              levelProgress: nextProgress,
+            }
+          : null;
+
+        if (updatedUser) {
+          localStorage.setItem("oneday_cached_user", JSON.stringify(updatedUser));
+        }
+
+        const updatedHabits = state.habits.map((h) =>
+          h.id === habitId
+            ? {
+                ...h,
+                completedToday: false,
+                completedDates: (h.completedDates || []).filter((d) => d !== today),
+              }
+            : h
+        );
+
         return {
           pendingHabitIds: nextPending,
-          habits: state.habits.map((h) =>
-            h.id === habitId
-              ? {
-                  ...h,
-                  completedToday: false,
-                  completedDates: (h.completedDates || []).filter((d) => d !== today),
-                }
-              : h
-          ),
+          user: updatedUser,
+          habits: updatedHabits,
         };
       });
 
@@ -538,13 +673,32 @@ export const useStore = create<StoreState>((set, get) => {
           throw new Error(errMsg);
         }
 
-        const updatedUser = normalizeUser(res, originalUser);
-
         set((state) => {
           const nextPending = new Set(state.pendingHabitIds);
           nextPending.delete(habitId);
+
+          const normalizedUser = normalizeUser(res, state.user);
+          const resHasExplicitXp = res && (res.totalXP !== undefined || res.xp !== undefined || res.data?.xp !== undefined || res.data?.user?.xp !== undefined);
+          const finalXp = resHasExplicitXp ? (normalizedUser?.xp ?? newTotalXp) : (state.user?.xp ?? newTotalXp);
+          const finalLevel = Math.max(1, Math.floor(finalXp / 100) + 1);
+          const finalProgress = calculateLevelProgress(finalXp, finalLevel, 100);
+
+          const finalUser = state.user
+            ? {
+                ...state.user,
+                ...normalizedUser,
+                xp: finalXp,
+                level: finalLevel,
+                levelProgress: finalProgress,
+              }
+            : normalizedUser;
+
+          if (finalUser) {
+            localStorage.setItem("oneday_cached_user", JSON.stringify(finalUser));
+          }
+
           return {
-            user: updatedUser,
+            user: finalUser,
             pendingHabitIds: nextPending,
           };
         });
