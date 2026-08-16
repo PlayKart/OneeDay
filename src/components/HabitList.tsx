@@ -7,6 +7,7 @@ import { isHabitScheduledForToday, getScheduledDaysMessage } from '../lib/habitU
 import { EditHabitModal } from './EditHabitModal';
 import { getHabitIconComponent, getHabitColorTheme } from '../lib/habitIcons';
 import { getXpForDifficulty, extractXpAwarded, toDisplayDifficulty } from '../utils';
+import { ConfirmationDialog } from './ConfirmationDialog';
 
 export const HabitList = ({ previewMode = false, onCreateClick }: { previewMode?: boolean; onCreateClick?: () => void }) => {
   const { habits, completeHabit, undoHabit, deleteHabit, refreshFromBackend, loading, pendingHabitIds } = useStore();
@@ -354,60 +355,21 @@ export const HabitList = ({ previewMode = false, onCreateClick }: { previewMode?
     </AnimatePresence>
 
     {/* Delete Habit Confirmation Modal */}
-    <AnimatePresence>
-      {deleteConfirmationHabit && (
-        <div
-          className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-sm"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="delete-habit-modal-title"
-          aria-describedby="delete-habit-modal-desc"
-        >
-          {/* Backdrop overlay clickable to dismiss */}
-          <div className="absolute inset-0" onClick={() => setDeleteConfirmationHabit(null)} />
-          
-          <motion.div
-            initial={{ y: "100%", opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: "100%", opacity: 0 }}
-            transition={{ type: "spring", damping: 30, stiffness: 350 }}
-            className="bg-[#0c0c0c] p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6 rounded-t-[2rem] sm:rounded-2xl border border-white/10 w-full sm:max-w-sm shadow-2xl relative z-10"
-          >
-            {/* Native sheet drag handle */}
-            <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-4 block sm:hidden" />
-
-            <h3 id="delete-habit-modal-title" className="text-lg font-bold text-white text-center leading-snug">
-              Delete Habit?
-            </h3>
-            <p id="delete-habit-modal-desc" className="text-xs text-slate-400 text-center mt-2 mb-6">
-              This action cannot be undone.
-            </p>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                disabled={isDeleting}
-                onClick={() => setDeleteConfirmationHabit(null)}
-                className="flex-1 py-3 focus:outline-none rounded-xl bg-white/5 text-white font-bold hover:bg-white/10 transition-all uppercase tracking-wider text-xs border border-white/10 disabled:opacity-50 cursor-pointer h-12"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={isDeleting}
-                onClick={() => handleConfirmDelete(deleteConfirmationHabit)}
-                className="flex-1 py-3 focus:outline-none rounded-xl bg-red-600 text-white font-bold hover:bg-red-500 transition-all uppercase tracking-wider text-xs shadow-lg shadow-red-600/20 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer h-12"
-              >
-                {isDeleting ? (
-                  <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                ) : (
-                  "Delete"
-                )}
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
+    <ConfirmationDialog
+      isOpen={!!deleteConfirmationHabit}
+      title="Delete Habit?"
+      description={`Are you sure you want to delete "${deleteConfirmationHabit?.name || 'this habit'}"? All associated streak history will be permanently removed.`}
+      cancelText="Cancel"
+      confirmText="Delete"
+      destructive={true}
+      isLoading={isDeleting}
+      onCancel={() => {
+        if (!isDeleting) setDeleteConfirmationHabit(null);
+      }}
+      onConfirm={() => {
+        if (deleteConfirmationHabit) handleConfirmDelete(deleteConfirmationHabit);
+      }}
+    />
     
     {/* Custom Confirm Modal */}
     <AnimatePresence>

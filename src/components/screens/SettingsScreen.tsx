@@ -8,6 +8,7 @@ import { toast } from "react-hot-toast";
 import { PrivacyPage } from "../PrivacyPage";
 import { TermsPage } from "../TermsPage";
 import { ProfileScreen } from "./ProfileScreen";
+import { ConfirmationDialog } from "../ConfirmationDialog";
 
 export function SettingsScreen() {
   const { user, firebaseUser, freezeStreak, deactivateFreeze, resetProgress, deleteAccount } = useStore();
@@ -365,164 +366,50 @@ export function SettingsScreen() {
       
       <div className="h-12" /> {/* Spacer for scroll padding */}
 
-      {/* 1. SIGN OUT CONFIRMATION MODAL */}
-      <AnimatePresence>
-        {confirmSignOut && (
-          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/80 backdrop-blur-md"
-              onClick={() => setConfirmSignOut(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, y: "100%" }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="relative bg-[#0c0c0c] border border-white/10 rounded-t-[2rem] sm:rounded-[2rem] p-8 max-w-sm w-full shadow-2xl space-y-6 z-10 text-center pb-[calc(2rem+env(safe-area-inset-bottom))] sm:pb-8"
-            >
-              <div className="w-12 h-1bg-white/20 rounded-full mx-auto mb-2 block sm:hidden" />
-              <div className="w-12 h-12 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center mx-auto text-white">
-                <LogOut size={22} />
-              </div>
-              <div className="space-y-2">
-                <h3 className="text-xl font-black tracking-tight text-white">Sign Out?</h3>
-                <p className="text-slate-400 text-xs leading-relaxed">
-                  Are you sure you want to sign out of OneDay?
-                </p>
-              </div>
-              <div className="flex flex-col gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={handleSignOutConfirm}
-                  className="w-full bg-white text-black font-extrabold py-3.5 rounded-xl text-xs uppercase tracking-wider hover:bg-slate-200 transition-all cursor-pointer h-12 flex items-center justify-center"
-                >
-                  Sign Out
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setConfirmSignOut(false)}
-                  className="w-full bg-white/5 text-slate-400 border border-white/5 font-extrabold py-3 rounded-xl text-xs uppercase tracking-wider hover:bg-white/10 hover:text-white transition-all cursor-pointer h-12 flex items-center justify-center"
-                >
-                  Cancel
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      {/* 1. SIGN OUT CONFIRMATION DIALOG */}
+      <ConfirmationDialog
+        isOpen={confirmSignOut}
+        title="Sign Out?"
+        description="Are you sure you want to sign out of OneDay?"
+        cancelText="Cancel"
+        confirmText="Sign Out"
+        destructive={false}
+        icon={<LogOut size={20} className="text-white stroke-[2.2]" />}
+        onCancel={() => setConfirmSignOut(false)}
+        onConfirm={handleSignOutConfirm}
+      />
 
-      {/* 2. RESET PROGRESS CONFIRMATION MODAL */}
-      <AnimatePresence>
-        {confirmReset && (
-          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/80 backdrop-blur-md"
-              onClick={() => { if (!resetting) setConfirmReset(false); }}
-            />
-            <motion.div
-              initial={{ opacity: 0, y: "100%" }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="relative bg-[#0c0c0c] border border-red-500/25 rounded-t-[2rem] sm:rounded-[2rem] p-8 max-w-sm w-full shadow-[0_0_50px_rgba(239,68,68,0.15)] space-y-6 z-10 text-center pb-[calc(2rem+env(safe-area-inset-bottom))] sm:pb-8"
-            >
-              <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-2 block sm:hidden" />
-              <div className="w-12 h-12 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-center mx-auto text-red-400">
-                <AlertTriangle size={22} />
-              </div>
-              <div className="space-y-2">
-                <h3 className="text-xl font-black tracking-tight text-white">Reset All Progress?</h3>
-                <p className="text-slate-400 text-xs leading-relaxed">
-                  This will reset your XP, streaks, level, and statistics back to zero. This action cannot be undone.
-                </p>
-              </div>
-              <div className="flex flex-col gap-2 pt-2">
-                <button
-                  type="button"
-                  disabled={resetting}
-                  onClick={handleResetConfirm}
-                  className="w-full bg-red-500 text-white font-extrabold py-3.5 rounded-xl text-xs uppercase tracking-wider hover:bg-red-600 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 h-12"
-                >
-                  {resetting ? (
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    "Reset Progress"
-                  )}
-                </button>
-                <button
-                  type="button"
-                  disabled={resetting}
-                  onClick={() => setConfirmReset(false)}
-                  className="w-full bg-white/5 text-slate-400 border border-white/5 font-extrabold py-3 rounded-xl text-xs uppercase tracking-wider hover:bg-white/10 hover:text-white transition-all cursor-pointer h-12 flex items-center justify-center"
-                >
-                  Cancel
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      {/* 2. RESET PROGRESS CONFIRMATION DIALOG */}
+      <ConfirmationDialog
+        isOpen={confirmReset}
+        title="Reset All Progress?"
+        description="This will reset your XP, streaks, level, and statistics back to zero. This action cannot be undone."
+        cancelText="Cancel"
+        confirmText="Reset Progress"
+        destructive={true}
+        isLoading={resetting}
+        icon={<AlertTriangle size={20} className="text-red-400 stroke-[2.2]" />}
+        onCancel={() => {
+          if (!resetting) setConfirmReset(false);
+        }}
+        onConfirm={handleResetConfirm}
+      />
 
-      {/* 3. DELETE ACCOUNT CONFIRMATION MODAL */}
-      <AnimatePresence>
-        {confirmDelete && (
-          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/80 backdrop-blur-md"
-              onClick={() => { if (!deleting) setConfirmDelete(false); }}
-            />
-            <motion.div
-              initial={{ opacity: 0, y: "100%" }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="relative bg-[#0c0c0c] border border-red-500/30 rounded-t-[2rem] sm:rounded-[2rem] p-8 max-w-sm w-full shadow-[0_0_50px_rgba(239,68,68,0.2)] space-y-6 z-10 text-center pb-[calc(2rem+env(safe-area-inset-bottom))] sm:pb-8"
-            >
-              <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-2 block sm:hidden" />
-              <div className="w-12 h-12 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-center mx-auto text-red-400">
-                <Trash2 size={22} />
-              </div>
-              <div className="space-y-2">
-                <h3 className="text-xl font-black tracking-tight text-white">Are you sure?</h3>
-                <p className="text-slate-400 text-xs leading-relaxed">
-                  This action cannot be undone.
-                </p>
-              </div>
-              <div className="flex flex-col gap-2 pt-2">
-                <button
-                  type="button"
-                  disabled={deleting}
-                  onClick={handleDeleteAccountConfirm}
-                  className="w-full bg-red-600 text-white font-extrabold py-3.5 rounded-xl text-xs uppercase tracking-wider hover:bg-red-700 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 h-12"
-                >
-                  {deleting ? (
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    "Delete Account"
-                  )}
-                </button>
-                <button
-                  type="button"
-                  disabled={deleting}
-                  onClick={() => setConfirmDelete(false)}
-                  className="w-full bg-white/5 text-slate-400 border border-white/5 font-extrabold py-3 rounded-xl text-xs uppercase tracking-wider hover:bg-white/10 hover:text-white transition-all cursor-pointer h-12 flex items-center justify-center"
-                >
-                  Cancel
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      {/* 3. DELETE ACCOUNT CONFIRMATION DIALOG */}
+      <ConfirmationDialog
+        isOpen={confirmDelete}
+        title="Delete Account?"
+        description="This will permanently delete your account and all associated habit tracking data. This action cannot be undone."
+        cancelText="Cancel"
+        confirmText="Delete Account"
+        destructive={true}
+        isLoading={deleting}
+        icon={<Trash2 size={20} className="text-red-400 stroke-[2.2]" />}
+        onCancel={() => {
+          if (!deleting) setConfirmDelete(false);
+        }}
+        onConfirm={handleDeleteAccountConfirm}
+      />
 
       {/* Dynamic Confirmation Modal for Streak freezing */}
       <AnimatePresence>
