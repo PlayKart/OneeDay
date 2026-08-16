@@ -40,7 +40,6 @@ import { useStore, ChatSession, ChatMessage } from '../store/useStore';
 import { chatService } from '../services/chatService';
 import { toast } from 'react-hot-toast';
 import { MonolithLogo } from './MonolithLogo';
-import { ConfirmationDialog } from './ConfirmationDialog';
 
 export const AICoach = () => {
   const {
@@ -71,13 +70,6 @@ export const AICoach = () => {
   const [feedback, setFeedback] = useState<Record<string, 'up' | 'down'>>({});
   const [activeSessionMenuId, setActiveSessionMenuId] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-
-  // Confirmation dialog states
-  const [showClearChatConfirm, setShowClearChatConfirm] = useState(false);
-  const [sessionToDelete, setSessionToDelete] = useState<{ id: string; title: string } | null>(null);
-  const [messageToDeleteId, setMessageToDeleteId] = useState<string | null>(null);
-  const [isDeletingSession, setIsDeletingSession] = useState(false);
-  const [isDeletingMessage, setIsDeletingMessage] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -229,57 +221,24 @@ export const AICoach = () => {
       const safeMsgs = Array.isArray(chatMessages) ? chatMessages : [];
       const updated = safeMsgs.filter(m => m && m.id !== msgId);
       useStore.setState({ chatMessages: updated });
-      return true;
+      toast.success("Message deleted");
     } catch (e) {
       console.error("Failed to delete message", e);
-      return false;
+      toast.error("Failed to delete message");
     }
   };
 
-  const executeDeleteMessage = async () => {
-    if (!messageToDeleteId) return;
-    setIsDeletingMessage(true);
-    try {
-      const ok = await handleDeleteMessageLocal(messageToDeleteId);
-      if (ok) {
-        toast.success("Message deleted successfully.");
-      } else {
-        toast.error("Failed to delete message.");
-      }
-      setMessageToDeleteId(null);
-    } finally {
-      setIsDeletingMessage(false);
-    }
-  };
-
-  const executeClearChat = () => {
+  const handleClearChatLocal = () => {
     useStore.setState({ chatMessages: [] });
-    setShowClearChatConfirm(false);
-    toast.success("Chat cleared successfully.");
-  };
-
-  const executeDeleteSession = async () => {
-    if (!sessionToDelete?.id) return;
-    setIsDeletingSession(true);
-    try {
-      await deleteSession(sessionToDelete.id);
-      setSessionToDelete(null);
-      toast.success("Chat deleted successfully.");
-    } catch (e) {
-      console.error("Failed to delete chat", e);
-      toast.error("Failed to delete chat.");
-    } finally {
-      setIsDeletingSession(false);
-    }
+    setMenuOpen(false);
+    toast.success("Session history cleared");
   };
 
   const handleExportChat = async () => {
-    setMenuOpen(false);
-    const toastId = toast.loading("Exporting chat...");
     try {
       const data = await chatService.exportChats();
       if (!data) {
-        toast.error("Couldn't export this chat. Please try again.", { id: toastId });
+        toast.error("Failed to export chats");
         return;
       }
       const dataStr = JSON.stringify(data, null, 2);
@@ -287,13 +246,14 @@ export const AICoach = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `OneDay_Coach_Chats.json`;
+      a.download = `OneDay_Coach_Protocols.json`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success("Chat exported successfully.", { id: toastId });
+      setMenuOpen(false);
+      toast.success("Coaching protocols exported");
     } catch (e) {
       console.error("Export chats error", e);
-      toast.error("Couldn't export this chat. Please try again.", { id: toastId });
+      toast.error("Failed to export chats");
     }
   };
 
@@ -633,13 +593,12 @@ export const AICoach = () => {
                             </div>
                             <div className="py-0.5">
                               <button
-                                onClick={(e) => {
+                                onClick={async (e) => {
                                   e.stopPropagation();
                                   setActiveSessionMenuId(null);
-                                  setSessionToDelete({
-                                    id: session.id,
-                                    title: session.title || "Chat"
-                                  });
+                                  if (window.confirm("Are you sure you want to delete this chat?")) {
+                                    await deleteSession(session.id);
+                                  }
                                 }}
                                 className="w-full text-left px-3 py-1.5 text-[11px] text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 font-semibold transition-colors"
                               >
@@ -750,10 +709,7 @@ export const AICoach = () => {
                   >
                     <div className="py-0.5">
                       <button
-                        onClick={() => {
-                          setMenuOpen(false);
-                          setShowClearChatConfirm(true);
-                        }}
+                        onClick={handleClearChatLocal}
                         className="w-full text-left px-3.5 py-2 text-xs font-medium text-slate-200 hover:bg-white/[0.08] hover:text-white transition-colors flex items-center gap-2"
                       >
                         <RotateCcw size={12} className="text-slate-400" />
@@ -772,14 +728,10 @@ export const AICoach = () => {
                     <div className="py-0.5">
                       <button
                         onClick={() => {
-                          setMenuOpen(false);
-                          if (activeChatId) {
-                            const current = safeChatSessions.find(s => s && s.id === activeChatId);
-                            setSessionToDelete({
-                              id: activeChatId,
-                              title: current?.title || "Active Chat"
-                            });
+                          if (activeChatId && window.confirm("Are you sure you want to delete this chat?")) {
+                            deleteSession(activeChatId);
                           }
+                          setMenuOpen(false);
                         }}
                         className="w-full text-left px-3.5 py-2 text-xs font-semibold text-rose-400 hover:bg-rose-500/10 transition-colors flex items-center gap-2"
                       >
@@ -982,7 +934,7 @@ export const AICoach = () => {
                               Edit
                             </button>
                             <button
-                              onClick={() => setMessageToDeleteId(msg.id)}
+                              onClick={() => handleDeleteMessageLocal(msg.id)}
                               className="hover:text-rose-400 flex items-center gap-1 transition-colors text-slate-400"
                               title="Delete message"
                             >
@@ -1127,51 +1079,6 @@ export const AICoach = () => {
         </div>
 
       </div>
-
-      {/* 1. CLEAR CHAT CONFIRMATION MODAL */}
-      <ConfirmationDialog
-        isOpen={showClearChatConfirm}
-        title="Clear this chat?"
-        description="All messages in this conversation will be removed. This action cannot be undone."
-        cancelText="Cancel"
-        confirmText="Clear Chat"
-        destructive={true}
-        icon={<RotateCcw size={20} className="text-red-400 stroke-[2.2]" />}
-        onCancel={() => setShowClearChatConfirm(false)}
-        onConfirm={executeClearChat}
-      />
-
-      {/* 2. DELETE CHAT CONFIRMATION MODAL */}
-      <ConfirmationDialog
-        isOpen={!!sessionToDelete}
-        title="Delete conversation?"
-        description="This conversation will be permanently deleted. This action cannot be undone."
-        cancelText="Cancel"
-        confirmText="Delete"
-        destructive={true}
-        isLoading={isDeletingSession}
-        icon={<Trash2 size={20} className="text-red-400 stroke-[2.2]" />}
-        onCancel={() => {
-          if (!isDeletingSession) setSessionToDelete(null);
-        }}
-        onConfirm={executeDeleteSession}
-      />
-
-      {/* 3. DELETE MESSAGE CONFIRMATION MODAL */}
-      <ConfirmationDialog
-        isOpen={!!messageToDeleteId}
-        title="Delete message?"
-        description="This message will be removed from your conversation. This action cannot be undone."
-        cancelText="Cancel"
-        confirmText="Delete"
-        destructive={true}
-        isLoading={isDeletingMessage}
-        icon={<Trash2 size={20} className="text-red-400 stroke-[2.2]" />}
-        onCancel={() => {
-          if (!isDeletingMessage) setMessageToDeleteId(null);
-        }}
-        onConfirm={executeDeleteMessage}
-      />
 
     </div>
   );
