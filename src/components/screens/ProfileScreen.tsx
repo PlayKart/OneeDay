@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useStore } from "../../store/useStore";
-import { ArrowLeft, User as UserIcon, Edit3, AlertTriangle, Sparkles, Heart, Trophy, Calendar } from "lucide-react";
+import { ArrowLeft, User as UserIcon, Edit3, AlertTriangle, Sparkles, Heart, Trophy, Calendar, Shield, Check, Award } from "lucide-react";
 import { motion } from "motion/react";
 import { toast } from "react-hot-toast";
 import { userService } from "../../services/userService";
 import { OnboardingModal } from "../OnboardingModal";
+import { getAllUserTitles, getEquippedTitle, getTitleDescription, isTitleNew, markTitleAsSeen } from "../../utils/titleUtils";
 
 function ProfileSkeleton() {
   return (
@@ -72,6 +73,16 @@ export function ProfileScreen({ onBack }: ProfileScreenProps) {
   }, [fetchProfile]);
 
   const activeUser = profileData || user;
+  const currentUserId = activeUser?.id || activeUser?.userId;
+  const equippedTitle = getEquippedTitle(activeUser);
+  const unlockedTitles = getAllUserTitles(activeUser);
+  const { equipTitle } = useStore();
+
+  const handleSelectTitle = async (title: string) => {
+    markTitleAsSeen(title, currentUserId);
+    await equipTitle(title);
+    toast.success(`Equipped "${title.toUpperCase()}" as identity badge`);
+  };
 
   return (
     <motion.div
@@ -134,10 +145,88 @@ export function ProfileScreen({ onBack }: ProfileScreenProps) {
               <h2 className="text-lg font-black text-white leading-tight truncate">
                 {activeUser.name || "Active Champion"}
               </h2>
-              <p className="text-slate-500 text-xs mt-1 font-semibold flex items-center gap-1.5 uppercase tracking-wider">
-                <Sparkles size={11} className="text-purple-400" />
-                Level {activeUser.level || 1} Elite
-              </p>
+              <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                <p className="text-slate-400 text-xs font-semibold flex items-center gap-1.5 uppercase tracking-wider">
+                  <Sparkles size={11} className="text-purple-400" />
+                  Level {activeUser.level || 1} Elite
+                </p>
+                {equippedTitle && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-amber-500/10 border border-amber-500/25 text-amber-300 text-[10px] font-black uppercase tracking-wider rounded-lg">
+                    <Shield size={10} className="text-amber-400" />
+                    {equippedTitle}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Unlocked Titles & Identity Badges */}
+          <div className="bg-[#0C0C0C] border border-white/5 rounded-3xl p-5 space-y-4 shadow-md">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-slate-400">
+                <Award size={14} className="text-amber-400" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-white">Unlocked Titles & Badges</span>
+              </div>
+              <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 bg-white/5 px-2 py-0.5 rounded-full">
+                {unlockedTitles.length} {unlockedTitles.length === 1 ? "Title" : "Titles"}
+              </span>
+            </div>
+
+            <div className="space-y-2.5">
+              {unlockedTitles.map((t) => {
+                const isCurrent = equippedTitle?.toUpperCase() === t.toUpperCase();
+                const isNew = isTitleNew(t, currentUserId);
+                const desc = getTitleDescription(t);
+
+                return (
+                  <div
+                    key={t}
+                    onClick={() => handleSelectTitle(t)}
+                    className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                      isCurrent
+                        ? "bg-amber-500/10 border-amber-500/30 shadow-[0_0_20px_rgba(245,158,11,0.1)]"
+                        : "bg-white/[0.02] border-white/5 hover:border-white/15 hover:bg-white/[0.04]"
+                    }`}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className={`text-xs font-black uppercase tracking-wide ${isCurrent ? "text-amber-300" : "text-white"}`}>
+                          {t}
+                        </span>
+                        {isNew && !isCurrent && (
+                          <span className="px-1.5 py-0.2 bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[8px] font-black uppercase tracking-widest rounded-full animate-pulse">
+                            NEW
+                          </span>
+                        )}
+                        {isCurrent && (
+                          <span className="px-2 py-0.2 bg-amber-400 text-black text-[8px] font-black uppercase tracking-widest rounded-full flex items-center gap-1">
+                            <Check size={8} className="stroke-[3]" />
+                            Equipped
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-slate-400 text-[11px] font-medium leading-relaxed truncate">
+                        "{desc}"
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSelectTitle(t);
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer shrink-0 ${
+                        isCurrent
+                          ? "bg-amber-400/20 text-amber-300 border border-amber-500/30"
+                          : "bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10"
+                      }`}
+                    >
+                      {isCurrent ? "Active" : "Equip"}
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </div>
 

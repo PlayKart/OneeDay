@@ -239,6 +239,18 @@ export function normalizeUser(u: any, existingUser?: User | null): User {
     currentStreak: typeof streakVal === "number" ? streakVal : (existingUser?.currentStreak ?? existingUser?.streak ?? 0),
     level: finalLevel,
     levelProgress: calculatedLevelProgress,
+    title:
+      findFirstString(["title", "equippedTitle", "equipped_title", "activeTitle", "active_title"]) ||
+      existingUser?.title ||
+      existingUser?.equippedTitle ||
+      (finalLevel >= 3 ? "IRON MIND" : "DISCIPLINE BUILDER"),
+    equippedTitle:
+      findFirstString(["equippedTitle", "equipped_title", "title", "activeTitle", "active_title"]) ||
+      existingUser?.equippedTitle ||
+      existingUser?.title ||
+      (finalLevel >= 3 ? "IRON MIND" : "DISCIPLINE BUILDER"),
+    titles: Array.isArray(rawUser?.titles) ? rawUser.titles : (Array.isArray(rawUser?.unlocked_titles) ? rawUser.unlocked_titles : existingUser?.titles),
+    unlockedTitles: Array.isArray(rawUser?.unlockedTitles) ? rawUser.unlockedTitles : (Array.isArray(rawUser?.unlocked_titles) ? rawUser.unlocked_titles : existingUser?.unlockedTitles),
     freezeUntil:
       findFirstString(["freezeUntil", "freeze_until"]) ||
       rawUser?.freezeUntil ||

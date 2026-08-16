@@ -10,6 +10,7 @@ import { userService } from '../services/userService';
 import { quoteService } from '../services/quoteService';
 import { safeArray, normalizeCompletedDates, normalizeUser, hasCompletedOnboarding, calculateLevelProgress, getXpForDifficulty, extractXpAwarded } from '../utils';
 import { isHabitScheduledForToday } from '../lib/habitUtils';
+import { isTitleNew, markTitleAsSeen, getTitleDescription, setEquippedTitle, getEquippedTitle } from '../utils/titleUtils';
 import { apiRequest } from '../api/client';
 import { 
   User as BackendUser, 
@@ -64,6 +65,7 @@ interface StoreState {
   freezeStreak: (days: number) => Promise<void>;
   deactivateFreeze: () => Promise<void>;
   updateProfile: (data: Partial<BackendUser>) => Promise<void>;
+  equipTitle: (title: string) => Promise<void>;
   sendChat: (message: string) => Promise<string>;
   resetProgress: () => Promise<void>;
   deleteAccount: () => Promise<void>;
@@ -274,14 +276,20 @@ export const useStore = create<StoreState>((set, get) => {
         if (data) {
           const root = (data as any).data || data;
           const userObj = root?.user || root;
-          if (root?.titleUnlocked || userObj?.titleUnlocked) {
-            set({
-              titleUnlockData: {
-                title: root?.title || userObj?.title || "IRON MIND",
-                signature: root?.signature || userObj?.signature || "You've proven consistency isn't luck. It's your identity.",
-                level: root?.level || userObj?.level || data?.user?.level || 1,
-              }
-            });
+          const targetTitle = root?.title || userObj?.title || root?.unlockedTitle;
+          const currentUserId = userObj?.id || userObj?.userId || get().user?.id || get().user?.userId;
+
+          if ((root?.titleUnlocked || userObj?.titleUnlocked) && targetTitle) {
+            const isGenuinelyNew = isTitleNew(targetTitle, currentUserId);
+            if (isGenuinelyNew) {
+              set({
+                titleUnlockData: {
+                  title: targetTitle,
+                  signature: getTitleDescription(targetTitle, root?.signature || userObj?.signature),
+                  level: root?.level || userObj?.level || data?.user?.level || 1,
+                }
+              });
+            }
           }
           if (root?.titleLost || userObj?.titleLost) {
             set({
@@ -529,14 +537,20 @@ export const useStore = create<StoreState>((set, get) => {
 
         const root = (res as any).data || res;
         const userObj = root?.user || root;
-        if (root?.titleUnlocked || userObj?.titleUnlocked) {
-          set({
-            titleUnlockData: {
-              title: root?.title || userObj?.title || "IRON MIND",
-              signature: root?.signature || userObj?.signature || "You've proven consistency isn't luck. It's your identity.",
-              level: root?.level || userObj?.level || nextLevel,
-            }
-          });
+        const targetTitle = root?.title || userObj?.title || root?.unlockedTitle;
+        const currentUserId = userObj?.id || userObj?.userId || get().user?.id || get().user?.userId;
+
+        if ((root?.titleUnlocked || userObj?.titleUnlocked) && targetTitle) {
+          const isGenuinelyNew = isTitleNew(targetTitle, currentUserId);
+          if (isGenuinelyNew) {
+            set({
+              titleUnlockData: {
+                title: targetTitle,
+                signature: getTitleDescription(targetTitle, root?.signature || userObj?.signature),
+                level: root?.level || userObj?.level || nextLevel,
+              }
+            });
+          }
         }
         if (root?.titleLost || userObj?.titleLost) {
           set({
@@ -787,6 +801,25 @@ export const useStore = create<StoreState>((set, get) => {
       } catch (e) {
         console.error("[useStore] updateProfile error:", e);
         throw e;
+      }
+    },
+
+    equipTitle: async (title: string) => {
+      const currentUser = get().user;
+      if (!currentUser) return;
+      const normalizedTitle = title.trim().toUpperCase();
+      setEquippedTitle(normalizedTitle, currentUser.id || currentUser.userId);
+      const updatedUser: BackendUser = {
+        ...currentUser,
+        title: normalizedTitle,
+        equippedTitle: normalizedTitle,
+      };
+      set({ user: updatedUser });
+      localStorage.setItem("oneday_cached_user", JSON.stringify(updatedUser));
+      try {
+        await userService.updateProfile({ title: normalizedTitle, equippedTitle: normalizedTitle } as any);
+      } catch (err) {
+        console.warn("Could not sync equipped title to backend API:", err);
       }
     },
 

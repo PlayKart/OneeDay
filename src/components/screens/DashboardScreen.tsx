@@ -2,19 +2,19 @@ import { useState, useEffect } from "react";
 import { useStore } from "../../store/useStore";
 import { MotivationalQuote } from "../MotivationalQuote";
 import { HabitList } from "../HabitList";
-import { Target, Zap, Clock, ShieldAlert, Sparkles, Activity, ArrowRight, Flame, Trophy, Plus } from "lucide-react";
+import { Target, Zap, Clock, ShieldAlert, Sparkles, Activity, ArrowRight, Flame, Trophy, Plus, Shield } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "react-hot-toast";
 
 import { isHabitScheduledForToday } from "../../lib/habitUtils";
-import { getDynamicGreeting } from "../../utils/greetingUtils";
+import { getPersonalizedGreeting } from "../../utils/greetingUtils";
+import { getEquippedTitle } from "../../utils/titleUtils";
 import { calculateLevelProgress } from "../../utils";
 
 export function DashboardScreen() {
   const { user, habits, deactivateFreeze, refreshFromBackend, setActiveTab } = useStore();
   const [confirmDeactivate, setConfirmDeactivate] = useState(false);
   const [unfreezing, setUnfreezing] = useState(false);
-  const [greeting] = useState(() => getDynamicGreeting((user as any)?.greeting));
   const [isStreakSheetOpen, setIsStreakSheetOpen] = useState(false);
 
   // Premium XP & Level change tracking
@@ -80,6 +80,15 @@ export function DashboardScreen() {
       })
     : "";
 
+  const equippedTitle = getEquippedTitle(user);
+  const greeting = getPersonalizedGreeting({
+    user,
+    habits,
+    completedTodayCount: completedToday,
+    totalHabitsCount: totalHabits,
+    isFrozen: Boolean(isFrozen),
+  });
+
   return (
     <div className="w-full max-w-full overflow-x-hidden min-h-0">
       
@@ -134,6 +143,7 @@ export function DashboardScreen() {
         {/* 1. Greeting */}
         <div className="w-full">
           <motion.h1 
+            key={greeting}
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
@@ -141,9 +151,20 @@ export function DashboardScreen() {
           >
             {greeting}
           </motion.h1>
-          <p className="text-slate-500 text-[10px] tracking-widest uppercase font-bold mt-0.5">
-            {today}
-          </p>
+          <div className="flex items-center gap-2 mt-1">
+            <p className="text-slate-500 text-[10px] tracking-widest uppercase font-bold">
+              {today}
+            </p>
+            {equippedTitle && (
+              <>
+                <span className="w-1 h-1 rounded-full bg-slate-700" />
+                <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-amber-400/90 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">
+                  <Shield size={9} />
+                  {equippedTitle}
+                </span>
+              </>
+            )}
+          </div>
         </div>
 
         {/* 2. Daily Quote */}
@@ -498,6 +519,7 @@ export function DashboardScreen() {
         <header className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 pt-4">
           <div>
             <motion.h1 
+              key={greeting}
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
@@ -505,9 +527,20 @@ export function DashboardScreen() {
             >
               {greeting}
             </motion.h1>
-            <p className="text-slate-500 text-[10px] tracking-widest uppercase font-bold mt-1">
-              {today}
-            </p>
+            <div className="flex items-center gap-2 mt-1">
+              <p className="text-slate-500 text-[10px] tracking-widest uppercase font-bold">
+                {today}
+              </p>
+              {equippedTitle && (
+                <>
+                  <span className="w-1 h-1 rounded-full bg-slate-700" />
+                  <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-amber-400/90 bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-full">
+                    <Shield size={10} />
+                    {equippedTitle}
+                  </span>
+                </>
+              )}
+            </div>
           </div>
 
           <div className="flex gap-4 w-full md:w-auto relative z-10">
