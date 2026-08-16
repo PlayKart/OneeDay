@@ -14,7 +14,6 @@ export function MainLayout({ children }: MainLayoutProps) {
   React.useEffect(() => {
     const detectKeyboard = () => {
       if (window.visualViewport) {
-        // If the visual viewport height is significantly less than innerHeight, a keyboard is up
         setIsKeyboardOpen(window.visualViewport.height < window.innerHeight * 0.85);
       } else {
         setIsKeyboardOpen(window.innerHeight < window.screen.height * 0.7);
@@ -42,7 +41,7 @@ export function MainLayout({ children }: MainLayoutProps) {
   ] as const;
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-[#000000] text-white overflow-hidden">
+    <div className="flex flex-col h-[100dvh] bg-[#050508] text-slate-100 overflow-hidden">
       <main className={`flex-1 min-h-0 ${
         activeTab === 'coach' 
           ? `overflow-hidden flex flex-col ${isKeyboardOpen ? 'pb-0' : 'pb-[calc(5.2rem+env(safe-area-inset-bottom))]'}` 
@@ -52,8 +51,11 @@ export function MainLayout({ children }: MainLayoutProps) {
       </main>
 
       {!isKeyboardOpen && (
-        <nav className="fixed bottom-0 w-full glass-nav border-t border-white/10 z-50 px-6 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] bg-black/90 backdrop-blur-2xl shadow-[0_-10px_40px_rgba(0,0,0,0.8)]">
-          <div className="flex justify-between items-center max-w-md mx-auto">
+        <nav 
+          aria-label="Primary Navigation"
+          className="fixed bottom-0 inset-x-0 z-50 px-4 sm:px-6 py-2.5 pb-[calc(0.75rem+env(safe-area-inset-bottom))] bg-[#08080c]/85 backdrop-blur-2xl border-t border-white/[0.08] shadow-[0_-12px_40px_rgba(0,0,0,0.7)]"
+        >
+          <div className="flex justify-around items-center max-w-md mx-auto">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -61,23 +63,30 @@ export function MainLayout({ children }: MainLayoutProps) {
               return (
                 <motion.button
                   key={tab.id}
+                  id={`nav-tab-${tab.id}`}
                   onClick={() => setActiveTab(tab.id as any)}
                   whileTap={{ scale: 0.92 }}
-                  className={`flex flex-col items-center gap-1 transition-all duration-300 min-w-[64px] py-1 select-none cursor-pointer focus:outline-none ${
-                    isActive ? "text-white" : "text-slate-500 hover:text-slate-300"
+                  className={`flex flex-col items-center justify-center min-w-[64px] min-h-[44px] py-1 select-none cursor-pointer focus:outline-none transition-all ${
+                    isActive ? "text-white" : "text-slate-400 hover:text-slate-200"
                   }`}
                 >
-                  <div className={`relative flex items-center justify-center p-2.5 rounded-2xl transition-all duration-300 ${isActive ? "bg-white/10 scale-105" : "bg-transparent"}`}>
-                    <Icon size={20} strokeWidth={isActive ? 2.5 : 2} className={isActive ? "drop-shadow-[0_0_8px_rgba(255,255,255,0.4)] text-white" : "text-slate-500"} />
+                  <div className={`relative flex items-center justify-center p-2 rounded-xl transition-all duration-300 ${
+                    isActive 
+                      ? "bg-purple-500/15 text-purple-300 border border-purple-500/30 shadow-[0_0_16px_rgba(139,92,246,0.25)]" 
+                      : "bg-transparent text-slate-400"
+                  }`}>
+                    <Icon size={19} strokeWidth={isActive ? 2.5 : 1.8} />
                     {isActive && (
                       <motion.div 
                         layoutId="activeTabIndicator" 
-                        className="absolute -bottom-1.5 w-1 h-1 bg-white rounded-full shadow-[0_0_8px_rgba(255,255,255,0.8)]" 
+                        className="absolute -bottom-1 w-1 h-1 bg-purple-400 rounded-full shadow-[0_0_8px_rgba(168,85,247,0.9)]" 
                         transition={{ type: "spring", stiffness: 350, damping: 30 }}
                       />
                     )}
                   </div>
-                  <span className={`text-[9px] font-black tracking-widest uppercase mt-1 ${isActive ? "text-white font-black" : "text-slate-600 font-bold"}`}>
+                  <span className={`text-[9px] font-bold tracking-widest uppercase mt-1 transition-colors ${
+                    isActive ? "text-purple-300 font-extrabold" : "text-slate-500"
+                  }`}>
                     {tab.label}
                   </span>
                 </motion.button>
@@ -89,4 +98,3 @@ export function MainLayout({ children }: MainLayoutProps) {
     </div>
   );
 }
-
