@@ -186,12 +186,12 @@ export const AICoach = () => {
 
   const handleStartNewChat = async () => {
     try {
-      await createSession("New Strategy Protocol");
+      await createSession("New Chat");
       setSidebarOpen(false);
-      toast.success("New strategy session initiated");
+      toast.success("New chat started");
     } catch (e) {
       console.error("Failed to create new chat:", e);
-      toast.error("Could not start new session");
+      toast.error("Could not start new chat");
     }
   };
 
@@ -360,13 +360,13 @@ export const AICoach = () => {
   ];
 
   return (
-    <div className="flex h-full w-full min-h-0 bg-[#070708] text-white font-sans overflow-hidden select-none relative">
+    <div className="flex h-full w-full min-w-0 max-w-full bg-[#070708] text-white font-sans overflow-hidden select-none relative">
 
       {/* SIDEBAR CONTAINER (DESKTOP & MOBILE RESPONSIVE) */}
       <div
         className={`
-          fixed md:static inset-y-0 left-0 w-[285px] sm:w-[310px] md:w-80 bg-[#09090b] border-r border-white/[0.08] h-full z-40 flex flex-col justify-between transition-transform duration-300 ease-out backdrop-blur-2xl relative
-          ${sidebarOpen ? 'translate-x-0 flex shadow-[0_0_60px_rgba(0,0,0,0.95)]' : '-translate-x-full md:translate-x-0 md:flex'}
+          fixed md:relative inset-y-0 left-0 w-[280px] sm:w-[310px] md:w-80 bg-[#09090b] border-r border-white/[0.08] h-full z-40 flex flex-col justify-between transition-transform duration-300 ease-out backdrop-blur-2xl md:shrink-0 md:translate-x-0
+          ${sidebarOpen ? 'translate-x-0 shadow-[0_0_60px_rgba(0,0,0,0.95)]' : '-translate-x-full md:translate-x-0'}
         `}
       >
         {/* Subtle top-edge light catch */}
@@ -379,7 +379,7 @@ export const AICoach = () => {
             <div className="flex items-center gap-2.5">
               <div className="w-2 h-2 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.9)]" />
               <span className="text-[11px] font-bold tracking-[0.18em] uppercase text-zinc-100 font-sans">
-                Strategy Logs
+                Chat History
               </span>
               <span className="px-1.5 py-0.5 rounded-md bg-white/[0.06] border border-white/[0.08] text-[10px] font-semibold text-slate-300 font-mono leading-none">
                 {filteredSessions.length}
@@ -401,7 +401,7 @@ export const AICoach = () => {
               <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-slate-200 transition-colors pointer-events-none" />
               <input
                 type="text"
-                placeholder="Search protocols & strategies..."
+                placeholder="Search conversations..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-[#121215] hover:bg-[#151519] focus:bg-[#17171d] border border-white/[0.08] focus:border-white/25 rounded-xl py-2 pl-8.5 pr-8 text-xs text-white placeholder:text-slate-500 focus:outline-none transition-all shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]"
@@ -418,7 +418,7 @@ export const AICoach = () => {
             </div>
           </div>
 
-          {/* + NEW STRATEGY SESSION BUTTON */}
+          {/* + NEW CHAT BUTTON */}
           <div className="px-3.5 py-1.5 shrink-0">
             <button
               onClick={handleStartNewChat}
@@ -428,7 +428,7 @@ export const AICoach = () => {
                 <div className="w-5 h-5 rounded-lg bg-black/10 flex items-center justify-center text-black group-hover:scale-105 transition-transform">
                   <Plus size={13} className="stroke-[2.5]" />
                 </div>
-                <span className="font-bold text-black tracking-tight text-xs">New Strategy Protocol</span>
+                <span className="font-bold text-black tracking-tight text-xs">+ NEW CHAT</span>
               </div>
               <span className="text-[10px] text-zinc-600 group-hover:text-black transition-colors flex items-center gap-1 font-semibold">
                 <AICoachIcon size={11} active />
@@ -452,9 +452,9 @@ export const AICoach = () => {
                 <div className="w-10 h-10 rounded-2xl bg-white/[0.04] border border-white/[0.07] flex items-center justify-center text-slate-400 mb-3 shadow-inner">
                   <MessageSquare size={17} />
                 </div>
-                <p className="text-xs font-semibold text-zinc-200">No strategy logs found</p>
+                <p className="text-xs font-semibold text-zinc-200">No chats found</p>
                 <p className="text-[11px] text-slate-400 mt-1 max-w-[190px] leading-relaxed">
-                  {searchQuery ? "Try a different search query" : "Initiate a new protocol with your AI Coach."}
+                  {searchQuery ? "Try a different search query" : "Start a new chat with your AI Coach."}
                 </p>
               </div>
             ) : (
@@ -502,7 +502,7 @@ export const AICoach = () => {
                             if (e.key === 'Enter') {
                               if (renameText.trim()) {
                                 await useStore.getState().renameSession(session.id, renameText);
-                                toast.success("Protocol renamed");
+                                toast.success("Chat renamed");
                               }
                               setEditingSessionId(null);
                             } else if (e.key === 'Escape') {
@@ -565,14 +565,14 @@ export const AICoach = () => {
                                 className="w-full text-left px-3 py-1.5 text-[11px] text-slate-200 hover:text-white hover:bg-white/[0.08] flex items-center gap-2 font-medium transition-colors"
                               >
                                 <Pin size={11} className={session.is_pinned ? "text-white" : "text-slate-400"} />
-                                {session.is_pinned ? "Unpin Protocol" : "Pin Protocol"}
+                                {session.is_pinned ? "Unpin Chat" : "Pin Chat"}
                               </button>
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setActiveSessionMenuId(null);
                                   setEditingSessionId(session.id);
-                                  setRenameText(session.title || "Strategy Session");
+                                  setRenameText(session.title || "Chat");
                                 }}
                                 className="w-full text-left px-3 py-1.5 text-[11px] text-slate-200 hover:text-white hover:bg-white/[0.08] flex items-center gap-2 font-medium transition-colors"
                               >
@@ -583,7 +583,7 @@ export const AICoach = () => {
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setActiveSessionMenuId(null);
-                                  toast.success("Protocol archived");
+                                  toast.success("Chat archived");
                                 }}
                                 className="w-full text-left px-3 py-1.5 text-[11px] text-slate-200 hover:text-white hover:bg-white/[0.08] flex items-center gap-2 font-medium transition-colors"
                               >
@@ -596,7 +596,7 @@ export const AICoach = () => {
                                 onClick={async (e) => {
                                   e.stopPropagation();
                                   setActiveSessionMenuId(null);
-                                  if (window.confirm("Are you sure you want to delete this coaching session?")) {
+                                  if (window.confirm("Are you sure you want to delete this chat?")) {
                                     await deleteSession(session.id);
                                   }
                                 }}
@@ -649,11 +649,11 @@ export const AICoach = () => {
       )}
 
       {/* RIGHT MAIN CHAT COLUMN */}
-      <div className="flex-1 min-h-0 flex flex-col h-full bg-[#070708] relative overflow-hidden">
+      <div className="flex-1 min-w-0 w-full max-w-full flex flex-col h-full bg-[#070708] relative overflow-hidden">
         
         {/* CHAT HEADER */}
-        <div className="px-4 py-3 border-b border-white/[0.07] bg-[#09090b]/90 backdrop-blur-md flex items-center justify-between gap-4 shrink-0 z-10 h-14">
-          <div className="flex items-center gap-3 min-w-0">
+        <div className="px-3 sm:px-4 py-3 border-b border-white/[0.07] bg-[#09090b]/90 backdrop-blur-md flex items-center justify-between gap-2 sm:gap-4 shrink-0 z-10 h-14 w-full min-w-0">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
             {/* Mobile menu toggle */}
             <button
               onClick={() => setSidebarOpen(true)}
@@ -665,28 +665,28 @@ export const AICoach = () => {
             <div className="hidden sm:flex shrink-0">
               <AICoachAvatar size={28} active />
             </div>
-            <div className="flex flex-col min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[9px] uppercase tracking-[0.18em] font-bold text-slate-400 font-sans leading-none">
-                  ONEDAY COACH // DISCIPLINE PROTOCOL
+            <div className="flex flex-col min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="text-[9px] uppercase tracking-[0.18em] font-bold text-slate-400 font-sans leading-none truncate">
+                  ONEDAY COACH
                 </span>
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)] shrink-0" />
               </div>
-              <span className="text-xs font-semibold text-white truncate max-w-xs sm:max-w-md mt-1 leading-none">
-                {activeChatId ? cleanTitle(safeChatSessions.find(s => s && s.id === activeChatId)?.title || "Active Strategy Session") : "Active Strategy Session"}
+              <span className="text-xs font-semibold text-white truncate mt-1 leading-none">
+                {activeChatId ? cleanTitle(safeChatSessions.find(s => s && s.id === activeChatId)?.title || "Active Chat") : "Active Chat"}
               </span>
             </div>
           </div>
 
           {/* Actions & Menu */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 shrink-0">
             <button
               onClick={handleStartNewChat}
-              className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.08] text-xs font-medium text-slate-200 hover:text-white transition-colors"
-              title="New Strategy Session"
+              className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-lg bg-white text-black hover:bg-zinc-200 border border-white/20 text-xs font-bold transition-colors cursor-pointer shadow-sm active:scale-95"
+              title="New Chat"
             >
-              <Plus size={13} />
-              <span>New</span>
+              <Plus size={13} className="stroke-[2.5]" />
+              <span className="text-xs font-bold whitespace-nowrap">New Chat</span>
             </button>
 
             {/* Three-Dot Menu dropdown wrapper */}
@@ -713,7 +713,7 @@ export const AICoach = () => {
                         className="w-full text-left px-3.5 py-2 text-xs font-medium text-slate-200 hover:bg-white/[0.08] hover:text-white transition-colors flex items-center gap-2"
                       >
                         <RotateCcw size={12} className="text-slate-400" />
-                        Clear Session
+                        Clear Chat
                       </button>
 
                       <button
@@ -721,14 +721,14 @@ export const AICoach = () => {
                         className="w-full text-left px-3.5 py-2 text-xs font-medium text-slate-200 hover:bg-white/[0.08] hover:text-white transition-colors flex items-center gap-2"
                       >
                         <Download size={12} className="text-slate-400" />
-                        Export Protocols
+                        Export Chats
                       </button>
                     </div>
 
                     <div className="py-0.5">
                       <button
                         onClick={() => {
-                          if (activeChatId && window.confirm("Are you sure you want to delete this conversation?")) {
+                          if (activeChatId && window.confirm("Are you sure you want to delete this chat?")) {
                             deleteSession(activeChatId);
                           }
                           setMenuOpen(false);
@@ -736,7 +736,7 @@ export const AICoach = () => {
                         className="w-full text-left px-3.5 py-2 text-xs font-semibold text-rose-400 hover:bg-rose-500/10 transition-colors flex items-center gap-2"
                       >
                         <Trash2 size={12} />
-                        Delete Session
+                        Delete Chat
                       </button>
                     </div>
                   </motion.div>
@@ -749,9 +749,8 @@ export const AICoach = () => {
         {/* MESSAGES VIEWPORT */}
         <div
           ref={scrollRef}
-          className="flex-1 min-h-0 overflow-y-auto p-4 md:p-8 space-y-6 scroll-smooth"
+          className="flex-1 min-h-0 w-full overflow-y-auto overflow-x-hidden p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 scroll-smooth scrollbar-thin scrollbar-thumb-white/10"
           id="chat-messages-scroll"
-          style={{ scrollBehavior: 'smooth' }}
         >
           {chatLoading && safeChatMessages.length === 0 ? (
             <div className="space-y-6 max-w-3xl mx-auto py-8">
@@ -765,22 +764,22 @@ export const AICoach = () => {
             </div>
           ) : safeChatMessages.length === 0 ? (
             /* EMPTY STATE: "What are we conquering today?" */
-            <div className="max-w-2xl mx-auto text-center py-10 md:py-16 flex flex-col items-center justify-center select-none px-4">
+            <div className="max-w-2xl mx-auto text-center py-6 sm:py-10 md:py-16 flex flex-col items-center justify-center select-none px-2 sm:px-4 w-full min-w-0">
               <motion.div 
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.5, ease: "easeOut" }}
-                className="mb-6 relative"
+                className="mb-4 sm:mb-6 relative"
               >
                 <div className="absolute inset-0 bg-white/[0.04] blur-2xl rounded-full scale-125 pointer-events-none" />
-                <MonolithLogo size={64} />
+                <MonolithLogo size={56} />
               </motion.div>
               
               <motion.h2 
                 initial={{ y: 10, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.1, duration: 0.5 }}
-                className="text-2xl md:text-3xl font-extrabold tracking-tight mb-2 text-white"
+                className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight mb-2 text-white px-2"
               >
                 What are we conquering today?
               </motion.h2>
@@ -789,16 +788,16 @@ export const AICoach = () => {
                 initial={{ y: 10, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.2, duration: 0.5 }}
-                className="text-slate-300 text-xs md:text-sm leading-relaxed max-w-md mb-8"
+                className="text-slate-300 text-xs sm:text-sm leading-relaxed max-w-md mb-6 sm:mb-8 px-2"
               >
-                Select a focused coaching protocol below to activate guidance, or send a direct prompt regarding your habits and daily execution.
+                Select a topic below to start a new chat, or ask anything about your habits and daily execution.
               </motion.p>
 
               <motion.div 
                 initial={{ y: 15, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.3, duration: 0.6 }}
-                className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-xl"
+                className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3.5 w-full max-w-xl text-left"
               >
                 {quickPrompts.map((p, idx) => (
                   <motion.button
@@ -807,17 +806,17 @@ export const AICoach = () => {
                     disabled={chatLoading}
                     whileTap={{ scale: 0.98 }}
                     whileHover={{ scale: 1.01 }}
-                    className="group flex items-start gap-3.5 p-3.5 rounded-xl bg-[#0f0f12] hover:bg-[#141418] border border-white/[0.07] hover:border-white/20 text-left transition-all cursor-pointer disabled:opacity-50 shadow-md relative overflow-hidden"
+                    className="group flex items-start gap-3 p-3 sm:p-3.5 rounded-xl bg-[#0f0f12] hover:bg-[#141418] border border-white/[0.07] hover:border-white/20 text-left transition-all cursor-pointer disabled:opacity-50 shadow-md relative overflow-hidden w-full min-w-0"
                   >
-                    <div className="w-9 h-9 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center shrink-0 text-base group-hover:bg-white/[0.08] group-hover:border-white/15 transition-all">
+                    <div className="w-8 h-8 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center shrink-0 text-sm sm:text-base group-hover:bg-white/[0.08] group-hover:border-white/15 transition-all mt-0.5">
                       {p.icon}
                     </div>
                     
                     <div className="min-w-0 flex-1">
-                      <h4 className="text-xs font-bold tracking-tight text-white group-hover:text-white transition-colors">
+                      <h4 className="text-xs font-bold tracking-tight text-white group-hover:text-white transition-colors truncate">
                         {p.label}
                       </h4>
-                      <p className="text-[11px] text-slate-400 font-medium leading-normal mt-0.5 group-hover:text-slate-300 transition-colors">
+                      <p className="text-[11px] text-slate-400 font-medium leading-normal mt-0.5 group-hover:text-slate-300 transition-colors line-clamp-2">
                         {p.desc}
                       </p>
                     </div>
@@ -837,21 +836,21 @@ export const AICoach = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.25 }}
                   key={msg.id}
-                  className={`flex items-start gap-3.5 group/msg max-w-3xl mx-auto ${
+                  className={`flex items-start gap-2.5 sm:gap-3.5 group/msg max-w-3xl mx-auto w-full min-w-0 ${
                     isUser ? 'justify-end' : 'justify-start'
                   }`}
                 >
                   {!isUser && (
-                    <AICoachAvatar size="md" active className="mt-0.5" />
+                    <AICoachAvatar size="md" active className="mt-0.5 shrink-0" />
                   )}
 
-                  <div className={`flex flex-col gap-1.5 ${isUser ? 'items-end max-w-[85%]' : 'items-start max-w-[88%]'}`}>
+                  <div className={`flex flex-col min-w-0 gap-1.5 ${isUser ? 'items-end max-w-[88%] sm:max-w-[85%]' : 'items-start max-w-[92%] sm:max-w-[88%]'}`}>
                     
                     {isUser ? (
                       /* USER MESSAGE BUBBLE */
-                      <div className="bg-[#16161a] text-white px-4.5 py-3 rounded-2xl rounded-tr-sm border border-white/[0.12] text-sm leading-relaxed whitespace-pre-wrap shadow-md">
+                      <div className="bg-[#16161a] text-white px-3.5 sm:px-4.5 py-2.5 sm:py-3 rounded-2xl rounded-tr-sm border border-white/[0.12] text-xs sm:text-sm leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] shadow-md max-w-full">
                         {isMessageEditing ? (
-                          <div className="flex flex-col gap-2 min-w-[240px]">
+                          <div className="flex flex-col gap-2 min-w-[200px] sm:min-w-[240px] max-w-full">
                             <textarea
                               value={editingMessageText}
                               onChange={(e) => setEditingMessageText(e.target.value)}
@@ -878,13 +877,13 @@ export const AICoach = () => {
                       </div>
                     ) : msg.content.startsWith('⚠️') ? (
                       /* ASSISTANT ERROR ALERT BOX */
-                      <div className="bg-red-500/10 border border-red-500/20 text-red-200 px-4.5 py-3.5 rounded-2xl rounded-tl-sm text-xs flex flex-col gap-2.5 max-w-sm mt-1 shadow-md">
+                      <div className="bg-red-500/10 border border-red-500/20 text-red-200 px-3.5 sm:px-4.5 py-3 sm:py-3.5 rounded-2xl rounded-tl-sm text-xs flex flex-col gap-2.5 max-w-sm mt-1 shadow-md w-full min-w-0">
                         <div className="flex items-center gap-2 font-bold uppercase tracking-wider text-[10px] text-red-400">
-                          <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping" />
-                          <span>Protocol Uplink Interrupted</span>
+                          <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping shrink-0" />
+                          <span className="truncate">Connection Interrupted</span>
                         </div>
-                        <p className="text-slate-200 font-medium leading-relaxed">
-                          {msg.content.replace('⚠️', '').trim() || "The connection was interrupted. Let's retry the strategy generation."}
+                        <p className="text-slate-200 font-medium leading-relaxed break-words">
+                          {msg.content.replace('⚠️', '').trim() || "The connection was interrupted. Let's retry generating a response."}
                         </p>
                         <button
                           onClick={async () => {
@@ -907,13 +906,13 @@ export const AICoach = () => {
                           className="w-full py-2 bg-red-500 text-white font-bold uppercase tracking-wider text-[10px] rounded-lg hover:bg-red-600 active:scale-95 transition-all cursor-pointer h-9 flex items-center justify-center gap-2 shadow"
                         >
                           <RotateCcw size={12} strokeWidth={2.5} />
-                          <span>Retry Protocol</span>
+                          <span>Retry Chat</span>
                         </button>
                       </div>
                     ) : (
                       /* ASSISTANT COACH MESSAGE WITH DISCIPLINED MARKDOWN STYLING */
-                      <div className="text-slate-100 text-sm leading-relaxed select-text pl-1 py-0.5 max-w-none space-y-2.5">
-                        <div className="prose prose-invert prose-sm max-w-none prose-p:leading-relaxed prose-p:my-2 prose-headings:font-bold prose-headings:text-white prose-strong:text-white prose-strong:font-bold prose-ul:my-2 prose-li:my-0.5 prose-li:text-slate-200 prose-blockquote:border-l-white/40 prose-blockquote:text-slate-300 prose-blockquote:font-medium prose-blockquote:my-2">
+                      <div className="text-slate-100 text-xs sm:text-sm leading-relaxed select-text pl-1 py-0.5 max-w-full min-w-0 break-words [overflow-wrap:anywhere] space-y-2.5">
+                        <div className="prose prose-invert prose-sm max-w-none break-words [overflow-wrap:anywhere] prose-p:leading-relaxed prose-p:my-2 prose-headings:font-bold prose-headings:text-white prose-strong:text-white prose-strong:font-bold prose-ul:my-2 prose-li:my-0.5 prose-li:text-slate-200 prose-blockquote:border-l-white/40 prose-blockquote:text-slate-300 prose-blockquote:font-medium prose-blockquote:my-2">
                           <Markdown>{msg.content}</Markdown>
                         </div>
                       </div>
@@ -948,7 +947,7 @@ export const AICoach = () => {
                             <button
                               onClick={() => handleCopyMessage(msg.content)}
                               className="hover:text-white flex items-center gap-1 transition-colors"
-                              title="Copy strategy"
+                              title="Copy response"
                             >
                               <Copy size={10} />
                               Copy
@@ -964,7 +963,7 @@ export const AICoach = () => {
                             <button
                               onClick={() => handleFeedbackToggle(msg.id, 'up')}
                               className={`flex items-center gap-1 transition-colors hover:text-white ${feedback[msg.id] === 'up' ? 'text-white' : 'text-slate-400'}`}
-                              title="Helpful strategy"
+                              title="Helpful advice"
                             >
                               <ThumbsUp size={10} className={feedback[msg.id] === 'up' ? 'fill-white' : ''} />
                             </button>
@@ -990,11 +989,11 @@ export const AICoach = () => {
             <motion.div 
               initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex items-start gap-3.5 max-w-3xl mx-auto"
+              className="flex items-start gap-2.5 sm:gap-3.5 max-w-3xl mx-auto w-full min-w-0"
             >
-              <AICoachAvatar size="md" active animate />
+              <AICoachAvatar size="md" active animate className="shrink-0" />
               <div className="py-2.5 px-3.5 flex items-center gap-2 bg-[#121215] border border-white/[0.08] rounded-xl rounded-tl-sm shadow-md">
-                <span className="text-[11px] font-semibold text-slate-300">Formulating strategy protocol</span>
+                <span className="text-[11px] font-semibold text-slate-300">Formulating advice</span>
                 <div className="flex items-center gap-1">
                   <span className="w-1 h-1 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                   <span className="w-1 h-1 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
@@ -1008,8 +1007,8 @@ export const AICoach = () => {
         </div>
 
         {/* BOTTOM INPUT BAR */}
-        <div className="shrink-0 p-3 md:p-4 bg-[#09090b] border-t border-white/[0.08] z-20 pb-4">
-          <div className="max-w-2xl mx-auto w-full">
+        <div className="shrink-0 w-full p-2.5 sm:p-3 md:p-4 bg-[#09090b] border-t border-white/[0.08] z-20 pb-3 sm:pb-4">
+          <div className="max-w-2xl mx-auto w-full min-w-0">
             
             {/* Quick Context Follow-Up Chips */}
             {safeChatMessages.length > 0 && (
@@ -1019,7 +1018,7 @@ export const AICoach = () => {
                     key={idx}
                     onClick={() => handleChipClick(chip.text)}
                     disabled={chatLoading}
-                    className="text-[10px] font-medium px-3 py-1.5 rounded-lg border border-white/[0.08] hover:border-white/20 bg-[#121215] hover:bg-white hover:text-black text-slate-300 transition-all shrink-0 cursor-pointer disabled:opacity-40"
+                    className="text-[10px] font-medium px-2.5 sm:px-3 py-1.5 rounded-lg border border-white/[0.08] hover:border-white/20 bg-[#121215] hover:bg-white hover:text-black text-slate-300 transition-all shrink-0 cursor-pointer disabled:opacity-40 whitespace-nowrap"
                   >
                     {chip.label}
                   </button>
@@ -1032,7 +1031,7 @@ export const AICoach = () => {
                 if (chatLoading) return;
                 handleSend(e);
               }} 
-              className="relative w-full flex items-end gap-2 bg-[#121215] border border-white/[0.1] rounded-2xl p-2 pl-3.5 pr-2 shadow-xl focus-within:border-white/30 transition-all"
+              className="relative w-full flex items-end gap-2 bg-[#121215] border border-white/[0.1] rounded-2xl p-1.5 sm:p-2 pl-3 pr-1.5 sm:pr-2 shadow-xl focus-within:border-white/30 transition-all min-w-0"
             >
               <textarea
                 ref={textareaRef}
@@ -1052,16 +1051,16 @@ export const AICoach = () => {
                     }
                   }
                 }}
-                placeholder={chatLoading ? "Coach is formulating strategy..." : "Message your OneDay Coach (e.g., how to stay disciplined today)..."}
+                placeholder={chatLoading ? "Coach is generating advice..." : "Message your OneDay Coach (e.g., how to stay disciplined today)..."}
                 disabled={chatLoading}
-                className="flex-1 bg-transparent border-0 outline-none text-white text-sm placeholder:text-slate-500 focus:ring-0 focus:outline-none resize-none py-2 px-1 max-h-40 overflow-y-auto scrollbar-hide leading-relaxed font-sans"
+                className="flex-1 min-w-0 bg-transparent border-0 outline-none text-white text-xs sm:text-sm placeholder:text-slate-500 focus:ring-0 focus:outline-none resize-none py-1.5 sm:py-2 px-1 max-h-36 overflow-y-auto scrollbar-hide leading-relaxed font-sans"
               />
 
               <motion.button
                 type="submit"
                 disabled={chatLoading || !input.trim()}
                 whileTap={{ scale: 0.94 }}
-                className="w-9 h-9 bg-white text-black hover:bg-zinc-200 transition-colors rounded-xl disabled:opacity-20 cursor-pointer flex items-center justify-center shrink-0 shadow-md active:scale-95"
+                className="w-8 h-8 sm:w-9 sm:h-9 bg-white text-black hover:bg-zinc-200 transition-colors rounded-xl disabled:opacity-20 cursor-pointer flex items-center justify-center shrink-0 shadow-md active:scale-95"
                 aria-label="Send prompt"
               >
                 {chatLoading ? (
@@ -1072,9 +1071,9 @@ export const AICoach = () => {
               </motion.button>
             </form>
             
-            <div className="flex items-center justify-between text-[10px] text-slate-400 px-2 pt-1.5 font-medium">
+            <div className="flex items-center justify-between text-[10px] text-slate-400 px-1 pt-1.5 font-medium">
               <span>Shift + Enter for new line</span>
-              <span>OneDay Performance Intelligence</span>
+              <span>OneDay Intelligence</span>
             </div>
           </div>
         </div>
