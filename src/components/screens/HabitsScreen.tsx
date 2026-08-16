@@ -55,3 +55,6 @@ export function HabitsScreen() {
     </motion.div>
   );
 }
+
+export default HabitsScreen;
+

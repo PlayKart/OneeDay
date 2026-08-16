@@ -340,3 +340,6 @@ export function ProfileScreen({ onBack }: ProfileScreenProps) {
     </motion.div>
   );
 }
+
+export default ProfileScreen;
+

@@ -665,3 +665,6 @@ function SettingRow({ icon: Icon, label, value, danger, onClick }: { icon: any, 
     </button>
   );
 }
+
+export default SettingsScreen;
+

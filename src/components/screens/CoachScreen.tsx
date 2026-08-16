@@ -14,3 +14,6 @@ export function CoachScreen() {
   );
 }
 
+export default CoachScreen;
+
+

@@ -21,12 +21,15 @@ import { AICoach } from './components/AICoach';
 import { MotivationalQuote } from './components/MotivationalQuote';
 import { MonolithLogo } from './components/MonolithLogo';
 
-// Lazy loading the heavy screen components for improved SEO, fast initial content paint (FCP), and minimal layout shift
-const DashboardScreen = lazy(() => import('./components/screens/DashboardScreen').then(m => ({ default: m.DashboardScreen })));
-const HabitsScreen = lazy(() => import('./components/screens/HabitsScreen').then(m => ({ default: m.HabitsScreen })));
-const CoachScreen = lazy(() => import('./components/screens/CoachScreen').then(m => ({ default: m.CoachScreen })));
-const SettingsScreen = lazy(() => import('./components/screens/SettingsScreen').then(m => ({ default: m.SettingsScreen })));
-const LandingScreen = lazy(() => import('./components/screens/LandingScreen').then(m => ({ default: m.LandingScreen })));
+import { lazyWithRetry } from './utils/lazyWithRetry';
+import { ScreenErrorBoundary } from './components/ScreenErrorBoundary';
+
+// Lazy loading the screen components with resilient retry logic
+const DashboardScreen = lazyWithRetry(() => import('./components/screens/DashboardScreen'), 'DashboardScreen');
+const HabitsScreen = lazyWithRetry(() => import('./components/screens/HabitsScreen'), 'HabitsScreen');
+const CoachScreen = lazyWithRetry(() => import('./components/screens/CoachScreen'), 'CoachScreen');
+const SettingsScreen = lazyWithRetry(() => import('./components/screens/SettingsScreen'), 'SettingsScreen');
+const LandingScreen = lazyWithRetry(() => import('./components/screens/LandingScreen'), 'LandingScreen');
 
 import { MainLayout } from './components/MainLayout';
 import { TitleUnlockModal } from './components/TitleUnlockModal';
@@ -236,17 +239,20 @@ export default function App() {
   if (!firebaseUser) {
     console.log("[AUTH] Landing rendered");
     return (
-      <Suspense fallback={
-        <div className="min-h-screen bg-[#050505] flex items-center justify-center font-sans">
-          <div className="w-12 h-12 border-2 border-white/5 border-t-white rounded-full animate-spin" />
-        </div>
-      }>
-        <LandingScreen onLoginSuccess={() => {
-          console.log("[Landing] Sign in success. Waiting for route guard to evaluate destination...");
-        }} />
-      </Suspense>
+      <ScreenErrorBoundary name="LandingScreen">
+        <Suspense fallback={
+          <div className="min-h-screen bg-[#050505] flex items-center justify-center font-sans">
+            <div className="w-12 h-12 border-2 border-white/5 border-t-white rounded-full animate-spin" />
+          </div>
+        }>
+          <LandingScreen onLoginSuccess={() => {
+            console.log("[Landing] Sign in success. Waiting for route guard to evaluate destination...");
+          }} />
+        </Suspense>
+      </ScreenErrorBoundary>
     );
   }
+
 
   // ── 3. Authenticated -> Show Sync Error screen if backend request failed ──
   if (backendError && !profileSynced && !user) {
@@ -404,17 +410,20 @@ export default function App() {
 
       <div className="relative z-10 h-[100dvh] overflow-hidden">
         <MainLayout>
-          <Suspense fallback={
-            <div className="flex items-center justify-center h-[50vh] w-full">
-              <div className="w-8 h-8 border-2 border-white/5 border-t-white rounded-full animate-spin" />
-            </div>
-          }>
-            {activeTab === "dashboard" && <DashboardScreen />}
-            {activeTab === "habits" && <HabitsScreen />}
-            {activeTab === "coach" && <CoachScreen />}
-            {activeTab === "settings" && <SettingsScreen />}
-          </Suspense>
+          <ScreenErrorBoundary name="MainApp">
+            <Suspense fallback={
+              <div className="flex items-center justify-center h-[50vh] w-full">
+                <div className="w-8 h-8 border-2 border-white/5 border-t-white rounded-full animate-spin" />
+              </div>
+            }>
+              {activeTab === "dashboard" && <DashboardScreen />}
+              {activeTab === "habits" && <HabitsScreen />}
+              {activeTab === "coach" && <CoachScreen />}
+              {activeTab === "settings" && <SettingsScreen />}
+            </Suspense>
+          </ScreenErrorBoundary>
         </MainLayout>
+
         <TitleUnlockModal />
         <TitleLossModal />
         <LevelUpModal />

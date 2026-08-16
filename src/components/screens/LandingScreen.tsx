@@ -778,3 +778,5 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
     </AnimatePresence>
   );
 }
+
+export default LandingScreen;
