@@ -9,7 +9,6 @@ import {
   LogOut,
   ChevronRight,
   ShieldCheck,
-  Bot,
   RefreshCw,
   AlertTriangle
 } from 'lucide-react';

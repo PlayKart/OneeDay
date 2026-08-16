@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Send, 
-  Bot, 
   User, 
   Sparkles, 
   Target, 
@@ -31,6 +30,7 @@ import {
   Archive,
   MoreHorizontal
 } from 'lucide-react';
+import { AICoachIcon, AICoachAvatar } from './AICoachIcon';
 import { useStore, ChatSession, ChatMessage } from '../store/useStore';
 import { chatService } from '../services/chatService';
 import { toast } from 'react-hot-toast';
@@ -323,76 +323,97 @@ export const AICoach = () => {
       {/* SIDEBAR CONTAINER (DESKTOP & MOBILE RESPONSIVE) */}
       <div
         className={`
-          fixed md:static inset-y-0 left-0 w-72 md:w-80 bg-[#0A0A0A] border-r border-white/5 h-full z-40 flex flex-col justify-between transition-transform duration-300 ease-out
-          ${sidebarOpen ? 'translate-x-0 flex shadow-2xl' : '-translate-x-full md:translate-x-0 md:flex'}
+          fixed md:static inset-y-0 left-0 w-[285px] sm:w-[310px] md:w-80 bg-[#09090b] border-r border-white/[0.08] h-full z-40 flex flex-col justify-between transition-transform duration-300 ease-out backdrop-blur-2xl relative
+          ${sidebarOpen ? 'translate-x-0 flex shadow-[0_0_60px_rgba(0,0,0,0.9)]' : '-translate-x-full md:translate-x-0 md:flex'}
         `}
       >
+        {/* Subtle top-edge light catch */}
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.12] to-transparent pointer-events-none" />
+
         <div className="flex-1 flex flex-col min-h-0">
           
           {/* SIDEBAR HEADER */}
-          <div className="p-4 flex items-center justify-between border-b border-white/5 shrink-0 h-14">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-              <span className="text-xs font-bold tracking-widest uppercase text-slate-400">Conversations</span>
+          <div className="px-4 py-3.5 flex items-center justify-between border-b border-white/[0.07] shrink-0 h-14 bg-[#0a0a0d]/90 backdrop-blur-md">
+            <div className="flex items-center gap-2.5">
+              <div className="w-2 h-2 rounded-full bg-white shadow-[0_0_6px_rgba(255,255,255,0.8)]" />
+              <span className="text-[11px] font-bold tracking-[0.18em] uppercase text-zinc-100 font-sans">
+                Conversations
+              </span>
+              <span className="px-1.5 py-0.5 rounded-md bg-white/[0.06] border border-white/[0.08] text-[10px] font-semibold text-slate-300 font-mono leading-none">
+                {filteredSessions.length}
+              </span>
             </div>
             {/* Mobile sidebar close button */}
             <button
               onClick={() => setSidebarOpen(false)}
-              className="md:hidden p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-white/5 transition-all"
+              className="md:hidden w-8 h-8 rounded-lg text-slate-400 hover:text-white bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] flex items-center justify-center transition-all active:scale-95"
+              aria-label="Close sidebar"
             >
-              <X size={16} />
+              <X size={15} />
             </button>
           </div>
 
           {/* SEARCH INPUT */}
-          <div className="px-4 pt-4 pb-2 shrink-0">
-            <div className="relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+          <div className="px-3.5 pt-3 pb-1.5 shrink-0">
+            <div className="relative group">
+              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-slate-200 transition-colors pointer-events-none" />
               <input
                 type="text"
                 placeholder="Search conversations..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-[#111111] border border-white/5 rounded-xl py-2.5 pl-9 pr-4 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-white/20 transition-all"
+                className="w-full bg-[#131316] hover:bg-[#16161a] focus:bg-[#18181d] border border-white/[0.08] focus:border-white/25 rounded-xl py-2 pl-8.5 pr-8 text-xs text-white placeholder:text-slate-400 placeholder:font-normal focus:outline-none transition-all shadow-[inset_0_1px_2px_rgba(0,0,0,0.4)]"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-500 hover:text-white"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-md text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+                  aria-label="Clear search"
                 >
-                  Clear
+                  <X size={12} />
                 </button>
               )}
             </div>
           </div>
 
           {/* + NEW CHAT BUTTON */}
-          <div className="px-4 py-2 shrink-0">
+          <div className="px-3.5 py-1.5 shrink-0">
             <button
               onClick={handleStartNewChat}
-              className="w-full py-3 rounded-xl border border-white/10 hover:border-white/25 bg-black hover:bg-white hover:text-black text-xs font-black uppercase tracking-wider text-white transition-all cursor-pointer flex items-center justify-center gap-2"
+              className="w-full py-2.5 px-3.5 rounded-xl bg-white hover:bg-zinc-200 text-black text-xs font-bold tracking-tight transition-all shadow-[0_2px_12px_rgba(255,255,255,0.15)] active:scale-[0.98] cursor-pointer flex items-center justify-between group"
             >
-              <Plus size={14} />
-              New Chat
+              <div className="flex items-center gap-2">
+                <div className="w-5 h-5 rounded-lg bg-black/10 flex items-center justify-center text-black group-hover:scale-105 transition-transform">
+                  <Plus size={13} className="stroke-[2.5]" />
+                </div>
+                <span className="font-bold text-black tracking-tight text-xs">New Chat</span>
+              </div>
+              <span className="text-[10px] text-zinc-600 group-hover:text-black transition-colors flex items-center gap-1 font-semibold">
+                <Sparkles size={11} />
+              </span>
             </button>
           </div>
 
           {/* CHAT HISTORY LIST */}
-          <div className="flex-1 overflow-y-auto px-2 py-4 space-y-1 scrollbar-hide min-h-0">
+          <div className="flex-1 overflow-y-auto px-2.5 py-2 space-y-1 scrollbar-thin scrollbar-thumb-white/10 min-h-0">
             {sessionsLoading ? (
-              <div className="space-y-2 px-2 py-2">
+              <div className="space-y-2 px-1 py-1">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="p-3.5 rounded-xl bg-[#111111] border border-white/5 animate-pulse space-y-2">
-                    <div className="h-3 w-3/4 bg-white/5 rounded" />
-                    <div className="h-2.5 w-1/2 bg-white/5 rounded" />
+                  <div key={i} className="p-3 rounded-xl bg-[#131316] border border-white/[0.05] animate-pulse space-y-2">
+                    <div className="h-3 w-3/4 bg-white/10 rounded" />
+                    <div className="h-2.5 w-1/3 bg-white/5 rounded" />
                   </div>
                 ))}
               </div>
             ) : filteredSessions.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 text-center text-slate-600">
-                <MessageSquare size={20} className="text-slate-700 mb-2" />
-                <p className="text-xs uppercase font-bold tracking-widest text-slate-500">No chats found</p>
-                <p className="text-[11px] mt-1 max-w-[180px] text-slate-500">Auto-created sessions appear here.</p>
+              <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+                <div className="w-10 h-10 rounded-2xl bg-white/[0.04] border border-white/[0.07] flex items-center justify-center text-slate-400 mb-3 shadow-inner">
+                  <MessageSquare size={17} />
+                </div>
+                <p className="text-xs font-semibold text-zinc-200">No conversations found</p>
+                <p className="text-[11px] text-slate-400 mt-1 max-w-[190px] leading-relaxed">
+                  {searchQuery ? "Try a different search query" : "Start a new session with your AI Coach."}
+                </p>
               </div>
             ) : (
               filteredSessions.map((session) => {
@@ -408,14 +429,28 @@ export const AICoach = () => {
                         setSidebarOpen(false); // Close mobile sidebar
                       }
                     }}
-                    className={`group relative flex items-center justify-between px-3 py-3 rounded-xl transition-all cursor-pointer border ${
+                    className={`group relative flex items-center justify-between p-2.5 pl-3 rounded-xl transition-all cursor-pointer border min-h-[46px] ${
                       isActive
-                        ? "bg-white/10 border-white/5"
-                        : "bg-transparent border-transparent hover:bg-white/5"
+                        ? "bg-[#18181c] border-white/[0.14] text-white shadow-[0_2px_12px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.08)]"
+                        : "bg-transparent border-transparent hover:bg-[#131316] hover:border-white/[0.06] text-slate-300 hover:text-white"
                     }`}
                   >
-                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                      <Bot size={15} className={`shrink-0 ${isActive ? "text-white" : "text-slate-400 group-hover:text-white"} transition-colors`} />
+                    {/* Active Accent Pill */}
+                    {isActive && (
+                      <div className="absolute left-1 top-2.5 bottom-2.5 w-[3px] rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />
+                    )}
+
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1 pl-1">
+                      <div
+                        className={`w-6.5 h-6.5 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
+                          isActive
+                            ? "bg-white/10 text-white border border-white/20 shadow-sm"
+                            : "bg-white/[0.04] text-slate-400 group-hover:text-slate-200 border border-white/[0.05]"
+                        }`}
+                      >
+                        <AICoachIcon size={12} active={isActive} />
+                      </div>
+
                       {isEditing ? (
                         <input
                           type="text"
@@ -439,22 +474,27 @@ export const AICoach = () => {
                             setEditingSessionId(null);
                           }}
                           onClick={(e) => e.stopPropagation()}
-                          className="flex-1 bg-[#111] border border-white/20 rounded px-1.5 py-0.5 text-xs text-white focus:outline-none"
+                          className="flex-1 bg-[#131316] border border-white/25 rounded-lg px-2 py-0.5 text-xs text-white focus:outline-none"
                           autoFocus
                         />
                       ) : (
-                        <span className="text-xs font-semibold text-slate-200 group-hover:text-white truncate">
-                          {cleanTitle(session.title)}
-                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className={`text-xs truncate leading-tight tracking-tight ${isActive ? "font-semibold text-white" : "font-medium text-slate-200 group-hover:text-white"}`}>
+                            {cleanTitle(session.title)}
+                          </p>
+                          <div className="flex items-center gap-1.5 text-[10px] text-slate-400 group-hover:text-slate-300 mt-0.5 font-medium leading-none">
+                            {session.is_pinned && (
+                              <span className="inline-flex items-center gap-0.5 text-slate-200 text-[9px] font-semibold">
+                                <Pin size={8} className="fill-white" />
+                              </span>
+                            )}
+                            <span>{formatSessionDate(session.updated_at || session.created_at)}</span>
+                          </div>
+                        </div>
                       )}
                     </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                      {session.is_pinned && <Pin size={10} className="text-orange-400 fill-orange-400" />}
-                      <span className="text-[10px] text-slate-500 group-hover:hidden block">
-                        {formatSessionDate(session.updated_at || session.created_at)}
-                      </span>
-                      
+                    <div className="flex items-center gap-1 shrink-0 ml-2">
                       {/* Actions Button */}
                       <div className={`relative ${activeSessionMenuId === session.id ? 'block' : 'group-hover:block hidden'}`}>
                         <button
@@ -462,63 +502,68 @@ export const AICoach = () => {
                             e.stopPropagation();
                             setActiveSessionMenuId(activeSessionMenuId === session.id ? null : session.id);
                           }}
-                          className="p-1 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors"
+                          className="w-6 h-6 rounded-md hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center transition-colors"
+                          aria-label="Conversation options"
                         >
-                          <MoreHorizontal size={12} />
+                          <MoreHorizontal size={13} />
                         </button>
                         
                         {activeSessionMenuId === session.id && (
                           <div 
-                            className="absolute right-0 mt-1 w-32 bg-[#121212] border border-white/10 rounded-lg shadow-2xl py-1 z-50"
+                            className="absolute right-0 mt-1 w-36 bg-[#16161a] border border-white/[0.12] rounded-xl shadow-2xl py-1 z-50 backdrop-blur-xl divide-y divide-white/[0.05]"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <button
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                setActiveSessionMenuId(null);
-                                await pinSession(session.id);
-                              }}
-                              className="w-full text-left px-3 py-1.5 text-[11px] text-slate-300 hover:bg-white/5 flex items-center gap-1.5 font-bold"
-                            >
-                              <Pin size={10} />
-                              {session.is_pinned ? "Unpin" : "Pin"}
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setActiveSessionMenuId(null);
-                                setEditingSessionId(session.id);
-                                setRenameText(session.title || "New Chat");
-                              }}
-                              className="w-full text-left px-3 py-1.5 text-[11px] text-slate-300 hover:bg-white/5 flex items-center gap-1.5 font-bold"
-                            >
-                              <Edit2 size={10} />
-                              Rename
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setActiveSessionMenuId(null);
-                                toast.success("Conversation archived");
-                              }}
-                              className="w-full text-left px-3 py-1.5 text-[11px] text-slate-300 hover:bg-white/5 flex items-center gap-1.5 font-bold"
-                            >
-                              <Archive size={10} />
-                              Archive
-                            </button>
-                            <button
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                setActiveSessionMenuId(null);
-                                if (window.confirm("Are you sure you want to delete this conversation?")) {
-                                  await deleteSession(session.id);
-                                }
-                              }}
-                              className="w-full text-left px-3 py-1.5 text-[11px] text-red-400 hover:bg-red-950/20 flex items-center gap-1.5 font-bold"
-                            >
-                              <Trash2 size={10} />
-                              Delete
-                            </button>
+                            <div className="py-0.5">
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  setActiveSessionMenuId(null);
+                                  await pinSession(session.id);
+                                }}
+                                className="w-full text-left px-3 py-1.5 text-[11px] text-slate-200 hover:text-white hover:bg-white/[0.08] flex items-center gap-2 font-medium transition-colors"
+                              >
+                                <Pin size={11} className={session.is_pinned ? "text-white" : "text-slate-400"} />
+                                {session.is_pinned ? "Unpin Chat" : "Pin Chat"}
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveSessionMenuId(null);
+                                  setEditingSessionId(session.id);
+                                  setRenameText(session.title || "New Chat");
+                                }}
+                                className="w-full text-left px-3 py-1.5 text-[11px] text-slate-200 hover:text-white hover:bg-white/[0.08] flex items-center gap-2 font-medium transition-colors"
+                              >
+                                <Edit2 size={11} className="text-slate-400" />
+                                Rename
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveSessionMenuId(null);
+                                  toast.success("Conversation archived");
+                                }}
+                                className="w-full text-left px-3 py-1.5 text-[11px] text-slate-200 hover:text-white hover:bg-white/[0.08] flex items-center gap-2 font-medium transition-colors"
+                              >
+                                <Archive size={11} className="text-slate-400" />
+                                Archive
+                              </button>
+                            </div>
+                            <div className="py-0.5">
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  setActiveSessionMenuId(null);
+                                  if (window.confirm("Are you sure you want to delete this conversation?")) {
+                                    await deleteSession(session.id);
+                                  }
+                                }}
+                                className="w-full text-left px-3 py-1.5 text-[11px] text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 font-semibold transition-colors"
+                              >
+                                <Trash2 size={11} />
+                                Delete
+                              </button>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -532,13 +577,22 @@ export const AICoach = () => {
         </div>
 
         {/* SIDEBAR FOOTER (USER & STATS SUMMARY) */}
-        <div className="p-4 border-t border-white/5 shrink-0 bg-[#070707] flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
-            <User size={14} className="text-white" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold text-white truncate">{user?.name || 'Monolith Executioner'}</p>
-            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Level {user?.level || 1} • {user?.streak || 0}d streak</p>
+        <div className="p-3.5 border-t border-white/[0.08] shrink-0 bg-[#0a0a0d]/90 backdrop-blur-md flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-b from-white/10 to-white/5 border border-white/10 flex items-center justify-center shrink-0 shadow-inner text-slate-200">
+              <User size={13} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold text-zinc-100 truncate">{user?.name || 'Monolith User'}</p>
+              <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-medium">
+                <span>Level {user?.level || 1}</span>
+                <span className="text-zinc-600">•</span>
+                <span className="text-slate-300 flex items-center gap-0.5 font-semibold">
+                  <Flame size={10} className="fill-white" />
+                  {user?.streak || 0}d
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -548,26 +602,30 @@ export const AICoach = () => {
       {sidebarOpen && (
         <div
           onClick={() => setSidebarOpen(false)}
-          className="md:hidden fixed inset-0 bg-black/60 z-30 transition-opacity"
+          className="md:hidden fixed inset-0 bg-black/75 backdrop-blur-sm z-30 transition-opacity duration-300"
         />
       )}
 
       {/* RIGHT MAIN CHAT COLUMN */}
-      <div className="flex-1 min-h-0 flex flex-col h-full bg-black relative overflow-hidden">
+      <div className="flex-1 min-h-0 flex flex-col h-full bg-[#070708] relative overflow-hidden">
         
         {/* CHAT HEADER */}
-        <div className="p-4 border-b border-white/5 bg-black flex items-center justify-between gap-4 shrink-0 z-10 h-14">
-          <div className="flex items-center gap-2">
+        <div className="px-4 py-3 border-b border-white/[0.07] bg-[#09090b]/90 backdrop-blur-md flex items-center justify-between gap-4 shrink-0 z-10 h-14">
+          <div className="flex items-center gap-3 min-w-0">
             {/* Mobile menu toggle */}
             <button
               onClick={() => setSidebarOpen(true)}
-              className="md:hidden p-2 -ml-2 rounded-lg text-slate-400 hover:text-white transition-all"
+              className="md:hidden w-8 h-8 rounded-lg text-slate-400 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.07] flex items-center justify-center transition-all active:scale-95 shrink-0"
+              aria-label="Open conversations menu"
             >
-              <Menu size={16} />
+              <Menu size={15} />
             </button>
-            <div className="flex flex-col">
-              <span className="text-[9px] uppercase tracking-widest font-extrabold text-slate-500 leading-none">AI Personal Coach</span>
-              <span className="text-xs font-black text-white truncate max-w-xs mt-0.5 leading-none">
+            <div className="hidden sm:flex shrink-0">
+              <AICoachAvatar size={28} active />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-[9px] uppercase tracking-[0.18em] font-bold text-slate-400 font-sans leading-none">AI Personal Coach</span>
+              <span className="text-xs font-semibold text-white truncate max-w-xs mt-1 leading-none">
                 {activeChatId ? cleanTitle(safeChatSessions.find(s => s && s.id === activeChatId)?.title || "Active Coach session") : "Active Coach session"}
               </span>
             </div>
@@ -577,7 +635,8 @@ export const AICoach = () => {
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setMenuOpen(!menuOpen)}
-              className="p-2 rounded-xl border border-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer active:scale-95 flex items-center justify-center"
+              className="w-8 h-8 rounded-lg border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.08] text-slate-400 hover:text-white transition-colors cursor-pointer active:scale-95 flex items-center justify-center"
+              aria-label="More options"
             >
               <MoreVertical size={14} />
             </button>
@@ -588,38 +647,40 @@ export const AICoach = () => {
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 8 }}
-                  className="absolute right-0 mt-2 w-48 bg-[#121212] border border-white/10 rounded-xl shadow-2xl py-1 z-30 overflow-hidden"
+                  className="absolute right-0 mt-2 w-48 bg-[#151518] border border-white/[0.12] rounded-xl shadow-2xl py-1 z-30 overflow-hidden divide-y divide-white/[0.05]"
                 >
-                  <button
-                    onClick={handleClearChatLocal}
-                    className="w-full text-left px-4 py-2 text-xs font-semibold text-slate-300 hover:bg-white/5 hover:text-white transition-colors flex items-center gap-2"
-                  >
-                    <RotateCcw size={12} />
-                    Clear Conversation
-                  </button>
+                  <div className="py-0.5">
+                    <button
+                      onClick={handleClearChatLocal}
+                      className="w-full text-left px-3.5 py-2 text-xs font-medium text-slate-200 hover:bg-white/[0.08] hover:text-white transition-colors flex items-center gap-2"
+                    >
+                      <RotateCcw size={12} className="text-slate-400" />
+                      Clear Conversation
+                    </button>
 
-                  <button
-                    onClick={handleExportChat}
-                    className="w-full text-left px-4 py-2 text-xs font-semibold text-slate-300 hover:bg-white/5 hover:text-white transition-colors flex items-center gap-2"
-                  >
-                    <Download size={12} />
-                    Export Chat
-                  </button>
+                    <button
+                      onClick={handleExportChat}
+                      className="w-full text-left px-3.5 py-2 text-xs font-medium text-slate-200 hover:bg-white/[0.08] hover:text-white transition-colors flex items-center gap-2"
+                    >
+                      <Download size={12} className="text-slate-400" />
+                      Export Chat
+                    </button>
+                  </div>
 
-                  <div className="border-t border-white/5 my-1" />
-
-                  <button
-                    onClick={() => {
-                      if (activeChatId && window.confirm("Are you sure you want to delete this conversation?")) {
-                        deleteSession(activeChatId);
-                      }
-                      setMenuOpen(false);
-                    }}
-                    className="w-full text-left px-4 py-2 text-xs font-semibold text-red-400 hover:bg-red-950/20 transition-colors flex items-center gap-2"
-                  >
-                    <Trash2 size={12} />
-                    Delete Chat
-                  </button>
+                  <div className="py-0.5">
+                    <button
+                      onClick={() => {
+                        if (activeChatId && window.confirm("Are you sure you want to delete this conversation?")) {
+                          deleteSession(activeChatId);
+                        }
+                        setMenuOpen(false);
+                      }}
+                      className="w-full text-left px-3.5 py-2 text-xs font-semibold text-rose-400 hover:bg-rose-500/10 transition-colors flex items-center gap-2"
+                    >
+                      <Trash2 size={12} />
+                      Delete Chat
+                    </button>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -652,15 +713,15 @@ export const AICoach = () => {
                 transition={{ duration: 0.5, ease: "easeOut" }}
                 className="mb-6 relative"
               >
-                <div className="absolute inset-0 bg-purple-500/10 blur-2xl rounded-full scale-125" />
-                <MonolithLogo size={72} />
+                <div className="absolute inset-0 bg-white/[0.04] blur-2xl rounded-full scale-125" />
+                <MonolithLogo size={68} />
               </motion.div>
               
               <motion.h2 
                 initial={{ y: 10, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.1, duration: 0.5 }}
-                className="text-2xl md:text-3xl font-black tracking-tight mb-3 text-white bg-clip-text"
+                className="text-2xl md:text-3xl font-extrabold tracking-tight mb-2.5 text-white"
               >
                 What are we conquering today?
               </motion.h2>
@@ -669,7 +730,7 @@ export const AICoach = () => {
                 initial={{ y: 10, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.2, duration: 0.5 }}
-                className="text-slate-400 text-xs md:text-sm leading-relaxed max-w-md mb-10"
+                className="text-slate-300 text-xs md:text-sm leading-relaxed max-w-md mb-8"
               >
                 Select your primary training focus protocol below to activate your personal coach, or construct a custom request.
               </motion.p>
@@ -678,28 +739,26 @@ export const AICoach = () => {
                 initial={{ y: 15, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.3, duration: 0.6 }}
-                className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full max-w-xl"
+                className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-xl"
               >
                 {quickPrompts.map((p, idx) => (
                   <motion.button
                     key={idx}
                     onClick={() => handleChipClick(p.text)}
                     disabled={chatLoading}
-                    whileTap={{ scale: 0.96 }}
+                    whileTap={{ scale: 0.97 }}
                     whileHover={{ scale: 1.01 }}
-                    className="group flex items-start gap-4 p-4 rounded-2xl bg-[#0C0C0C] hover:bg-[#121212] border border-white/5 hover:border-purple-500/30 text-left transition-all cursor-pointer disabled:opacity-50 shadow-lg relative overflow-hidden"
+                    className="group flex items-start gap-3.5 p-3.5 rounded-xl bg-[#0f0f12] hover:bg-[#141418] border border-white/[0.07] hover:border-white/20 text-left transition-all cursor-pointer disabled:opacity-50 shadow-md relative overflow-hidden"
                   >
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                    
-                    <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0 text-lg group-hover:bg-purple-500/10 group-hover:border-purple-500/20 transition-all shadow-inner">
+                    <div className="w-9 h-9 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center shrink-0 text-base group-hover:bg-white/[0.08] group-hover:border-white/15 transition-all">
                       {p.icon}
                     </div>
                     
                     <div className="min-w-0 flex-1">
-                      <h4 className="text-xs font-black uppercase tracking-wider text-slate-100 group-hover:text-purple-400 transition-colors">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-white group-hover:text-white transition-colors">
                         {p.label}
                       </h4>
-                      <p className="text-[10px] text-slate-500 font-semibold leading-relaxed mt-0.5 group-hover:text-slate-400 transition-colors">
+                      <p className="text-[11px] text-slate-400 font-medium leading-normal mt-0.5 group-hover:text-slate-300 transition-colors">
                         {p.desc}
                       </p>
                     </div>
@@ -719,38 +778,36 @@ export const AICoach = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.25 }}
                   key={msg.id}
-                  className={`flex items-start gap-4 group/msg max-w-3xl mx-auto ${
+                  className={`flex items-start gap-3.5 group/msg max-w-3xl mx-auto ${
                     isUser ? 'justify-end' : 'justify-start'
                   }`}
                 >
                   {!isUser && (
-                    <div className="w-7 h-7 rounded-full bg-white/5 border border-white/10 text-white flex items-center justify-center shrink-0 mt-0.5">
-                      <Bot size={12} />
-                    </div>
+                    <AICoachAvatar size="md" active className="mt-0.5" />
                   )}
 
-                  <div className={`flex flex-col gap-1.5 ${isUser ? 'items-end max-w-[80%]' : 'items-start max-w-[85%]'}`}>
+                  <div className={`flex flex-col gap-1.5 ${isUser ? 'items-end max-w-[82%]' : 'items-start max-w-[85%]'}`}>
                     
                     {isUser ? (
                       /* USER MESSAGE BUBBLE */
-                      <div className="bg-[#1C1C1C] text-white px-5 py-3.5 rounded-[20px] rounded-tr-sm border border-white/5 text-sm leading-relaxed whitespace-pre-wrap shadow-xl">
+                      <div className="bg-[#18181c] text-white px-4.5 py-3 rounded-2xl rounded-tr-sm border border-white/[0.12] text-sm leading-relaxed whitespace-pre-wrap shadow-md">
                         {isMessageEditing ? (
                           <div className="flex flex-col gap-2 min-w-[220px]">
                             <textarea
                               value={editingMessageText}
                               onChange={(e) => setEditingMessageText(e.target.value)}
-                              className="w-full bg-black border border-white/10 rounded-xl p-2.5 text-xs text-white focus:outline-none resize-none h-16"
+                              className="w-full bg-black border border-white/15 rounded-xl p-2.5 text-xs text-white focus:outline-none resize-none h-16"
                             />
                             <div className="flex gap-2 justify-end">
                               <button
                                 onClick={() => setEditingMessageId(null)}
-                                className="px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-[10px] uppercase font-bold"
+                                className="px-2.5 py-1 bg-white/[0.06] hover:bg-white/10 border border-white/10 rounded text-[10px] uppercase font-bold text-slate-300"
                               >
                                 Cancel
                               </button>
                               <button
                                 onClick={() => handleEditMessageSave(msg.id)}
-                                className="px-2.5 py-1 bg-white text-black hover:bg-slate-200 rounded text-[10px] uppercase font-black"
+                                className="px-3 py-1 bg-white text-black hover:bg-slate-200 rounded text-[10px] uppercase font-bold"
                               >
                                 Save
                               </button>
@@ -762,12 +819,12 @@ export const AICoach = () => {
                       </div>
                     ) : msg.content.startsWith('⚠️') ? (
                       /* ASSISTANT ERROR ALERT BOX */
-                      <div className="bg-red-500/10 border border-red-500/25 text-red-200 px-5 py-4 rounded-[20px] rounded-tl-sm text-xs flex flex-col gap-3 max-w-sm mt-1 shadow-[0_10px_30px_rgba(239,68,68,0.1)]">
-                        <div className="flex items-center gap-2 font-black uppercase tracking-widest text-[10px] text-red-400">
+                      <div className="bg-red-500/10 border border-red-500/20 text-red-200 px-4.5 py-3.5 rounded-2xl rounded-tl-sm text-xs flex flex-col gap-2.5 max-w-sm mt-1 shadow-md">
+                        <div className="flex items-center gap-2 font-bold uppercase tracking-wider text-[10px] text-red-400">
                           <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping" />
                           <span>Uplink Interrupt</span>
                         </div>
-                        <p className="text-slate-300 font-semibold leading-relaxed">
+                        <p className="text-slate-200 font-medium leading-relaxed">
                           {msg.content.replace('⚠️', '').trim() || "The connection was interrupted. Let's try sending that again."}
                         </p>
                         <button
@@ -788,15 +845,15 @@ export const AICoach = () => {
                               toast.error("Could not find prompt context to retry");
                             }
                           }}
-                          className="w-full py-2.5 bg-red-500 text-white font-black uppercase tracking-widest text-[10px] rounded-xl hover:bg-red-600 active:scale-95 transition-all cursor-pointer h-10 flex items-center justify-center gap-2 shadow-lg"
+                          className="w-full py-2 bg-red-500 text-white font-bold uppercase tracking-wider text-[10px] rounded-lg hover:bg-red-600 active:scale-95 transition-all cursor-pointer h-9 flex items-center justify-center gap-2 shadow"
                         >
-                          <RotateCcw size={12} strokeWidth={3} />
+                          <RotateCcw size={12} strokeWidth={2.5} />
                           <span>Retry Request</span>
                         </button>
                       </div>
                     ) : (
                       /* ASSISTANT MESSAGE */
-                      <div className="text-slate-200 text-sm leading-relaxed whitespace-pre-wrap select-text pl-1 py-1">
+                      <div className="text-slate-100 text-sm leading-relaxed whitespace-pre-wrap select-text pl-1 py-0.5">
                         {msg.content}
                       </div>
                     )}
@@ -804,7 +861,7 @@ export const AICoach = () => {
                     {/* Action Bar */}
                     {!isMessageEditing && (
                       <div
-                        className="flex items-center gap-3 opacity-0 group-hover/msg:opacity-100 transition-opacity text-[9px] text-slate-500 font-bold uppercase tracking-wider px-1 mt-1"
+                        className="flex items-center gap-3 opacity-0 group-hover/msg:opacity-100 transition-opacity text-[10px] text-slate-400 font-medium tracking-wide px-1 mt-0.5"
                       >
                         {isUser ? (
                           <>
@@ -813,15 +870,15 @@ export const AICoach = () => {
                               className="hover:text-white flex items-center gap-1 transition-colors"
                               title="Edit prompt"
                             >
-                              <Edit2 size={9} />
+                              <Edit2 size={10} />
                               Edit
                             </button>
                             <button
                               onClick={() => handleDeleteMessageLocal(msg.id)}
-                              className="hover:text-red-400 flex items-center gap-1 transition-colors text-slate-500"
+                              className="hover:text-rose-400 flex items-center gap-1 transition-colors text-slate-400"
                               title="Delete message"
                             >
-                              <Trash2 size={9} />
+                              <Trash2 size={10} />
                               Delete
                             </button>
                           </>
@@ -832,7 +889,7 @@ export const AICoach = () => {
                               className="hover:text-white flex items-center gap-1 transition-colors"
                               title="Copy text"
                             >
-                              <Copy size={9} />
+                              <Copy size={10} />
                               Copy
                             </button>
                             <button
@@ -840,20 +897,20 @@ export const AICoach = () => {
                               className="hover:text-white flex items-center gap-1 transition-colors"
                               title="Regenerate"
                             >
-                              <RotateCcw size={9} />
+                              <RotateCcw size={10} />
                               Regenerate
                             </button>
                             <button
                               onClick={() => handleFeedbackToggle(msg.id, 'up')}
-                              className={`flex items-center gap-1 transition-colors hover:text-white ${feedback[msg.id] === 'up' ? 'text-white' : 'text-slate-500'}`}
+                              className={`flex items-center gap-1 transition-colors hover:text-white ${feedback[msg.id] === 'up' ? 'text-white' : 'text-slate-400'}`}
                             >
-                              <ThumbsUp size={9} className={feedback[msg.id] === 'up' ? 'fill-white' : ''} />
+                              <ThumbsUp size={10} className={feedback[msg.id] === 'up' ? 'fill-white' : ''} />
                             </button>
                             <button
                               onClick={() => handleFeedbackToggle(msg.id, 'down')}
-                              className={`flex items-center gap-1 transition-colors hover:text-white ${feedback[msg.id] === 'down' ? 'text-red-400' : 'text-slate-500'}`}
+                              className={`flex items-center gap-1 transition-colors hover:text-white ${feedback[msg.id] === 'down' ? 'text-rose-400' : 'text-slate-400'}`}
                             >
-                              <ThumbsDown size={9} className={feedback[msg.id] === 'down' ? 'fill-red-400' : ''} />
+                              <ThumbsDown size={10} className={feedback[msg.id] === 'down' ? 'fill-rose-400' : ''} />
                             </button>
                           </>
                         )}
@@ -870,15 +927,13 @@ export const AICoach = () => {
             <motion.div 
               initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex items-start gap-4 max-w-3xl mx-auto"
+              className="flex items-start gap-3.5 max-w-3xl mx-auto"
             >
-              <div className="w-7 h-7 rounded-full bg-white/5 border border-white/10 text-white flex items-center justify-center shrink-0">
-                <Bot size={11} />
-              </div>
-              <div className="py-2.5 px-3 flex items-center gap-1.5 bg-white/5 border border-white/5 rounded-2xl rounded-tl-sm">
-                <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              <AICoachAvatar size="md" active animate />
+              <div className="py-2 px-3 flex items-center gap-1.5 bg-white/[0.05] border border-white/[0.08] rounded-xl rounded-tl-sm">
+                <span className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
               </div>
             </motion.div>
           )}
@@ -887,7 +942,7 @@ export const AICoach = () => {
         </div>
 
         {/* BOTTOM INPUT BAR */}
-        <div className="shrink-0 p-3 md:p-4 bg-[#080808] border-t border-white/10 z-20 pb-4">
+        <div className="shrink-0 p-3 md:p-4 bg-[#09090b] border-t border-white/[0.08] z-20 pb-4">
           <div className="max-w-2xl mx-auto w-full">
             
             {safeChatMessages.length > 0 && safeChatMessages.length < 5 && (
@@ -896,7 +951,7 @@ export const AICoach = () => {
                   <button
                     key={idx}
                     onClick={() => handleChipClick(p.text)}
-                    className="text-[9px] font-bold px-3 py-1.5 rounded-full border border-white/10 hover:border-white/20 bg-[#111] hover:bg-white hover:text-black text-slate-400 transition-all shrink-0 cursor-pointer"
+                    className="text-[10px] font-semibold px-3 py-1.5 rounded-full border border-white/[0.08] hover:border-white/20 bg-[#131316] hover:bg-white hover:text-black text-slate-300 transition-all shrink-0 cursor-pointer"
                   >
                     {p.label}
                   </button>
@@ -907,7 +962,7 @@ export const AICoach = () => {
             <form onSubmit={(e) => {
               if (chatLoading) return;
               handleSend(e);
-            }} className="relative w-full flex items-end gap-2 bg-[#0E0E0E] border border-white/10 rounded-2xl p-2 pl-3.5 pr-2 shadow-2xl focus-within:border-purple-500/30 transition-all">
+            }} className="relative w-full flex items-end gap-2 bg-[#121215] border border-white/[0.1] rounded-2xl p-2 pl-3.5 pr-2 shadow-xl focus-within:border-white/25 transition-all">
               <textarea
                 ref={textareaRef}
                 rows={1}
@@ -926,21 +981,21 @@ export const AICoach = () => {
                     }
                   }
                 }}
-                placeholder={chatLoading ? "Coach is generating strategy..." : "Message your Monolith AI Coach..."}
+                placeholder={chatLoading ? "Coach is generating strategy..." : "Message your OneDay AI Coach..."}
                 disabled={chatLoading}
-                className="flex-1 bg-transparent border-0 outline-none text-white text-sm placeholder:text-slate-500 focus:ring-0 focus:outline-none resize-none py-3 px-1 max-h-48 overflow-y-auto scrollbar-hide leading-relaxed animate-none"
+                className="flex-1 bg-transparent border-0 outline-none text-white text-sm placeholder:text-slate-500 focus:ring-0 focus:outline-none resize-none py-2.5 px-1 max-h-48 overflow-y-auto scrollbar-hide leading-relaxed"
               />
 
               <motion.button
                 type="submit"
                 disabled={chatLoading || !input.trim()}
                 whileTap={{ scale: 0.94 }}
-                className="w-12 h-12 bg-white text-black hover:bg-slate-200 transition-colors rounded-xl disabled:opacity-20 cursor-pointer flex items-center justify-center shrink-0 shadow-lg active:scale-95"
+                className="w-10 h-10 bg-white text-black hover:bg-zinc-200 transition-colors rounded-xl disabled:opacity-20 cursor-pointer flex items-center justify-center shrink-0 shadow-md active:scale-95"
               >
                 {chatLoading ? (
-                  <span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin block" />
+                  <span className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin block" />
                 ) : (
-                  <Send size={15} strokeWidth={2.5} />
+                  <Send size={14} strokeWidth={2.5} />
                 )}
               </motion.button>
             </form>

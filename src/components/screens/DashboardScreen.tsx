@@ -3,6 +3,7 @@ import { useStore } from "../../store/useStore";
 import { MotivationalQuote } from "../MotivationalQuote";
 import { HabitList } from "../HabitList";
 import { Target, Zap, Clock, ShieldAlert, Sparkles, Activity, ArrowRight, Flame, Trophy, Plus, Shield } from "lucide-react";
+import { AICoachIcon } from "../AICoachIcon";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "react-hot-toast";
 
@@ -316,19 +317,19 @@ export function DashboardScreen() {
         <motion.div
           whileTap={{ scale: 0.98 }}
           onClick={() => setActiveTab("coach")}
-          className="w-full bg-gradient-to-r from-purple-950/30 via-indigo-950/20 to-purple-950/30 border border-purple-500/30 rounded-2xl p-4 flex items-center justify-between gap-3 cursor-pointer select-none hover:border-purple-500/50 transition-all duration-300"
+          className="w-full bg-[#111114] hover:bg-[#151519] border border-white/[0.08] hover:border-white/[0.18] rounded-2xl p-4 flex items-center justify-between gap-3 cursor-pointer select-none transition-all duration-200 shadow-md"
         >
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-300 shrink-0">
-              <Sparkles size={18} />
+            <div className="w-10 h-10 rounded-xl bg-white/[0.06] border border-white/[0.1] flex items-center justify-center text-white shrink-0 shadow-inner">
+              <AICoachIcon size={18} active />
             </div>
             <div className="min-w-0">
-              <h3 className="text-xs font-extrabold text-white truncate">AI Coach</h3>
-              <p className="text-[10px] text-slate-400 truncate">Personalized strategy & motivation.</p>
+              <h3 className="text-xs font-bold text-white truncate">AI Coach</h3>
+              <p className="text-[11px] text-slate-400 truncate">Personalized strategy & performance protocols.</p>
             </div>
           </div>
-          <div className="px-3 py-2 bg-purple-500/20 border border-purple-500/40 rounded-xl text-purple-300 text-[11px] font-extrabold flex items-center gap-1 shrink-0 h-9">
-            Chat <ArrowRight size={14} />
+          <div className="px-3 py-2 bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] rounded-xl text-white text-[11px] font-bold flex items-center gap-1 shrink-0 h-9 transition-colors">
+            Consult <ArrowRight size={13} />
           </div>
         </motion.div>
 

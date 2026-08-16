@@ -7,7 +7,6 @@ import {
   LayoutDashboard, 
   Flame, 
   Zap, 
-  Bot, 
   Settings, 
   CheckCircle2, 
   Shield, 
@@ -19,6 +18,7 @@ import {
   UserCheck
 } from 'lucide-react';
 import { MonolithLogo } from './MonolithLogo';
+import { AICoachIcon, AICoachAvatar } from './AICoachIcon';
 
 interface AppIntroFlowProps {
   userId: string;
@@ -353,8 +353,8 @@ export function AppIntroFlow({ userId, userName, onComplete }: AppIntroFlowProps
               className="flex flex-col gap-6"
             >
               {/* Step indicator */}
-              <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.25em] text-[#FBBC05]">
-                <Bot size={14} />
+              <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.25em] text-white">
+                <AICoachIcon size={14} active />
                 <span>03 / 04 — Personal AI Coach</span>
               </div>
 
@@ -371,9 +371,7 @@ export function AppIntroFlow({ userId, userName, onComplete }: AppIntroFlowProps
               {/* Visual Preview Highlight */}
               <div className="p-5 md:p-6 rounded-2xl bg-white/[0.02] border border-white/10 shadow-2xl space-y-4 relative overflow-hidden backdrop-blur-md">
                 <div className="flex items-center gap-3 border-b border-white/5 pb-3">
-                  <div className="w-8 h-8 rounded-lg bg-[#FBBC05]/20 border border-[#FBBC05]/40 flex items-center justify-center text-[#FBBC05]">
-                    <Bot size={18} />
-                  </div>
+                  <AICoachAvatar size={32} active />
                   <div>
                     <div className="text-xs font-bold text-white">OneDay AI Coach</div>
                     <div className="text-[10px] text-emerald-400 flex items-center gap-1">
@@ -392,9 +390,7 @@ export function AppIntroFlow({ userId, userName, onComplete }: AppIntroFlowProps
 
                   {/* Coach Response */}
                   <div className="flex justify-start items-start gap-2.5">
-                    <div className="w-6 h-6 rounded-md bg-[#FBBC05] text-black font-bold text-[10px] flex items-center justify-center shrink-0 mt-1">
-                      AI
-                    </div>
+                    <AICoachAvatar size={24} active className="mt-1" />
                     <div className="max-w-[85%] bg-white/[0.03] text-slate-300 text-xs md:text-sm p-3.5 rounded-2xl rounded-tl-xs border border-white/10 leading-relaxed space-y-2">
                       <p>
                         "Looking at your profile, you excel when routines are structured. On heavy days, switch to a <strong className="text-white">15-minute minimum protocol</strong> instead of skipping entirely."
