@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   ArrowRight, ArrowLeft, Check, Sparkles, User as UserIcon, 
-  Calendar, Heart, Trophy, Search, X, ShieldAlert 
+  Calendar, Heart, Trophy, Search, X, ShieldAlert, AlertCircle 
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { User } from '../types';
@@ -193,18 +193,73 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
     }
   }, [name, dob, gender, hobbies, sports, whyOneday, isEditing]);
 
-  // Auto-calculated age from DOB
+  // Accurate calendar-aware age calculation considering exact birthday occurrence this year
   const age = useMemo(() => {
-    if (!dob) return null;
-    const birthDate = new Date(dob);
+    if (!dob || typeof dob !== "string") return null;
+    const trimmed = dob.trim();
+    if (!trimmed) return null;
+
+    let birthYear: number;
+    let birthMonth: number; // 0-indexed: 0 = Jan, 11 = Dec
+    let birthDay: number;
+
+    if (trimmed.includes("-")) {
+      const parts = trimmed.split("-");
+      if (parts.length < 3) return null;
+      birthYear = parseInt(parts[0], 10);
+      birthMonth = parseInt(parts[1], 10) - 1;
+      birthDay = parseInt(parts[2], 10);
+    } else if (trimmed.includes("/")) {
+      const parts = trimmed.split("/");
+      if (parts.length < 3) return null;
+      if (parts[0].length === 4) {
+        birthYear = parseInt(parts[0], 10);
+        birthMonth = parseInt(parts[1], 10) - 1;
+        birthDay = parseInt(parts[2], 10);
+      } else {
+        birthMonth = parseInt(parts[0], 10) - 1;
+        birthDay = parseInt(parts[1], 10);
+        birthYear = parseInt(parts[2], 10);
+      }
+    } else {
+      const parsed = new Date(trimmed);
+      if (isNaN(parsed.getTime())) return null;
+      birthYear = parsed.getFullYear();
+      birthMonth = parsed.getMonth();
+      birthDay = parsed.getDate();
+    }
+
+    if (isNaN(birthYear) || isNaN(birthMonth) || isNaN(birthDay)) return null;
+    if (birthMonth < 0 || birthMonth > 11 || birthDay < 1 || birthDay > 31) return null;
+
     const today = new Date();
-    let calculatedAge = today.getFullYear() - birthDate.getFullYear();
-    const m = today.getMonth() - birthDate.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth();
+    const currentDay = today.getDate();
+
+    let calculatedAge = currentYear - birthYear;
+    // If birthday hasn't occurred yet in the current year, decrement age by 1
+    if (currentMonth < birthMonth || (currentMonth === birthMonth && currentDay < birthDay)) {
       calculatedAge--;
     }
+
     return isNaN(calculatedAge) || calculatedAge < 0 ? null : calculatedAge;
   }, [dob]);
+
+  // Specific user-facing validation message for Date of Birth
+  const dobValidationError = useMemo(() => {
+    if (!dob) return null;
+    if (age === null) {
+      return "Please enter a date of birth for someone older than 10 years.";
+    }
+    if (age < 10) {
+      return "Please enter a date of birth for someone older than 10 years.";
+    }
+    if (age > 70) {
+      return "Please enter a date of birth for someone younger than 70 years.";
+    }
+    return null;
+  }, [dob, age]);
 
   if (!isOpen) return null;
 
@@ -214,7 +269,7 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
       case 1:
         return name.trim().length >= 2;
       case 2:
-        return Boolean(dob && age !== null && age >= 10 && age <= 120);
+        return Boolean(dob && age !== null && age >= 10 && age <= 70);
       case 3:
         return VALID_GENDERS.includes(gender as any);
       case 4:
@@ -252,7 +307,17 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
   const handleNext = () => {
     if (!validateStep(step)) {
       if (step === 1) toast.error("Please enter a valid name (at least 2 characters).");
-      if (step === 2) toast.error("Please select a valid date of birth.");
+      if (step === 2) {
+        if (!dob) {
+          toast.error("Please select a date of birth.");
+        } else if (age === null || age < 10) {
+          toast.error("Please enter a date of birth for someone older than 10 years.");
+        } else if (age > 70) {
+          toast.error("Please enter a date of birth for someone younger than 70 years.");
+        } else {
+          toast.error("Please enter a valid date of birth.");
+        }
+      }
       if (step === 3) toast.error("Please select a gender option.");
       if (step === 5) toast.error("Maximum 5 favorite sports allowed.");
       if (step === 6) {
@@ -527,13 +592,37 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
                         type="date"
                         value={dob}
                         onChange={(e) => setDob(e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 focus:border-white/30 rounded-2xl px-5 py-4 text-white text-sm font-semibold outline-none transition-all color-scheme-dark"
+                        className={`w-full bg-white/5 border rounded-2xl px-5 py-4 text-white text-sm font-semibold outline-none transition-all color-scheme-dark ${
+                          dobValidationError
+                            ? "border-rose-500/50 focus:border-rose-500 bg-rose-500/[0.04]"
+                            : "border-white/10 focus:border-white/30"
+                        }`}
                       />
+                      <AnimatePresence>
+                        {dobValidationError && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -4 }}
+                            transition={{ duration: 0.15 }}
+                            className="flex items-center gap-1.5 text-xs font-medium text-rose-400 mt-2.5 px-1"
+                          >
+                            <AlertCircle size={13} className="shrink-0 text-rose-400" />
+                            <span>{dobValidationError}</span>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
 
-                    <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center justify-between">
+                    <div className={`border rounded-2xl p-4 flex items-center justify-between transition-colors ${
+                      dobValidationError
+                        ? "bg-rose-500/[0.04] border-rose-500/20"
+                        : "bg-white/5 border-white/10"
+                    }`}>
                       <span className="text-xs text-slate-400 uppercase font-bold tracking-wider">Calculated Age</span>
-                      <span className="text-xl font-black text-white">
+                      <span className={`text-xl font-black ${
+                        dobValidationError ? "text-rose-400" : "text-white"
+                      }`}>
                         {age !== null ? `${age} Years` : "—"}
                       </span>
                     </div>

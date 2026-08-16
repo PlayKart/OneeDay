@@ -28,8 +28,13 @@ import {
   X,
   MessageSquare,
   Archive,
-  MoreHorizontal
+  MoreHorizontal,
+  Shield,
+  Compass,
+  CheckCircle2,
+  AlertTriangle
 } from 'lucide-react';
+import Markdown from 'react-markdown';
 import { AICoachIcon, AICoachAvatar } from './AICoachIcon';
 import { useStore, ChatSession, ChatMessage } from '../store/useStore';
 import { chatService } from '../services/chatService';
@@ -132,7 +137,6 @@ export const AICoach = () => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setMenuOpen(false);
       }
-      // Also close active session dropdown menu
       setActiveSessionMenuId(null);
     };
     document.addEventListener('mousedown', handleOutsideClick);
@@ -144,12 +148,12 @@ export const AICoach = () => {
     const textarea = textareaRef.current;
     if (textarea) {
       textarea.style.height = 'auto';
-      textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
+      textarea.style.height = `${Math.min(textarea.scrollHeight, 180)}px`;
     }
   }, [input]);
 
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSend = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!input.trim() || chatLoading) return;
     
     const textToSend = input;
@@ -182,18 +186,18 @@ export const AICoach = () => {
 
   const handleStartNewChat = async () => {
     try {
-      await createSession("New Chat");
+      await createSession("New Strategy Protocol");
       setSidebarOpen(false);
-      toast.success("New chat started");
+      toast.success("New strategy session initiated");
     } catch (e) {
       console.error("Failed to create new chat:", e);
-      toast.error("Could not start new chat");
+      toast.error("Could not start new session");
     }
   };
 
   const handleCopyMessage = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast.success("Copied to clipboard");
+    toast.success("Strategy copied to clipboard");
   };
 
   const handleEditMessageClick = (msg: ChatMessage) => {
@@ -208,7 +212,7 @@ export const AICoach = () => {
     }
     await editPreviousMessage(id, editingMessageText);
     setEditingMessageId(null);
-    toast.success("Message edited");
+    toast.success("Prompt revised & updated");
   };
 
   const handleDeleteMessageLocal = async (msgId: string) => {
@@ -227,7 +231,7 @@ export const AICoach = () => {
   const handleClearChatLocal = () => {
     useStore.setState({ chatMessages: [] });
     setMenuOpen(false);
-    toast.success("Chat history cleared locally");
+    toast.success("Session history cleared");
   };
 
   const handleExportChat = async () => {
@@ -242,11 +246,11 @@ export const AICoach = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `Monolith_Chats.json`;
+      a.download = `OneDay_Coach_Protocols.json`;
       a.click();
       URL.revokeObjectURL(url);
       setMenuOpen(false);
-      toast.success("Chats exported successfully");
+      toast.success("Coaching protocols exported");
     } catch (e) {
       console.error("Export chats error", e);
       toast.error("Failed to export chats");
@@ -258,7 +262,7 @@ export const AICoach = () => {
       ...prev,
       [msgId]: prev[msgId] === type ? null : type as any
     }));
-    toast.success(type === 'up' ? "Thanks for your positive feedback!" : "Feedback recorded. Adjusting response strategy.");
+    toast.success(type === 'up' ? "Feedback recorded. Strategy marked effective." : "Feedback recorded. Calibrating future guidance.");
   };
 
   // Format session date/time
@@ -284,11 +288,11 @@ export const AICoach = () => {
 
   // Strip session prefixes, UUIDs, dates, or session numbers from displayed names
   const cleanTitle = (title: string) => {
-    if (!title) return "New Chat";
+    if (!title) return "Strategy Session";
     let cleaned = title.replace(/\d{4}-\d{2}-\d{2}/g, '').trim();
     cleaned = cleaned.replace(/(Session|Chat|ID|Conversation)\s*[#\-:_]?\s*([a-f0-9\-]+|\d+)/gi, '').trim();
     cleaned = cleaned.replace(/^[\-_:\s]+|[\-_:\s]+$/g, '').trim();
-    return cleaned || "New Chat";
+    return cleaned || "Strategy Session";
   };
 
   const safeChatSessions = Array.isArray(chatSessions) ? chatSessions : [];
@@ -302,42 +306,80 @@ export const AICoach = () => {
   });
 
   const filteredSessions = sortedSessions.filter(session => 
-    session && String(session.title || "New Chat").toLowerCase().includes((searchQuery || "").toLowerCase())
+    session && String(session.title || "Strategy Session").toLowerCase().includes((searchQuery || "").toLowerCase())
   );
 
   const safeChatMessages = Array.isArray(chatMessages) ? chatMessages : [];
 
+  // Core Coaching Protocols (Disciplined, High-Focus, Action-Oriented)
   const quickPrompts = [
-    { label: "Build Discipline", text: "Help me build rock-solid discipline today.", desc: "Command focus & kill excuses", icon: "🛡️" },
-    { label: "Study", text: "Help me design an effective study revision plan.", desc: "Accelerate cognitive absorption", icon: "📚" },
-    { label: "Workout", text: "Give me an intense workout routine for today.", desc: "Unleash metabolic energy", icon: "⚡" },
-    { label: "Sports", text: "Help me optimize my athletic training and competitive sports performance.", desc: "Dominate the competition", icon: "🏆" },
-    { label: "Productivity", text: "How can I double my focus and productivity today?", desc: "Optimize deep work blocks", icon: "🎯" },
-    { label: "Motivation", text: "Give me a direct, no-nonsense motivational push.", desc: "Ignite the drive within", icon: "🔥" },
-    { label: "Life", text: "Give me strategic advice on balancing my life goals and personal growth.", desc: "Sustain absolute alignment", icon: "🌱" }
+    { 
+      label: "Execution Protocol", 
+      text: "I am facing resistance on my highest-priority goal today. Give me an aggressive, actionable execution protocol to eliminate hesitation and execute immediately.", 
+      desc: "Eliminate resistance & force execution", 
+      icon: "🛡️" 
+    },
+    { 
+      label: "Morning Momentum", 
+      text: "Design a high-discipline morning routine protocol that primes my physical and mental energy for maximum daily focus.", 
+      desc: "Structure an unbreakable morning ritual", 
+      icon: "⚡" 
+    },
+    { 
+      label: "Deep Work Sprint", 
+      text: "How do I structure a 90-minute hyper-focused deep work sprint with zero distractions and complete cognitive immersion?", 
+      desc: "Lock into 90-minute distraction-free flow", 
+      icon: "🎯" 
+    },
+    { 
+      label: "Habit Audit", 
+      text: "Audit my current habit consistency and identify the biggest friction point holding back my progress right now.", 
+      desc: "Identify & eliminate consistency bottlenecks", 
+      icon: "📊" 
+    },
+    { 
+      label: "Fatigue Reset", 
+      text: "I feel mentally drained and tempted to compromise on my standards today. Give me a direct calibration to reset my focus and finish strong.", 
+      desc: "Reframe mental fatigue & hold the standard", 
+      icon: "🔥" 
+    },
+    { 
+      label: "Strategic Alignment", 
+      text: "Help me evaluate my weekly progress against my long-term vision. Where am I wasting energy, and how do I recalibrate?", 
+      desc: "Trim low-yield distractions & align priorities", 
+      icon: "🧭" 
+    }
+  ];
+
+  // Follow-up micro prompts for active conversations
+  const followUpChips = [
+    { label: "Give me 3 concrete action steps", text: "Break this down into 3 concrete, immediate action steps I must take right now." },
+    { label: "Make it more rigorous", text: "Increase the rigor and eliminate any leeway. Give me the highest-standard version of this protocol." },
+    { label: "Audit my habits", text: "Based on this, what specific adjustment should I make to my daily habit tracking?" },
+    { label: "Summarize as a checklist", text: "Summarize this entire protocol into a clear, concise bulleted checklist." }
   ];
 
   return (
-    <div className="flex h-full w-full min-h-0 bg-[#070707] text-white font-sans overflow-hidden select-none relative">
+    <div className="flex h-full w-full min-h-0 bg-[#070708] text-white font-sans overflow-hidden select-none relative">
 
       {/* SIDEBAR CONTAINER (DESKTOP & MOBILE RESPONSIVE) */}
       <div
         className={`
           fixed md:static inset-y-0 left-0 w-[285px] sm:w-[310px] md:w-80 bg-[#09090b] border-r border-white/[0.08] h-full z-40 flex flex-col justify-between transition-transform duration-300 ease-out backdrop-blur-2xl relative
-          ${sidebarOpen ? 'translate-x-0 flex shadow-[0_0_60px_rgba(0,0,0,0.9)]' : '-translate-x-full md:translate-x-0 md:flex'}
+          ${sidebarOpen ? 'translate-x-0 flex shadow-[0_0_60px_rgba(0,0,0,0.95)]' : '-translate-x-full md:translate-x-0 md:flex'}
         `}
       >
         {/* Subtle top-edge light catch */}
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.12] to-transparent pointer-events-none" />
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.14] to-transparent pointer-events-none" />
 
         <div className="flex-1 flex flex-col min-h-0">
           
           {/* SIDEBAR HEADER */}
           <div className="px-4 py-3.5 flex items-center justify-between border-b border-white/[0.07] shrink-0 h-14 bg-[#0a0a0d]/90 backdrop-blur-md">
             <div className="flex items-center gap-2.5">
-              <div className="w-2 h-2 rounded-full bg-white shadow-[0_0_6px_rgba(255,255,255,0.8)]" />
+              <div className="w-2 h-2 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.9)]" />
               <span className="text-[11px] font-bold tracking-[0.18em] uppercase text-zinc-100 font-sans">
-                Conversations
+                Strategy Logs
               </span>
               <span className="px-1.5 py-0.5 rounded-md bg-white/[0.06] border border-white/[0.08] text-[10px] font-semibold text-slate-300 font-mono leading-none">
                 {filteredSessions.length}
@@ -359,10 +401,10 @@ export const AICoach = () => {
               <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-slate-200 transition-colors pointer-events-none" />
               <input
                 type="text"
-                placeholder="Search conversations..."
+                placeholder="Search protocols & strategies..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-[#131316] hover:bg-[#16161a] focus:bg-[#18181d] border border-white/[0.08] focus:border-white/25 rounded-xl py-2 pl-8.5 pr-8 text-xs text-white placeholder:text-slate-400 placeholder:font-normal focus:outline-none transition-all shadow-[inset_0_1px_2px_rgba(0,0,0,0.4)]"
+                className="w-full bg-[#121215] hover:bg-[#151519] focus:bg-[#17171d] border border-white/[0.08] focus:border-white/25 rounded-xl py-2 pl-8.5 pr-8 text-xs text-white placeholder:text-slate-500 focus:outline-none transition-all shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]"
               />
               {searchQuery && (
                 <button
@@ -376,7 +418,7 @@ export const AICoach = () => {
             </div>
           </div>
 
-          {/* + NEW CHAT BUTTON */}
+          {/* + NEW STRATEGY SESSION BUTTON */}
           <div className="px-3.5 py-1.5 shrink-0">
             <button
               onClick={handleStartNewChat}
@@ -386,10 +428,10 @@ export const AICoach = () => {
                 <div className="w-5 h-5 rounded-lg bg-black/10 flex items-center justify-center text-black group-hover:scale-105 transition-transform">
                   <Plus size={13} className="stroke-[2.5]" />
                 </div>
-                <span className="font-bold text-black tracking-tight text-xs">New Chat</span>
+                <span className="font-bold text-black tracking-tight text-xs">New Strategy Protocol</span>
               </div>
               <span className="text-[10px] text-zinc-600 group-hover:text-black transition-colors flex items-center gap-1 font-semibold">
-                <Sparkles size={11} />
+                <AICoachIcon size={11} active />
               </span>
             </button>
           </div>
@@ -410,9 +452,9 @@ export const AICoach = () => {
                 <div className="w-10 h-10 rounded-2xl bg-white/[0.04] border border-white/[0.07] flex items-center justify-center text-slate-400 mb-3 shadow-inner">
                   <MessageSquare size={17} />
                 </div>
-                <p className="text-xs font-semibold text-zinc-200">No conversations found</p>
+                <p className="text-xs font-semibold text-zinc-200">No strategy logs found</p>
                 <p className="text-[11px] text-slate-400 mt-1 max-w-[190px] leading-relaxed">
-                  {searchQuery ? "Try a different search query" : "Start a new session with your AI Coach."}
+                  {searchQuery ? "Try a different search query" : "Initiate a new protocol with your AI Coach."}
                 </p>
               </div>
             ) : (
@@ -431,13 +473,13 @@ export const AICoach = () => {
                     }}
                     className={`group relative flex items-center justify-between p-2.5 pl-3 rounded-xl transition-all cursor-pointer border min-h-[46px] ${
                       isActive
-                        ? "bg-[#18181c] border-white/[0.14] text-white shadow-[0_2px_12px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.08)]"
-                        : "bg-transparent border-transparent hover:bg-[#131316] hover:border-white/[0.06] text-slate-300 hover:text-white"
+                        ? "bg-[#16161b] border-white/[0.14] text-white shadow-[0_2px_12px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.08)]"
+                        : "bg-transparent border-transparent hover:bg-[#121215] hover:border-white/[0.06] text-slate-300 hover:text-white"
                     }`}
                   >
-                    {/* Active Accent Pill */}
+                    {/* Active Accent Monolith Line */}
                     {isActive && (
-                      <div className="absolute left-1 top-2.5 bottom-2.5 w-[3px] rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />
+                      <div className="absolute left-1 top-2.5 bottom-2.5 w-[3px] rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
                     )}
 
                     <div className="flex items-center gap-2.5 min-w-0 flex-1 pl-1">
@@ -460,7 +502,7 @@ export const AICoach = () => {
                             if (e.key === 'Enter') {
                               if (renameText.trim()) {
                                 await useStore.getState().renameSession(session.id, renameText);
-                                toast.success("Conversation renamed");
+                                toast.success("Protocol renamed");
                               }
                               setEditingSessionId(null);
                             } else if (e.key === 'Escape') {
@@ -474,7 +516,7 @@ export const AICoach = () => {
                             setEditingSessionId(null);
                           }}
                           onClick={(e) => e.stopPropagation()}
-                          className="flex-1 bg-[#131316] border border-white/25 rounded-lg px-2 py-0.5 text-xs text-white focus:outline-none"
+                          className="flex-1 bg-[#121215] border border-white/25 rounded-lg px-2 py-0.5 text-xs text-white focus:outline-none"
                           autoFocus
                         />
                       ) : (
@@ -484,7 +526,7 @@ export const AICoach = () => {
                           </p>
                           <div className="flex items-center gap-1.5 text-[10px] text-slate-400 group-hover:text-slate-300 mt-0.5 font-medium leading-none">
                             {session.is_pinned && (
-                              <span className="inline-flex items-center gap-0.5 text-slate-200 text-[9px] font-semibold">
+                              <span className="inline-flex items-center gap-0.5 text-white text-[9px] font-semibold">
                                 <Pin size={8} className="fill-white" />
                               </span>
                             )}
@@ -510,7 +552,7 @@ export const AICoach = () => {
                         
                         {activeSessionMenuId === session.id && (
                           <div 
-                            className="absolute right-0 mt-1 w-36 bg-[#16161a] border border-white/[0.12] rounded-xl shadow-2xl py-1 z-50 backdrop-blur-xl divide-y divide-white/[0.05]"
+                            className="absolute right-0 mt-1 w-38 bg-[#151519] border border-white/[0.12] rounded-xl shadow-2xl py-1 z-50 backdrop-blur-xl divide-y divide-white/[0.05]"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <div className="py-0.5">
@@ -523,14 +565,14 @@ export const AICoach = () => {
                                 className="w-full text-left px-3 py-1.5 text-[11px] text-slate-200 hover:text-white hover:bg-white/[0.08] flex items-center gap-2 font-medium transition-colors"
                               >
                                 <Pin size={11} className={session.is_pinned ? "text-white" : "text-slate-400"} />
-                                {session.is_pinned ? "Unpin Chat" : "Pin Chat"}
+                                {session.is_pinned ? "Unpin Protocol" : "Pin Protocol"}
                               </button>
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setActiveSessionMenuId(null);
                                   setEditingSessionId(session.id);
-                                  setRenameText(session.title || "New Chat");
+                                  setRenameText(session.title || "Strategy Session");
                                 }}
                                 className="w-full text-left px-3 py-1.5 text-[11px] text-slate-200 hover:text-white hover:bg-white/[0.08] flex items-center gap-2 font-medium transition-colors"
                               >
@@ -541,7 +583,7 @@ export const AICoach = () => {
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setActiveSessionMenuId(null);
-                                  toast.success("Conversation archived");
+                                  toast.success("Protocol archived");
                                 }}
                                 className="w-full text-left px-3 py-1.5 text-[11px] text-slate-200 hover:text-white hover:bg-white/[0.08] flex items-center gap-2 font-medium transition-colors"
                               >
@@ -554,7 +596,7 @@ export const AICoach = () => {
                                 onClick={async (e) => {
                                   e.stopPropagation();
                                   setActiveSessionMenuId(null);
-                                  if (window.confirm("Are you sure you want to delete this conversation?")) {
+                                  if (window.confirm("Are you sure you want to delete this coaching session?")) {
                                     await deleteSession(session.id);
                                   }
                                 }}
@@ -576,20 +618,20 @@ export const AICoach = () => {
 
         </div>
 
-        {/* SIDEBAR FOOTER (USER & STATS SUMMARY) */}
+        {/* SIDEBAR FOOTER (USER & PERFORMANCE STATS) */}
         <div className="p-3.5 border-t border-white/[0.08] shrink-0 bg-[#0a0a0d]/90 backdrop-blur-md flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-b from-white/10 to-white/5 border border-white/10 flex items-center justify-center shrink-0 shadow-inner text-slate-200">
               <User size={13} />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold text-zinc-100 truncate">{user?.name || 'Monolith User'}</p>
+              <p className="text-xs font-semibold text-zinc-100 truncate">{user?.name || 'OneDay User'}</p>
               <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-medium">
                 <span>Level {user?.level || 1}</span>
                 <span className="text-zinc-600">•</span>
                 <span className="text-slate-300 flex items-center gap-0.5 font-semibold">
-                  <Flame size={10} className="fill-white" />
-                  {user?.streak || 0}d
+                  <Flame size={10} className="fill-white text-white" />
+                  {user?.streak || 0}d streak
                 </span>
               </div>
             </div>
@@ -602,7 +644,7 @@ export const AICoach = () => {
       {sidebarOpen && (
         <div
           onClick={() => setSidebarOpen(false)}
-          className="md:hidden fixed inset-0 bg-black/75 backdrop-blur-sm z-30 transition-opacity duration-300"
+          className="md:hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-30 transition-opacity duration-300"
         />
       )}
 
@@ -624,66 +666,83 @@ export const AICoach = () => {
               <AICoachAvatar size={28} active />
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-[9px] uppercase tracking-[0.18em] font-bold text-slate-400 font-sans leading-none">AI Personal Coach</span>
-              <span className="text-xs font-semibold text-white truncate max-w-xs mt-1 leading-none">
-                {activeChatId ? cleanTitle(safeChatSessions.find(s => s && s.id === activeChatId)?.title || "Active Coach session") : "Active Coach session"}
+              <div className="flex items-center gap-1.5">
+                <span className="text-[9px] uppercase tracking-[0.18em] font-bold text-slate-400 font-sans leading-none">
+                  ONEDAY COACH // DISCIPLINE PROTOCOL
+                </span>
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
+              </div>
+              <span className="text-xs font-semibold text-white truncate max-w-xs sm:max-w-md mt-1 leading-none">
+                {activeChatId ? cleanTitle(safeChatSessions.find(s => s && s.id === activeChatId)?.title || "Active Strategy Session") : "Active Strategy Session"}
               </span>
             </div>
           </div>
 
-          {/* Three-Dot Menu dropdown wrapper */}
-          <div className="relative" ref={menuRef}>
+          {/* Actions & Menu */}
+          <div className="flex items-center gap-1.5">
             <button
-              onClick={() => setMenuOpen(!menuOpen)}
-              className="w-8 h-8 rounded-lg border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.08] text-slate-400 hover:text-white transition-colors cursor-pointer active:scale-95 flex items-center justify-center"
-              aria-label="More options"
+              onClick={handleStartNewChat}
+              className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.08] text-xs font-medium text-slate-200 hover:text-white transition-colors"
+              title="New Strategy Session"
             >
-              <MoreVertical size={14} />
+              <Plus size={13} />
+              <span>New</span>
             </button>
 
-            <AnimatePresence>
-              {menuOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 8 }}
-                  className="absolute right-0 mt-2 w-48 bg-[#151518] border border-white/[0.12] rounded-xl shadow-2xl py-1 z-30 overflow-hidden divide-y divide-white/[0.05]"
-                >
-                  <div className="py-0.5">
-                    <button
-                      onClick={handleClearChatLocal}
-                      className="w-full text-left px-3.5 py-2 text-xs font-medium text-slate-200 hover:bg-white/[0.08] hover:text-white transition-colors flex items-center gap-2"
-                    >
-                      <RotateCcw size={12} className="text-slate-400" />
-                      Clear Conversation
-                    </button>
+            {/* Three-Dot Menu dropdown wrapper */}
+            <div className="relative" ref={menuRef}>
+              <button
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="w-8 h-8 rounded-lg border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.08] text-slate-400 hover:text-white transition-colors cursor-pointer active:scale-95 flex items-center justify-center"
+                aria-label="More options"
+              >
+                <MoreVertical size={14} />
+              </button>
 
-                    <button
-                      onClick={handleExportChat}
-                      className="w-full text-left px-3.5 py-2 text-xs font-medium text-slate-200 hover:bg-white/[0.08] hover:text-white transition-colors flex items-center gap-2"
-                    >
-                      <Download size={12} className="text-slate-400" />
-                      Export Chat
-                    </button>
-                  </div>
+              <AnimatePresence>
+                {menuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 8 }}
+                    className="absolute right-0 mt-2 w-48 bg-[#151519] border border-white/[0.12] rounded-xl shadow-2xl py-1 z-30 overflow-hidden divide-y divide-white/[0.05]"
+                  >
+                    <div className="py-0.5">
+                      <button
+                        onClick={handleClearChatLocal}
+                        className="w-full text-left px-3.5 py-2 text-xs font-medium text-slate-200 hover:bg-white/[0.08] hover:text-white transition-colors flex items-center gap-2"
+                      >
+                        <RotateCcw size={12} className="text-slate-400" />
+                        Clear Session
+                      </button>
 
-                  <div className="py-0.5">
-                    <button
-                      onClick={() => {
-                        if (activeChatId && window.confirm("Are you sure you want to delete this conversation?")) {
-                          deleteSession(activeChatId);
-                        }
-                        setMenuOpen(false);
-                      }}
-                      className="w-full text-left px-3.5 py-2 text-xs font-semibold text-rose-400 hover:bg-rose-500/10 transition-colors flex items-center gap-2"
-                    >
-                      <Trash2 size={12} />
-                      Delete Chat
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                      <button
+                        onClick={handleExportChat}
+                        className="w-full text-left px-3.5 py-2 text-xs font-medium text-slate-200 hover:bg-white/[0.08] hover:text-white transition-colors flex items-center gap-2"
+                      >
+                        <Download size={12} className="text-slate-400" />
+                        Export Protocols
+                      </button>
+                    </div>
+
+                    <div className="py-0.5">
+                      <button
+                        onClick={() => {
+                          if (activeChatId && window.confirm("Are you sure you want to delete this conversation?")) {
+                            deleteSession(activeChatId);
+                          }
+                          setMenuOpen(false);
+                        }}
+                        className="w-full text-left px-3.5 py-2 text-xs font-semibold text-rose-400 hover:bg-rose-500/10 transition-colors flex items-center gap-2"
+                      >
+                        <Trash2 size={12} />
+                        Delete Session
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
 
@@ -697,7 +756,7 @@ export const AICoach = () => {
           {chatLoading && safeChatMessages.length === 0 ? (
             <div className="space-y-6 max-w-3xl mx-auto py-8">
               <div className="flex items-start gap-4 animate-pulse">
-                <div className="w-7 h-7 rounded-full bg-white/10 shrink-0" />
+                <div className="w-8 h-8 rounded-lg bg-white/10 shrink-0" />
                 <div className="space-y-2 flex-1">
                   <div className="h-4 bg-white/10 rounded w-3/4" />
                   <div className="h-4 bg-white/5 rounded w-1/2" />
@@ -706,22 +765,22 @@ export const AICoach = () => {
             </div>
           ) : safeChatMessages.length === 0 ? (
             /* EMPTY STATE: "What are we conquering today?" */
-            <div className="max-w-2xl mx-auto text-center py-12 md:py-20 flex flex-col items-center justify-center select-none px-4">
+            <div className="max-w-2xl mx-auto text-center py-10 md:py-16 flex flex-col items-center justify-center select-none px-4">
               <motion.div 
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.5, ease: "easeOut" }}
                 className="mb-6 relative"
               >
-                <div className="absolute inset-0 bg-white/[0.04] blur-2xl rounded-full scale-125" />
-                <MonolithLogo size={68} />
+                <div className="absolute inset-0 bg-white/[0.04] blur-2xl rounded-full scale-125 pointer-events-none" />
+                <MonolithLogo size={64} />
               </motion.div>
               
               <motion.h2 
                 initial={{ y: 10, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.1, duration: 0.5 }}
-                className="text-2xl md:text-3xl font-extrabold tracking-tight mb-2.5 text-white"
+                className="text-2xl md:text-3xl font-extrabold tracking-tight mb-2 text-white"
               >
                 What are we conquering today?
               </motion.h2>
@@ -732,7 +791,7 @@ export const AICoach = () => {
                 transition={{ delay: 0.2, duration: 0.5 }}
                 className="text-slate-300 text-xs md:text-sm leading-relaxed max-w-md mb-8"
               >
-                Select your primary training focus protocol below to activate your personal coach, or construct a custom request.
+                Select a focused coaching protocol below to activate guidance, or send a direct prompt regarding your habits and daily execution.
               </motion.p>
 
               <motion.div 
@@ -746,7 +805,7 @@ export const AICoach = () => {
                     key={idx}
                     onClick={() => handleChipClick(p.text)}
                     disabled={chatLoading}
-                    whileTap={{ scale: 0.97 }}
+                    whileTap={{ scale: 0.98 }}
                     whileHover={{ scale: 1.01 }}
                     className="group flex items-start gap-3.5 p-3.5 rounded-xl bg-[#0f0f12] hover:bg-[#141418] border border-white/[0.07] hover:border-white/20 text-left transition-all cursor-pointer disabled:opacity-50 shadow-md relative overflow-hidden"
                   >
@@ -755,7 +814,7 @@ export const AICoach = () => {
                     </div>
                     
                     <div className="min-w-0 flex-1">
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-white group-hover:text-white transition-colors">
+                      <h4 className="text-xs font-bold tracking-tight text-white group-hover:text-white transition-colors">
                         {p.label}
                       </h4>
                       <p className="text-[11px] text-slate-400 font-medium leading-normal mt-0.5 group-hover:text-slate-300 transition-colors">
@@ -786,17 +845,17 @@ export const AICoach = () => {
                     <AICoachAvatar size="md" active className="mt-0.5" />
                   )}
 
-                  <div className={`flex flex-col gap-1.5 ${isUser ? 'items-end max-w-[82%]' : 'items-start max-w-[85%]'}`}>
+                  <div className={`flex flex-col gap-1.5 ${isUser ? 'items-end max-w-[85%]' : 'items-start max-w-[88%]'}`}>
                     
                     {isUser ? (
                       /* USER MESSAGE BUBBLE */
-                      <div className="bg-[#18181c] text-white px-4.5 py-3 rounded-2xl rounded-tr-sm border border-white/[0.12] text-sm leading-relaxed whitespace-pre-wrap shadow-md">
+                      <div className="bg-[#16161a] text-white px-4.5 py-3 rounded-2xl rounded-tr-sm border border-white/[0.12] text-sm leading-relaxed whitespace-pre-wrap shadow-md">
                         {isMessageEditing ? (
-                          <div className="flex flex-col gap-2 min-w-[220px]">
+                          <div className="flex flex-col gap-2 min-w-[240px]">
                             <textarea
                               value={editingMessageText}
                               onChange={(e) => setEditingMessageText(e.target.value)}
-                              className="w-full bg-black border border-white/15 rounded-xl p-2.5 text-xs text-white focus:outline-none resize-none h-16"
+                              className="w-full bg-black border border-white/15 rounded-xl p-2.5 text-xs text-white focus:outline-none resize-none h-20"
                             />
                             <div className="flex gap-2 justify-end">
                               <button
@@ -809,7 +868,7 @@ export const AICoach = () => {
                                 onClick={() => handleEditMessageSave(msg.id)}
                                 className="px-3 py-1 bg-white text-black hover:bg-slate-200 rounded text-[10px] uppercase font-bold"
                               >
-                                Save
+                                Save & Resend
                               </button>
                             </div>
                           </div>
@@ -822,10 +881,10 @@ export const AICoach = () => {
                       <div className="bg-red-500/10 border border-red-500/20 text-red-200 px-4.5 py-3.5 rounded-2xl rounded-tl-sm text-xs flex flex-col gap-2.5 max-w-sm mt-1 shadow-md">
                         <div className="flex items-center gap-2 font-bold uppercase tracking-wider text-[10px] text-red-400">
                           <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping" />
-                          <span>Uplink Interrupt</span>
+                          <span>Protocol Uplink Interrupted</span>
                         </div>
                         <p className="text-slate-200 font-medium leading-relaxed">
-                          {msg.content.replace('⚠️', '').trim() || "The connection was interrupted. Let's try sending that again."}
+                          {msg.content.replace('⚠️', '').trim() || "The connection was interrupted. Let's retry the strategy generation."}
                         </p>
                         <button
                           onClick={async () => {
@@ -848,13 +907,15 @@ export const AICoach = () => {
                           className="w-full py-2 bg-red-500 text-white font-bold uppercase tracking-wider text-[10px] rounded-lg hover:bg-red-600 active:scale-95 transition-all cursor-pointer h-9 flex items-center justify-center gap-2 shadow"
                         >
                           <RotateCcw size={12} strokeWidth={2.5} />
-                          <span>Retry Request</span>
+                          <span>Retry Protocol</span>
                         </button>
                       </div>
                     ) : (
-                      /* ASSISTANT MESSAGE */
-                      <div className="text-slate-100 text-sm leading-relaxed whitespace-pre-wrap select-text pl-1 py-0.5">
-                        {msg.content}
+                      /* ASSISTANT COACH MESSAGE WITH DISCIPLINED MARKDOWN STYLING */
+                      <div className="text-slate-100 text-sm leading-relaxed select-text pl-1 py-0.5 max-w-none space-y-2.5">
+                        <div className="prose prose-invert prose-sm max-w-none prose-p:leading-relaxed prose-p:my-2 prose-headings:font-bold prose-headings:text-white prose-strong:text-white prose-strong:font-bold prose-ul:my-2 prose-li:my-0.5 prose-li:text-slate-200 prose-blockquote:border-l-white/40 prose-blockquote:text-slate-300 prose-blockquote:font-medium prose-blockquote:my-2">
+                          <Markdown>{msg.content}</Markdown>
+                        </div>
                       </div>
                     )}
 
@@ -887,7 +948,7 @@ export const AICoach = () => {
                             <button
                               onClick={() => handleCopyMessage(msg.content)}
                               className="hover:text-white flex items-center gap-1 transition-colors"
-                              title="Copy text"
+                              title="Copy strategy"
                             >
                               <Copy size={10} />
                               Copy
@@ -903,12 +964,14 @@ export const AICoach = () => {
                             <button
                               onClick={() => handleFeedbackToggle(msg.id, 'up')}
                               className={`flex items-center gap-1 transition-colors hover:text-white ${feedback[msg.id] === 'up' ? 'text-white' : 'text-slate-400'}`}
+                              title="Helpful strategy"
                             >
                               <ThumbsUp size={10} className={feedback[msg.id] === 'up' ? 'fill-white' : ''} />
                             </button>
                             <button
                               onClick={() => handleFeedbackToggle(msg.id, 'down')}
                               className={`flex items-center gap-1 transition-colors hover:text-white ${feedback[msg.id] === 'down' ? 'text-rose-400' : 'text-slate-400'}`}
+                              title="Need adjustments"
                             >
                               <ThumbsDown size={10} className={feedback[msg.id] === 'down' ? 'fill-rose-400' : ''} />
                             </button>
@@ -930,10 +993,13 @@ export const AICoach = () => {
               className="flex items-start gap-3.5 max-w-3xl mx-auto"
             >
               <AICoachAvatar size="md" active animate />
-              <div className="py-2 px-3 flex items-center gap-1.5 bg-white/[0.05] border border-white/[0.08] rounded-xl rounded-tl-sm">
-                <span className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              <div className="py-2.5 px-3.5 flex items-center gap-2 bg-[#121215] border border-white/[0.08] rounded-xl rounded-tl-sm shadow-md">
+                <span className="text-[11px] font-semibold text-slate-300">Formulating strategy protocol</span>
+                <div className="flex items-center gap-1">
+                  <span className="w-1 h-1 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-1 h-1 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-1 h-1 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
               </div>
             </motion.div>
           )}
@@ -945,24 +1011,29 @@ export const AICoach = () => {
         <div className="shrink-0 p-3 md:p-4 bg-[#09090b] border-t border-white/[0.08] z-20 pb-4">
           <div className="max-w-2xl mx-auto w-full">
             
-            {safeChatMessages.length > 0 && safeChatMessages.length < 5 && (
-              <div className="flex gap-1.5 justify-center overflow-x-auto pb-3 mb-1 scrollbar-hide">
-                {quickPrompts.map((p, idx) => (
+            {/* Quick Context Follow-Up Chips */}
+            {safeChatMessages.length > 0 && (
+              <div className="flex gap-1.5 overflow-x-auto pb-2.5 mb-1 scrollbar-hide">
+                {followUpChips.map((chip, idx) => (
                   <button
                     key={idx}
-                    onClick={() => handleChipClick(p.text)}
-                    className="text-[10px] font-semibold px-3 py-1.5 rounded-full border border-white/[0.08] hover:border-white/20 bg-[#131316] hover:bg-white hover:text-black text-slate-300 transition-all shrink-0 cursor-pointer"
+                    onClick={() => handleChipClick(chip.text)}
+                    disabled={chatLoading}
+                    className="text-[10px] font-medium px-3 py-1.5 rounded-lg border border-white/[0.08] hover:border-white/20 bg-[#121215] hover:bg-white hover:text-black text-slate-300 transition-all shrink-0 cursor-pointer disabled:opacity-40"
                   >
-                    {p.label}
+                    {chip.label}
                   </button>
                 ))}
               </div>
             )}
 
-            <form onSubmit={(e) => {
-              if (chatLoading) return;
-              handleSend(e);
-            }} className="relative w-full flex items-end gap-2 bg-[#121215] border border-white/[0.1] rounded-2xl p-2 pl-3.5 pr-2 shadow-xl focus-within:border-white/25 transition-all">
+            <form 
+              onSubmit={(e) => {
+                if (chatLoading) return;
+                handleSend(e);
+              }} 
+              className="relative w-full flex items-end gap-2 bg-[#121215] border border-white/[0.1] rounded-2xl p-2 pl-3.5 pr-2 shadow-xl focus-within:border-white/30 transition-all"
+            >
               <textarea
                 ref={textareaRef}
                 rows={1}
@@ -977,28 +1048,34 @@ export const AICoach = () => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     if (!chatLoading) {
-                      handleSend(e);
+                      handleSend();
                     }
                   }
                 }}
-                placeholder={chatLoading ? "Coach is generating strategy..." : "Message your OneDay AI Coach..."}
+                placeholder={chatLoading ? "Coach is formulating strategy..." : "Message your OneDay Coach (e.g., how to stay disciplined today)..."}
                 disabled={chatLoading}
-                className="flex-1 bg-transparent border-0 outline-none text-white text-sm placeholder:text-slate-500 focus:ring-0 focus:outline-none resize-none py-2.5 px-1 max-h-48 overflow-y-auto scrollbar-hide leading-relaxed"
+                className="flex-1 bg-transparent border-0 outline-none text-white text-sm placeholder:text-slate-500 focus:ring-0 focus:outline-none resize-none py-2 px-1 max-h-40 overflow-y-auto scrollbar-hide leading-relaxed font-sans"
               />
 
               <motion.button
                 type="submit"
                 disabled={chatLoading || !input.trim()}
                 whileTap={{ scale: 0.94 }}
-                className="w-10 h-10 bg-white text-black hover:bg-zinc-200 transition-colors rounded-xl disabled:opacity-20 cursor-pointer flex items-center justify-center shrink-0 shadow-md active:scale-95"
+                className="w-9 h-9 bg-white text-black hover:bg-zinc-200 transition-colors rounded-xl disabled:opacity-20 cursor-pointer flex items-center justify-center shrink-0 shadow-md active:scale-95"
+                aria-label="Send prompt"
               >
                 {chatLoading ? (
                   <span className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin block" />
                 ) : (
-                  <Send size={14} strokeWidth={2.5} />
+                  <Send size={13} strokeWidth={2.5} />
                 )}
               </motion.button>
             </form>
+            
+            <div className="flex items-center justify-between text-[10px] text-slate-400 px-2 pt-1.5 font-medium">
+              <span>Shift + Enter for new line</span>
+              <span>OneDay Performance Intelligence</span>
+            </div>
           </div>
         </div>
 
