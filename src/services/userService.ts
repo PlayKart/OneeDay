@@ -64,9 +64,16 @@ export const userService = {
     }
   },
 
-  async updateProfile(data: Partial<User>): Promise<User> {
+  async updateProfile(data: Partial<User> & Record<string, any>): Promise<User> {
     if (data.gender !== undefined) {
       data.gender = normalizeGenderValue(data.gender);
+    }
+    const whyValue = data.why_oneday ?? data.whyOneday ?? data.reasonForJoining ?? data.reason;
+    if (whyValue !== undefined && whyValue !== null) {
+      const cleanWhy = String(whyValue).trim();
+      data.why_oneday = cleanWhy;
+      data.whyOneday = cleanWhy;
+      data.reasonForJoining = cleanWhy;
     }
     const res = await apiClient.post<User | { user: User }>("/api/onboarding", data);
     return normalizeUser(res.data, useStore.getState().user || undefined);

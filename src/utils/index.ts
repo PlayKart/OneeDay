@@ -274,7 +274,36 @@ export function normalizeUser(u: any, existingUser?: User | null): User {
     gender: normalizeGenderValue(rawUser?.gender || existingUser?.gender),
     hobbies: Array.isArray(rawUser?.hobbies) ? rawUser.hobbies : (Array.isArray(rawUser?.hobbies_list) ? rawUser.hobbies_list : existingUser?.hobbies),
     favouriteSports: Array.isArray(rawUser?.sports) ? rawUser.sports : (Array.isArray(rawUser?.favouriteSports) ? rawUser.favouriteSports : (Array.isArray(rawUser?.favourite_sports) ? rawUser.favourite_sports : existingUser?.favouriteSports)),
-    reasonForJoining: rawUser?.why_oneday || rawUser?.whyOneday || rawUser?.reasonForJoining || rawUser?.reason_for_joining || rawUser?.reason || existingUser?.reasonForJoining,
+    why_oneday:
+      findFirstString(["why_oneday", "whyOneday", "why_oneday_reason", "reasonForJoining", "reason_for_joining", "reason"]) ||
+      rawUser?.why_oneday ||
+      rawUser?.whyOneday ||
+      rawUser?.reasonForJoining ||
+      rawUser?.reason ||
+      existingUser?.why_oneday ||
+      existingUser?.whyOneday ||
+      existingUser?.reasonForJoining ||
+      "",
+    whyOneday:
+      findFirstString(["why_oneday", "whyOneday", "why_oneday_reason", "reasonForJoining", "reason_for_joining", "reason"]) ||
+      rawUser?.why_oneday ||
+      rawUser?.whyOneday ||
+      rawUser?.reasonForJoining ||
+      rawUser?.reason ||
+      existingUser?.why_oneday ||
+      existingUser?.whyOneday ||
+      existingUser?.reasonForJoining ||
+      "",
+    reasonForJoining:
+      findFirstString(["why_oneday", "whyOneday", "why_oneday_reason", "reasonForJoining", "reason_for_joining", "reason"]) ||
+      rawUser?.why_oneday ||
+      rawUser?.whyOneday ||
+      rawUser?.reasonForJoining ||
+      rawUser?.reason ||
+      existingUser?.why_oneday ||
+      existingUser?.whyOneday ||
+      existingUser?.reasonForJoining ||
+      "",
     onboarded: isCompleted,
     hasCompletedOnboarding: isCompleted,
     onboarding_completed: isCompleted,
@@ -454,5 +483,16 @@ export function extractXpAwarded(res: any, habitDifficulty?: string): number {
     }
   }
   return getXpForDifficulty(habitDifficulty);
+}
+
+/**
+ * Accurately counts words in a string based on whitespace-separated tokens.
+ * Handles empty strings, leading/trailing whitespace, and multiple spaces properly.
+ */
+export function countWords(text?: string | null): number {
+  if (!text || typeof text !== "string") return 0;
+  const trimmed = text.trim();
+  if (trimmed === "") return 0;
+  return trimmed.split(/\s+/).filter(Boolean).length;
 }
 

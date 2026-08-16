@@ -145,10 +145,10 @@ export function AboutMeSection() {
           </div>
 
           <div className="bg-black/30 border border-white/5 rounded-xl p-4">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Reason For Joining</span>
-            {activeUser.reasonForJoining ? (
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Why OneDay</span>
+            {(activeUser.why_oneday || activeUser.whyOneday || activeUser.reasonForJoining) ? (
               <p className="text-slate-300 text-xs italic mt-1 line-clamp-2">
-                "{activeUser.reasonForJoining}"
+                "{activeUser.why_oneday || activeUser.whyOneday || activeUser.reasonForJoining}"
               </p>
             ) : (
               <p className="text-slate-500 text-xs italic mt-1">Not added yet</p>

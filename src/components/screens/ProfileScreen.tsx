@@ -261,11 +261,11 @@ export function ProfileScreen({ onBack }: ProfileScreenProps) {
             <div className="bg-[#0C0C0C] border border-white/5 rounded-2xl p-5 shadow-md flex flex-col justify-between">
               <div className="flex items-center gap-2 text-slate-500">
                 <Heart size={12} className="text-slate-500" />
-                <span className="text-[10px] font-black uppercase tracking-widest">Reason For Joining</span>
+                <span className="text-[10px] font-black uppercase tracking-widest">Why OneDay</span>
               </div>
-              {activeUser.reasonForJoining ? (
+              {(activeUser.why_oneday || activeUser.whyOneday || activeUser.reasonForJoining) ? (
                 <p className="text-slate-300 text-xs italic mt-2 leading-relaxed">
-                  "{activeUser.reasonForJoining}"
+                  "{activeUser.why_oneday || activeUser.whyOneday || activeUser.reasonForJoining}"
                 </p>
               ) : (
                 <p className="text-slate-600 text-xs italic mt-2">Not specified</p>

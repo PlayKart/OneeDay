@@ -7,7 +7,7 @@ import {
 import { useStore } from '../store/useStore';
 import { User } from '../types';
 import { toast } from 'react-hot-toast';
-import { VALID_GENDERS, normalizeGenderValue } from '../utils';
+import { VALID_GENDERS, normalizeGenderValue, countWords } from '../utils';
 
 const HOBBIES_LIST = [
   "Reading", "Coding", "Fitness", "Writing", "Meditation", 
@@ -140,9 +140,27 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
   const [customHobbyInput, setCustomHobbyInput] = useState("");
   const [sports, setSports] = useState<string[]>(draftData?.favouriteSports || draftData?.sports || initialData?.favouriteSports || initialData?.sports || []);
   const [sportSearch, setSportSearch] = useState("");
-  const [reason, setReason] = useState(draftData?.reasonForJoining || draftData?.reason || initialData?.reasonForJoining || initialData?.reason || "");
+  const [whyOneday, setWhyOneday] = useState<string>(() => {
+    return (
+      draftData?.why_oneday ||
+      draftData?.whyOneday ||
+      draftData?.reasonForJoining ||
+      draftData?.reason ||
+      initialData?.why_oneday ||
+      initialData?.whyOneday ||
+      initialData?.reasonForJoining ||
+      initialData?.reason ||
+      user?.why_oneday ||
+      user?.whyOneday ||
+      user?.reasonForJoining ||
+      ""
+    );
+  });
   const [isCompletedState, setIsCompletedState] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Real-time word count for Why OneDay question
+  const wordCount = useMemo(() => countWords(whyOneday), [whyOneday]);
 
   // Save current step to localStorage
   useEffect(() => {
@@ -165,13 +183,15 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
           gender,
           hobbies,
           favouriteSports: sports,
-          reasonForJoining: reason
+          why_oneday: whyOneday,
+          whyOneday: whyOneday,
+          reasonForJoining: whyOneday,
         }));
       } catch (e) {
         console.warn("[Onboarding] Failed to save draft data to localStorage:", e);
       }
     }
-  }, [name, dob, gender, hobbies, sports, reason, isEditing]);
+  }, [name, dob, gender, hobbies, sports, whyOneday, isEditing]);
 
   // Auto-calculated age from DOB
   const age = useMemo(() => {
@@ -203,9 +223,10 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
       case 5:
         // Optional step but has a limit
         return sports.length <= 5;
-      case 6:
-        // Optional step
-        return true;
+      case 6: {
+        const count = countWords(whyOneday);
+        return count >= 5 && count <= 500;
+      }
       default:
         return true;
     }
@@ -234,6 +255,14 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
       if (step === 2) toast.error("Please select a valid date of birth.");
       if (step === 3) toast.error("Please select a gender option.");
       if (step === 5) toast.error("Maximum 5 favorite sports allowed.");
+      if (step === 6) {
+        const count = countWords(whyOneday);
+        if (count < 5) {
+          toast.error("Please write at least 5 words.");
+        } else if (count > 500) {
+          toast.error("Please keep your answer within 500 words.");
+        }
+      }
       return;
     }
 
@@ -250,8 +279,6 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
       setHobbies([]);
     } else if (step === 5) {
       setSports([]);
-    } else if (step === 6) {
-      setReason("");
     }
 
     if (step < totalSteps) {
@@ -277,11 +304,32 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
         return;
       }
 
-      console.log("[ONBOARDING] Gender being submitted:", finalGender);
+      const cleanWhyOneday = (whyOneday || "").trim();
+      const count = countWords(cleanWhyOneday);
+      const isValid = count >= 5 && count <= 500;
+
+      // Log Step 6 submission info
+      console.log("[ONBOARDING SUBMIT]", {
+        why_oneday: cleanWhyOneday,
+        wordCount: count,
+        isValid,
+      });
+
+      if (count < 5) {
+        toast.error("Please write at least 5 words.");
+        setSaving(false);
+        return;
+      }
+
+      if (count > 500) {
+        toast.error("Please keep your answer within 500 words.");
+        setSaving(false);
+        return;
+      }
 
       const payload = {
-        name,
-        full_name: name,
+        name: name.trim(),
+        full_name: name.trim(),
         dob,
         date_of_birth: dob,
         age,
@@ -289,8 +337,10 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
         hobbies,
         favouriteSports: sports,
         sports,
-        reasonForJoining: reason,
-        why_oneday: reason,
+        why_oneday: cleanWhyOneday,
+        whyOneday: cleanWhyOneday,
+        reasonForJoining: cleanWhyOneday,
+        reason: cleanWhyOneday,
         onboarded: true,
         hasCompletedOnboarding: true,
         onboarding_completed: true,
@@ -665,22 +715,50 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
                   className="space-y-6"
                 >
                   <div className="space-y-2">
-                    <span className="text-[10px] font-black uppercase tracking-[0.25em] text-indigo-400">Purpose</span>
+                    <span className="text-[10px] font-black uppercase tracking-[0.25em] text-indigo-400">Purpose & Commitment</span>
                     <h2 className="text-2xl font-black text-white tracking-tight">Why did you choose OneDay?</h2>
-                    <p className="text-slate-400 text-xs">Declare your core intention and commitment.</p>
-                    <p className="text-[11px] text-slate-500 mt-1 font-medium italic">You can always add these later from Settings.</p>
+                    <p className="text-slate-400 text-xs">Declare your core intention and commitment (5 – 500 words).</p>
                   </div>
 
-                  <div className="relative">
-                    <textarea
-                      value={reason}
-                      onChange={(e) => setReason(e.target.value)}
-                      rows={5}
-                      placeholder="To build unbreakable consistency, eliminate distractions, and master my daily discipline..."
-                      className="w-full bg-white/5 border border-white/10 focus:border-white/30 rounded-2xl p-4 text-white text-sm outline-none transition-all resize-none placeholder:text-slate-600"
-                    />
-                    <div className="absolute bottom-3 right-4 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                      {reason.length} / 10+ chars
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <textarea
+                        value={whyOneday}
+                        onChange={(e) => setWhyOneday(e.target.value)}
+                        rows={6}
+                        placeholder="To build unbreakable consistency, eliminate distractions, and master my daily discipline..."
+                        className="w-full bg-white/5 border border-white/10 focus:border-white/30 rounded-2xl p-4 text-white text-sm outline-none transition-all resize-none placeholder:text-slate-600 leading-relaxed"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between px-1">
+                      <div>
+                        {wordCount === 0 ? (
+                          <span className="text-[11px] text-slate-500 font-medium">Please write at least 5 words.</span>
+                        ) : wordCount < 5 ? (
+                          <span className="text-[11px] text-amber-400 font-medium">
+                            {5 - wordCount} more word{5 - wordCount === 1 ? "" : "s"} needed (minimum 5)
+                          </span>
+                        ) : wordCount > 500 ? (
+                          <span className="text-[11px] text-rose-400 font-bold">
+                            Please keep your answer within 500 words ({wordCount - 500} over)
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-emerald-400 font-medium flex items-center gap-1">
+                            <Check size={12} /> Valid statement
+                          </span>
+                        )}
+                      </div>
+                      <div
+                        className={`text-xs font-bold uppercase tracking-wider ${
+                          wordCount > 500
+                            ? "text-rose-400 font-extrabold"
+                            : wordCount >= 5
+                            ? "text-slate-300"
+                            : "text-slate-500"
+                        }`}
+                      >
+                        {wordCount} / 500 words
+                      </div>
                     </div>
                   </div>
                 </motion.div>
@@ -702,7 +780,7 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
               )}
 
               <div className="flex items-center gap-2.5">
-                {(step === 4 || step === 5 || step === 6) && (
+                {(step === 4 || step === 5) && (
                   <button
                     type="button"
                     onClick={handleSkip}

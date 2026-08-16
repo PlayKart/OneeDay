@@ -27,6 +27,8 @@ export interface User {
   hobbies?: string[];
   favouriteSports?: string[];
   reasonForJoining?: string;
+  why_oneday?: string;
+  whyOneday?: string;
   onboarded?: boolean;
   nextRoute?: string;
   hasCompletedOnboarding?: boolean;
