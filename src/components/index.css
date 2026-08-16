@@ -1,142 +1,98 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-display: "Outfit", "Plus Jakarta Sans", sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Inter", sans-serif;
 }
 
 :root {
-  --background: #050508;
-  --surface: #0a0a10;
-  --surface-raised: #101018;
-  --foreground: #f8fafc;
-  --accent-purple: #8b5cf6;
-  --accent-purple-glow: rgba(139, 92, 246, 0.18);
+  --background: #050505;
+  --foreground: #ffffff;
 }
 
 body {
-  @apply bg-[#050508] text-slate-100 antialiased font-sans overflow-x-hidden;
+  @apply bg-[#050505] text-white antialiased font-sans overflow-x-hidden;
   min-height: 100vh;
-  letter-spacing: -0.01em;
 }
 
-/* 1. Liquid Glass Utilities */
-.liquid-glass {
-  background: rgba(13, 13, 18, 0.72);
-  backdrop-filter: blur(28px);
-  -webkit-backdrop-filter: blur(28px);
+.glass {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(24px);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), inset 0 1px 0 0 rgba(255, 255, 255, 0.07);
+  border-radius: 24px;
 }
 
-.liquid-glass-card {
-  background: rgba(16, 16, 24, 0.65);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+.glow-fire {
+  filter: drop-shadow(0 0 15px rgba(249, 115, 22, 0.3));
 }
 
-.liquid-glass-card-interactive {
-  background: rgba(16, 16, 24, 0.65);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+.glow-ice {
+  filter: drop-shadow(0 0 15px rgba(6, 182, 212, 0.3));
 }
 
-.liquid-glass-card-interactive:hover {
-  background: rgba(22, 22, 32, 0.8);
-  border-color: rgba(255, 255, 255, 0.16);
-  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
-  transform: translateY(-2px);
+.progress-bg {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 100px;
+  height: 8px;
+  width: 100%;
 }
 
-.liquid-glass-nav {
-  background: rgba(8, 8, 12, 0.85);
-  backdrop-filter: blur(28px);
-  -webkit-backdrop-filter: blur(28px);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.65), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+.progress-fill {
+  background: linear-gradient(90deg, #10b981, #34d399);
+  height: 100%;
+  border-radius: 100px;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.liquid-glass-pill {
-  background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  z-index: 0;
+  pointer-events: none;
 }
 
-/* 2. Radial Ambient Glows */
-.radial-purple-glow {
-  background: radial-gradient(ellipse 60% 40% at 50% 0%, rgba(139, 92, 246, 0.15), transparent 75%);
+.habit-btn {
+  @apply w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-200 border border-white/10 cursor-pointer;
 }
 
-.radial-purple-glow-bottom {
-  background: radial-gradient(ellipse 60% 40% at 50% 100%, rgba(139, 92, 246, 0.12), transparent 70%);
-}
-
-.radial-achievement-glow {
-  background: radial-gradient(ellipse 60% 50% at 50% 50%, rgba(245, 158, 11, 0.18), rgba(139, 92, 246, 0.12), transparent 75%);
-}
-
-/* 3. Rainbow Sheen for Milestones & Level Progression */
-.rainbow-border {
-  border-image: linear-gradient(to right, #fbbf24, #c084fc, #38bdf8, #34d399) 1;
-}
-
-.rainbow-sheen {
-  background: linear-gradient(135deg, rgba(251, 191, 36, 0.12), rgba(192, 132, 252, 0.12), rgba(56, 189, 248, 0.12));
-}
-
-.rainbow-text {
-  background: linear-gradient(135deg, #fcd34d, #d8b4fe, #7dd3fc);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-/* 4. Pastel Left Stripe Accents for Cards */
-.stripe-purple { border-left: 3px solid #a855f7; }
-.stripe-emerald { border-left: 3px solid #34d399; }
-.stripe-sky { border-left: 3px solid #38bdf8; }
-.stripe-amber { border-left: 3px solid #fbbf24; }
-.stripe-rose { border-left: 3px solid #fb7185; }
-
-/* 5. Micro-Interactions */
-.tap-scale {
-  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.tap-scale:active {
-  transform: scale(0.97);
+.habit-btn.active {
+  @apply bg-[#10b981] border-[#10b981] shadow-lg shadow-green-500/20;
 }
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 6px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
-  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.22);
+
+.glass-nav {
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(24px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .scrollbar-hide::-webkit-scrollbar {
-  display: none;
+    display: none;
 }
 .scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
 
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom);
 }
+
+.chat-bubble-bot {
+  background: rgba(255,255,255,0.05);
+  border-left: 3px solid #f97316;
+}
+

@@ -12,13 +12,13 @@ import {
   Brain, 
   Clock, 
   BarChart3, 
+  MessageSquare, 
   ArrowRight,
+  TrendingUp,
+  Award,
   Zap,
   Target,
-  ChevronRight,
-  Flame,
-  Layers,
-  Compass
+  ChevronRight
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { PrivacyPage } from "../PrivacyPage";
@@ -47,26 +47,27 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
     window.scrollTo({ top: 0 });
   };
 
+  // Dynamic Page Title & Scroll-aware active section state
   useEffect(() => {
-    document.title = "OneDay — AI Habit Tracker & Discipline Protocol";
+    document.title = "OneDay — AI Habit Tracker";
 
     const handleScroll = () => {
       const featuresEl = document.getElementById("features");
       const aboutEl = document.getElementById("about");
-      const systemEl = document.getElementById("protocol");
+      const systemEl = document.getElementById("discipline-system");
 
       if (!featuresEl || !aboutEl) return;
 
-      const scrollPos = window.scrollY + 250;
+      const scrollPos = window.scrollY + 250; // Offset for navbar & threshold
 
       if (systemEl && scrollPos >= systemEl.offsetTop) {
         document.title = "Discipline Protocol — OneDay";
       } else if (scrollPos >= aboutEl.offsetTop) {
-        document.title = "Team — OneDay";
+        document.title = "About — OneDay";
       } else if (scrollPos >= featuresEl.offsetTop) {
         document.title = "Features — OneDay";
       } else {
-        document.title = "OneDay — AI Habit Tracker & Discipline Protocol";
+        document.title = "OneDay — AI Habit Tracker";
       }
     };
 
@@ -82,11 +83,14 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
     if (authLoading) return;
 
     setAuthLoading(true);
+    console.log("[AUTH] Google login started");
     try {
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: "select_account" });
 
       const credential = await signInWithPopup(auth, provider);
+      console.log("[AUTH] Google popup completed");
+
       if (!credential || !credential.user) {
         throw new Error("No user credential returned from Firebase.");
       }
@@ -99,7 +103,7 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
 
       setShowAuthModal(false);
       onLoginSuccess();
-      toast.success("Welcome to OneDay!");
+      toast.success("Welcome!");
     } catch (error: any) {
       console.error("[AUTH Error] Google login failed:", error);
       if (error.code === "auth/unauthorized-domain") {
@@ -124,6 +128,7 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
     if (authLoading) return;
 
     setAuthLoading(true);
+    console.log("[Auth] Initiating Guest Sign-In...");
     try {
       const credential = await signInAnonymously(auth);
       if (!credential || !credential.user) {
@@ -167,71 +172,60 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3 }}
-          className="min-h-screen bg-[#050508] text-slate-100 font-sans w-full overflow-x-hidden selection:bg-purple-500/30 selection:text-white"
+          className="min-h-screen bg-[#030303] text-white selection:bg-white/20 font-sans w-full overflow-x-hidden pb-12"
         >
-          {/* TOP RADIAL GLOW */}
-          <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-purple-600/10 rounded-full blur-[120px] pointer-events-none -z-10" />
-
           {/* STICKY HEADER */}
-          <header className="sticky top-0 left-0 right-0 z-50 bg-[#08080c]/80 backdrop-blur-2xl border-b border-white/[0.08] h-16 md:h-20 flex items-center px-5 md:px-12 transition-all">
+          <header className="sticky top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-xl border-b border-zinc-900 h-16 md:h-20 flex items-center px-5 md:px-12 transition-all">
             <nav className="max-w-7xl mx-auto w-full flex justify-between items-center" aria-label="Main Navigation">
-              <div 
-                className="flex items-center gap-3 select-none cursor-pointer group" 
-                onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-              >
+              <div className="flex items-center gap-2.5 select-none cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
                 <MonolithLogo size={28} />
-                <span className="text-lg md:text-xl font-black tracking-tight text-white group-hover:text-purple-300 transition-colors">
-                  OneDay
-                </span>
+                <span className="text-lg md:text-xl font-bold tracking-tighter text-white">OneDay</span>
               </div>
               
-              <div className="hidden md:flex items-center gap-8 text-xs font-bold uppercase tracking-wider text-slate-400">
+              <div className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-400">
                 <button onClick={() => scrollToSection("features")} className="hover:text-white transition-colors cursor-pointer">Features</button>
                 <button onClick={() => scrollToSection("coaching")} className="hover:text-white transition-colors cursor-pointer">AI Coach</button>
-                <button onClick={() => scrollToSection("protocol")} className="hover:text-white transition-colors cursor-pointer">Protocol</button>
+                <button onClick={() => scrollToSection("discipline-system")} className="hover:text-white transition-colors cursor-pointer">Protocol</button>
                 <button onClick={() => scrollToSection("about")} className="hover:text-white transition-colors cursor-pointer">Team</button>
               </div>
 
               <button 
                 onClick={openAuthModal}
-                className="bg-white hover:bg-slate-200 text-black px-5 py-2 md:px-6 md:py-2.5 rounded-full text-xs md:text-sm font-extrabold tracking-tight active:scale-95 transition-all cursor-pointer shadow-[0_0_20px_rgba(255,255,255,0.15)] flex items-center gap-1.5 group"
+                className="bg-white text-black px-5 py-2 md:px-6 md:py-2.5 rounded-full text-xs md:text-sm font-semibold tracking-tight hover:bg-zinc-200 active:scale-95 transition-all cursor-pointer shadow-sm"
               >
-                <span>Start Now</span>
-                <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                Start Now
               </button>
             </nav>
           </header>
 
-          <main className="space-y-20 md:space-y-36">
+          <main className="space-y-16 md:space-y-32">
             {/* HERO SECTION */}
-            <section className="relative pt-14 md:pt-24 pb-12 px-5 max-w-5xl mx-auto flex flex-col justify-center text-center">
+            <section className="relative pt-10 md:pt-16 pb-12 px-5 max-w-5xl mx-auto flex flex-col justify-center text-center">
               <div className="space-y-6 md:space-y-8">
-                {/* Micro Pill Badge */}
-                <div className="inline-flex items-center gap-2 bg-purple-500/10 border border-purple-500/25 px-4 py-1.5 rounded-full text-[11px] md:text-xs font-bold tracking-wider text-purple-300 uppercase mx-auto select-none shadow-[0_0_20px_rgba(139,92,246,0.15)]">
-                  <Sparkles size={13} className="text-purple-400" />
-                  <span>Not another habit app. A discipline protocol.</span>
+                <div className="inline-flex items-center gap-1.5 bg-zinc-900/60 border border-zinc-800/80 px-3.5 py-1.5 rounded-full text-[10px] md:text-xs font-semibold tracking-wider text-zinc-300 uppercase mx-auto select-none">
+                  <Sparkles size={12} className="text-zinc-400" />
+                  ONE DAY AT A TIME.
                 </div>
 
-                <h1 className="text-4xl sm:text-6xl md:text-7xl font-black tracking-tight leading-[1.08] text-white">
-                  Build unbreakable habits.<br />
-                  <span className="text-slate-400">Become impossible to stop.</span>
+                <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight leading-[1.1] text-white">
+                  Build better habits.<br />
+                  <span className="text-zinc-400">Become harder to stop.</span>
                 </h1>
 
-                <p className="text-sm md:text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed font-medium">
-                  OneDay replaces noisy habit trackers with an intelligent protocol: daily execution checklists, contextual AI coaching, streak shields, and earned progression.
+                <p className="text-sm md:text-lg text-zinc-400 max-w-2xl mx-auto leading-relaxed">
+                  OneDay combines habit tracking, intelligent coaching, focus tools, streaks and progression into one personal system for building consistency.
                 </p>
 
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-4 max-w-xs sm:max-w-md mx-auto">
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4 max-w-xs sm:max-w-md mx-auto">
                   <button 
                     onClick={openAuthModal}
-                    className="w-full sm:w-auto bg-white text-black px-8 py-3.5 rounded-full text-sm font-extrabold tracking-tight hover:bg-slate-200 active:scale-95 transition-all shadow-[0_4px_25px_rgba(255,255,255,0.2)] cursor-pointer flex items-center justify-center gap-2 group"
+                    className="w-full sm:w-auto bg-white text-black px-8 py-3.5 rounded-full text-sm font-semibold tracking-tight hover:bg-zinc-200 active:scale-95 transition-all shadow-[0_4px_20px_rgba(255,255,255,0.08)] cursor-pointer"
                   >
-                    <span>Start Your Protocol</span>
-                    <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                    Start Your Journey
                   </button>
                   <button 
-                    onClick={() => scrollToSection("features")}
-                    className="w-full sm:w-auto bg-white/5 text-slate-300 hover:text-white hover:bg-white/10 border border-white/10 px-8 py-3.5 rounded-full text-sm font-bold tracking-tight transition-all cursor-pointer"
+                    onClick={() => scrollToSection("product-system")}
+                    className="w-full sm:w-auto bg-zinc-900/80 text-zinc-300 hover:text-white hover:bg-zinc-800/80 border border-zinc-800/80 px-8 py-3.5 rounded-full text-sm font-semibold tracking-tight transition-all cursor-pointer"
                   >
                     Explore Features
                   </button>
@@ -239,279 +233,383 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
               </div>
             </section>
 
-            {/* 3-CARD CORE PILLAR SHOWCASE */}
-            <section id="features" className="px-5 max-w-6xl mx-auto">
-              <div className="text-center space-y-3 max-w-2xl mx-auto mb-12 md:mb-16">
-                <div className="text-[10px] font-black uppercase tracking-[0.25em] text-purple-400">Core Architecture</div>
-                <h2 className="text-2xl md:text-4xl font-black tracking-tight text-white">
-                  Designed for execution, not distraction
+            {/* PRODUCT VALUE SYSTEM SECTION */}
+            <section id="product-system" className="px-5 max-w-5xl mx-auto">
+              <div className="text-center space-y-4 max-w-2xl mx-auto mb-10 md:mb-16">
+                <h2 className="text-2xl md:text-4xl font-bold tracking-tight text-white">
+                  A Complete Productivity<br />& Mindset System
                 </h2>
-                <p className="text-xs md:text-sm text-slate-400 leading-relaxed">
-                  Three interlocking pillars engineered to keep you consistent without cognitive overload.
+                <p className="text-xs md:text-sm text-zinc-400 leading-relaxed">
+                  OneDay is more than a habit tracker. It is a personal system designed to help you build discipline, maintain consistency and make meaningful progress every day.
                 </p>
               </div>
 
-              {/* 3 Cards Desktop (1 row) / Mobile (1 per row) */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Pillar 1 */}
-                <div className="liquid-glass-card-interactive rounded-2xl p-7 flex flex-col justify-between space-y-6 stripe-purple relative overflow-hidden group">
-                  <div className="space-y-4">
-                    <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 shadow-[0_0_20px_rgba(139,92,246,0.2)]">
-                      <Target size={22} />
-                    </div>
-                    <div className="space-y-1.5">
-                      <div className="text-[10px] font-mono uppercase tracking-widest text-purple-400 font-extrabold">Pillar 01</div>
-                      <h3 className="text-lg font-black text-white tracking-tight">Structured Routine Engine</h3>
-                      <p className="text-xs text-slate-400 leading-relaxed">
-                        Customize daily, weekday, or target frequency schedules with clean tap-to-complete checklists and zero friction.
-                      </p>
-                    </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
+                {/* CARD 1 */}
+                <div className="bg-[#0a0a0a] border border-zinc-900 rounded-2xl md:rounded-[2rem] p-6 md:p-8 hover:border-zinc-800 transition-all group">
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="text-xs font-mono text-zinc-600 font-bold">01</span>
+                    <h3 className="text-base md:text-lg font-bold text-white tracking-tight">HABIT SYSTEM</h3>
                   </div>
-
-                  <ul className="space-y-2 pt-4 border-t border-white/5 text-xs text-slate-300 font-medium">
-                    <li className="flex items-center gap-2.5">
-                      <Check size={14} className="text-purple-400 stroke-[2.5] shrink-0" />
-                      <span>Flexible recurrence & frequency targets</span>
-                    </li>
-                    <li className="flex items-center gap-2.5">
-                      <Check size={14} className="text-purple-400 stroke-[2.5] shrink-0" />
-                      <span>Instant completion with fluid micro-feedback</span>
-                    </li>
-                    <li className="flex items-center gap-2.5">
-                      <Check size={14} className="text-purple-400 stroke-[2.5] shrink-0" />
-                      <span>Streak protection with freeze shields</span>
-                    </li>
-                  </ul>
+                  <p className="text-xs md:text-sm text-zinc-400 leading-relaxed">
+                    Build routines that fit your actual schedule. Establish visual, clean, and flexible daily tracking lists customized for your lifestyle.
+                  </p>
                 </div>
 
-                {/* Pillar 2 */}
-                <div className="liquid-glass-card-interactive rounded-2xl p-7 flex flex-col justify-between space-y-6 stripe-emerald relative overflow-hidden group">
-                  <div className="space-y-4">
-                    <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.2)]">
-                      <Brain size={22} />
-                    </div>
-                    <div className="space-y-1.5">
-                      <div className="text-[10px] font-mono uppercase tracking-widest text-emerald-400 font-extrabold">Pillar 02</div>
-                      <h3 className="text-lg font-black text-white tracking-tight">Contextual AI Coach</h3>
-                      <p className="text-xs text-slate-400 leading-relaxed">
-                        A dedicated mentor grounded in your actual habits, streak states, and personal goals to provide actionable advice.
-                      </p>
-                    </div>
+                {/* CARD 2 */}
+                <div className="bg-[#0a0a0a] border border-zinc-900 rounded-2xl md:rounded-[2rem] p-6 md:p-8 hover:border-zinc-800 transition-all group">
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="text-xs font-mono text-zinc-600 font-bold">02</span>
+                    <h3 className="text-base md:text-lg font-bold text-white tracking-tight">AI COACH</h3>
                   </div>
-
-                  <ul className="space-y-2 pt-4 border-t border-white/5 text-xs text-slate-300 font-medium">
-                    <li className="flex items-center gap-2.5">
-                      <Check size={14} className="text-emerald-400 stroke-[2.5] shrink-0" />
-                      <span>Real-time habit analysis & suggestions</span>
-                    </li>
-                    <li className="flex items-center gap-2.5">
-                      <Check size={14} className="text-emerald-400 stroke-[2.5] shrink-0" />
-                      <span>Context-aware motivation on slump days</span>
-                    </li>
-                    <li className="flex items-center gap-2.5">
-                      <Check size={14} className="text-emerald-400 stroke-[2.5] shrink-0" />
-                      <span>Multi-session memory & discipline plans</span>
-                    </li>
-                  </ul>
+                  <p className="text-xs md:text-sm text-zinc-400 leading-relaxed">
+                    Get personalized guidance based on your goals and progress. Converse with a dedicated mentor aligned with your discipline roadmap.
+                  </p>
                 </div>
 
-                {/* Pillar 3 */}
-                <div className="liquid-glass-card-interactive rounded-2xl p-7 flex flex-col justify-between space-y-6 stripe-sky relative overflow-hidden group">
-                  <div className="space-y-4">
-                    <div className="w-12 h-12 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400 shadow-[0_0_20px_rgba(56,189,248,0.2)]">
-                      <Flame size={22} />
-                    </div>
-                    <div className="space-y-1.5">
-                      <div className="text-[10px] font-mono uppercase tracking-widest text-sky-400 font-extrabold">Pillar 03</div>
-                      <h3 className="text-lg font-black text-white tracking-tight">Earned Progression</h3>
-                      <p className="text-xs text-slate-400 leading-relaxed">
-                        Earn tangible XP, rank through prestige discipline tiers, and unlock titles reflecting true dedication.
-                      </p>
-                    </div>
+                {/* CARD 3 */}
+                <div className="bg-[#0a0a0a] border border-zinc-900 rounded-2xl md:rounded-[2rem] p-6 md:p-8 hover:border-zinc-800 transition-all group">
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="text-xs font-mono text-zinc-600 font-bold">03</span>
+                    <h3 className="text-base md:text-lg font-bold text-white tracking-tight">PROGRESSION</h3>
                   </div>
+                  <p className="text-xs md:text-sm text-zinc-400 leading-relaxed">
+                    Turn consistency into XP, levels and measurable growth. Gamify consistency elegantly without childish distractions.
+                  </p>
+                </div>
 
-                  <ul className="space-y-2 pt-4 border-t border-white/5 text-xs text-slate-300 font-medium">
-                    <li className="flex items-center gap-2.5">
-                      <Check size={14} className="text-sky-400 stroke-[2.5] shrink-0" />
-                      <span>Experience gain tied to habit difficulty</span>
-                    </li>
-                    <li className="flex items-center gap-2.5">
-                      <Check size={14} className="text-sky-400 stroke-[2.5] shrink-0" />
-                      <span>Dynamic level-ups & custom title unlocks</span>
-                    </li>
-                    <li className="flex items-center gap-2.5">
-                      <Check size={14} className="text-sky-400 stroke-[2.5] shrink-0" />
-                      <span>Clean analytics without superficial charts</span>
-                    </li>
-                  </ul>
+                {/* CARD 4 */}
+                <div className="bg-[#0a0a0a] border border-zinc-900 rounded-2xl md:rounded-[2rem] p-6 md:p-8 hover:border-zinc-800 transition-all group">
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="text-xs font-mono text-zinc-600 font-bold">04</span>
+                    <h3 className="text-base md:text-lg font-bold text-white tracking-tight">FOCUS</h3>
+                  </div>
+                  <p className="text-xs md:text-sm text-zinc-400 leading-relaxed">
+                    Create focused sessions and eliminate distractions. Harness optimized intervals to keep your head in deep productive work.
+                  </p>
                 </div>
               </div>
             </section>
 
-            {/* BENTO GRID OF ALL CAPABILITIES */}
-            <section id="protocol" className="px-5 max-w-6xl mx-auto space-y-10">
-              <div className="text-center space-y-3 max-w-2xl mx-auto">
-                <div className="text-[10px] font-black uppercase tracking-[0.25em] text-purple-400">Feature Matrix</div>
-                <h2 className="text-2xl md:text-4xl font-black tracking-tight text-white">
-                  Built to keep you moving forward
-                </h2>
-                <p className="text-xs md:text-sm text-slate-400 leading-relaxed">
-                  Every feature exists to eliminate friction and sustain long-term consistency.
+            {/* CONSISTENCY FRAMEWORK (VERTICAL TIMELINE) */}
+            <section className="px-5 max-w-4xl mx-auto">
+              <div className="text-center space-y-4 mb-12">
+                <h2 className="text-2xl md:text-4xl font-bold tracking-tight text-white">The Consistency Framework</h2>
+                <p className="text-xs md:text-sm text-zinc-400 max-w-lg mx-auto">
+                  A simplified, systematic lifecycle built to translate daily steps into permanent life habits.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="relative border-l border-zinc-900 ml-3 md:ml-6 space-y-8 py-2">
                 {[
-                  { icon: Target, title: "Custom Schedules", desc: "Set habits for every day, weekdays only, or specific selected days per week.", color: "text-purple-400" },
-                  { icon: Zap, title: "Streak Protection", desc: "Activate a 1 to 10 day Streak Shield to pause your counter when life gets chaotic.", color: "text-amber-400" },
-                  { icon: Brain, title: "Intelligent Guidance", desc: "Chat with an AI coach that understands your daily roadblocks and routine cadence.", color: "text-emerald-400" },
-                  { icon: Clock, title: "Focus Sessions", desc: "Lock in deep work blocks with distraction-free timers and focused ambient states.", color: "text-sky-400" },
-                  { icon: BarChart3, title: "Discipline Analytics", desc: "Review daily completion rates, XP progression, and long-term consistency scores.", color: "text-pink-400" },
-                  { icon: Shield, title: "Privacy By Design", desc: "Your personal reflection notes, habits, and profile remain securely private.", color: "text-teal-400" }
-                ].map((item, idx) => {
-                  const Icon = item.icon;
-                  return (
-                    <div key={idx} className="liquid-glass-card rounded-2xl p-6 hover:border-white/15 transition-all space-y-3">
-                      <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
-                        <Icon size={18} className={item.color} />
-                      </div>
-                      <h3 className="text-sm md:text-base font-extrabold text-white">{item.title}</h3>
-                      <p className="text-xs text-slate-400 leading-relaxed">{item.desc}</p>
+                  { num: "01", title: "Build the habit", desc: "Design routines that align precisely with your lifestyle, frequency, and personal ambitions." },
+                  { num: "02", title: "Show up consistently", desc: "Complete checklists daily. The core objective is repeating the routine over and over." },
+                  { num: "03", title: "Track your progress", desc: "Log achievements instantly inside our streamlined, distraction-free visual dashboard." },
+                  { num: "04", title: "Earn XP", desc: "Transform effort into quantifiable system experience. Unlock incremental ranks as milestones." },
+                  { num: "05", title: "Level up", desc: "Increase your core system tier. Establish a permanent record of personal focus and discipline." },
+                  { num: "06", title: "Keep going", desc: "Protect your streak with safe freezes, adapt to hurdles, and build lifelong automation." }
+                ].map((item, idx) => (
+                  <div key={idx} className="relative pl-8 md:pl-12 group">
+                    {/* Bullet marker */}
+                    <div className="absolute -left-[13px] top-1.5 w-6 h-6 rounded-full bg-[#030303] border-2 border-zinc-800 group-hover:border-white transition-all flex items-center justify-center">
+                      <div className="w-1.5 h-1.5 rounded-full bg-zinc-500 group-hover:bg-white transition-all" />
                     </div>
-                  );
-                })}
+                    
+                    <div className="flex items-start gap-4">
+                      <span className="text-xs font-mono font-bold text-zinc-600 bg-zinc-900/50 border border-zinc-800/40 px-2 py-0.5 rounded">
+                        {item.num}
+                      </span>
+                      <div className="space-y-1">
+                        <h4 className="text-sm md:text-base font-bold text-zinc-200 group-hover:text-white transition-all">
+                          {item.title}
+                        </h4>
+                        <p className="text-xs md:text-sm text-zinc-400 leading-relaxed max-w-xl">
+                          {item.desc}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </section>
 
-            {/* AI COACH CONVERSATION SHOWCASE */}
+            {/* EVERYTHING YOU NEED TO BUILD HABITS */}
+            <section id="features" className="px-5 max-w-5xl mx-auto">
+              <div className="text-center space-y-4 mb-10 md:mb-16">
+                <h2 className="text-2xl md:text-4xl font-bold tracking-tight text-white">
+                  Everything you need to build better habits
+                </h2>
+                <p className="text-xs md:text-sm text-zinc-400 max-w-lg mx-auto">
+                  A carefully designed visual landscape with zero bloat. Engineered to help you execute.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
+                {/* Card 1 */}
+                <div className="bg-[#0a0a0a] border border-zinc-900 rounded-2xl p-6 hover:border-zinc-800 transition-all flex flex-col justify-between space-y-4">
+                  <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800/80 flex items-center justify-center text-white">
+                    <Check size={18} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm md:text-base font-bold text-white mb-1.5">HABIT TRACKING</h3>
+                    <p className="text-xs text-zinc-400 leading-relaxed">
+                      Track daily routines and consistency. Tailor schedules easily to standard, custom, or weekdays.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Card 2 */}
+                <div className="bg-[#0a0a0a] border border-zinc-900 rounded-2xl p-6 hover:border-zinc-800 transition-all flex flex-col justify-between space-y-4">
+                  <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800/80 flex items-center justify-center text-white">
+                    <Zap size={18} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm md:text-base font-bold text-white mb-1.5">STREAK SYSTEM</h3>
+                    <p className="text-xs text-zinc-400 leading-relaxed">
+                      Build momentum without obsessing over perfection. Adapt to hurdles with supportive freeze states.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Card 3 */}
+                <div className="bg-[#0a0a0a] border border-zinc-900 rounded-2xl p-6 hover:border-zinc-800 transition-all flex flex-col justify-between space-y-4">
+                  <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800/80 flex items-center justify-center text-white">
+                    <Brain size={18} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm md:text-base font-bold text-white mb-1.5">AI COACH</h3>
+                    <p className="text-xs text-zinc-400 leading-relaxed">
+                      Get contextual guidance and motivation. Receive smart summaries of your struggles and triumphs.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Card 4 */}
+                <div className="bg-[#0a0a0a] border border-zinc-900 rounded-2xl p-6 hover:border-zinc-800 transition-all flex flex-col justify-between space-y-4">
+                  <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800/80 flex items-center justify-center text-white">
+                    <Clock size={18} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm md:text-base font-bold text-white mb-1.5">FOCUS SYSTEM</h3>
+                    <p className="text-xs text-zinc-400 leading-relaxed">
+                      Create focused work sessions. Set dedicated timers designed to isolate you from notification noise.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Card 5 */}
+                <div className="bg-[#0a0a0a] border border-zinc-900 rounded-2xl p-6 hover:border-zinc-800 transition-all flex flex-col justify-between space-y-4">
+                  <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800/80 flex items-center justify-center text-white">
+                    <Target size={18} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm md:text-base font-bold text-white mb-1.5">SMART REMINDERS</h3>
+                    <p className="text-xs text-zinc-400 leading-relaxed">
+                      Remember what matters when it matters. Clean alerts configured to match your daily checkpoints.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Card 6 */}
+                <div className="bg-[#0a0a0a] border border-zinc-900 rounded-2xl p-6 hover:border-zinc-800 transition-all flex flex-col justify-between space-y-4">
+                  <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800/80 flex items-center justify-center text-white">
+                    <BarChart3 size={18} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm md:text-base font-bold text-white mb-1.5">DISCIPLINE INSIGHTS</h3>
+                    <p className="text-xs text-zinc-400 leading-relaxed">
+                      Understand your consistency over time. Identify patterns and leverage metrics to make steady changes.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* BEAUTIFULLY ORGANIZED HABITS PREVIEW */}
+            <section className="px-5 max-w-4xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-8 items-center bg-[#070707] border border-zinc-900 rounded-[2rem] p-6 md:p-10">
+                <div className="md:col-span-2 space-y-4 text-center md:text-left">
+                  <h3 className="text-xl md:text-2xl font-bold tracking-tight text-white">
+                    Your habits,<br />beautifully organized.
+                  </h3>
+                  <div className="space-y-1.5 text-xs text-zinc-400 leading-relaxed">
+                    <p>• Track what matters.</p>
+                    <p>• See your progress.</p>
+                    <p>• Stay consistent.</p>
+                  </div>
+                </div>
+
+                <div className="md:col-span-3 space-y-3">
+                  {[
+                    { name: "Morning Protocol", days: "Every Day" },
+                    { name: "Deep Work", days: "Weekdays" },
+                    { name: "Physical Training", days: "Custom Days" }
+                  ].map((h, i) => (
+                    <div key={i} className="bg-black/40 border border-zinc-900 rounded-xl p-4 flex items-center justify-between select-none hover:border-zinc-800 transition-all">
+                      <div>
+                        <div className="font-semibold text-xs md:text-sm text-zinc-100">{h.name}</div>
+                        <div className="text-[10px] text-zinc-500 mt-0.5">{h.days}</div>
+                      </div>
+                      <div className="w-8 h-8 rounded-full border border-zinc-800 flex items-center justify-center">
+                        <div className="w-2.5 h-2.5 rounded-full bg-zinc-800" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* AI COACH CONVERSATION PREVIEW */}
             <section id="coaching" className="px-5 max-w-4xl mx-auto">
               <div className="text-center space-y-3 mb-10">
-                <div className="text-[10px] font-black uppercase tracking-[0.25em] text-purple-400">Intelligent Mentorship</div>
-                <h2 className="text-2xl md:text-4xl font-black tracking-tight text-white">Your AI coach. Built around your real habits.</h2>
-                <p className="text-xs md:text-sm text-slate-400 max-w-md mx-auto leading-relaxed">
-                  OneDay connects directly with your active routine to give practical, no-BS guidance when you hit friction.
+                <h2 className="text-2xl md:text-4xl font-bold tracking-tight text-white">Your AI coach. Built around you.</h2>
+                <p className="text-xs md:text-sm text-zinc-400 max-w-md mx-auto leading-relaxed">
+                  OneDay understands your goals, habits and progress to give you practical guidance when you need it.
                 </p>
               </div>
 
               {/* Chat Interface Preview */}
-              <div className="liquid-glass-card rounded-3xl p-6 md:p-8 max-w-lg mx-auto space-y-5 border-purple-500/20 shadow-[0_0_50px_rgba(139,92,246,0.12)]">
-                <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <span className="text-[11px] font-mono tracking-wider text-slate-400 uppercase font-bold">OneDay Coach Protocol</span>
-                  </div>
-                  <span className="text-[9px] font-black uppercase tracking-wider text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2.5 py-0.5 rounded-full">
-                    Active Session
-                  </span>
+              <div className="bg-[#0a0a0a] border border-zinc-900 rounded-[2rem] p-5 md:p-8 max-w-lg mx-auto space-y-4">
+                <div className="flex items-center gap-2 border-b border-zinc-900 pb-3">
+                  <div className="w-2.5 h-2.5 rounded-full bg-zinc-500 animate-pulse" />
+                  <span className="text-[11px] font-mono tracking-wider text-zinc-500 uppercase font-bold">AI COACH SESSION</span>
                 </div>
 
                 <div className="space-y-4 text-xs md:text-sm">
                   {/* AI Bubble */}
-                  <div className="flex gap-2.5 items-start">
-                    <div className="w-7 h-7 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center font-bold text-[10px] text-purple-300 shrink-0">
-                      <Brain size={14} />
+                  <div className="flex gap-2">
+                    <div className="w-6 h-6 rounded-full bg-zinc-900 flex items-center justify-center font-bold text-[10px] text-zinc-400 border border-zinc-800 select-none">
+                      AI
                     </div>
-                    <div className="bg-white/5 border border-white/10 rounded-2xl rounded-tl-sm p-4 max-w-[85%] text-slate-200 leading-relaxed shadow-sm">
-                      "I notice your Deep Work habit has a 5-day streak, but you haven't logged today's block yet. What's standing in the way?"
+                    <div className="bg-zinc-900/50 border border-zinc-800/80 rounded-2xl rounded-tl-none p-3.5 max-w-[85%] text-zinc-300">
+                      "What are we conquering today?"
                     </div>
                   </div>
 
                   {/* User Bubble */}
-                  <div className="flex justify-end gap-2.5 items-start">
-                    <div className="bg-purple-600/20 border border-purple-500/30 rounded-2xl rounded-tr-sm p-4 max-w-[85%] text-white leading-relaxed">
-                      "Feeling low energy this afternoon."
+                  <div className="flex justify-end gap-2">
+                    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl rounded-tr-none p-3.5 max-w-[85%] text-zinc-200">
+                      "Build discipline."
                     </div>
-                    <div className="w-7 h-7 rounded-xl bg-white text-black flex items-center justify-center font-bold text-[10px] shrink-0">
+                    <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center font-bold text-[10px] text-black select-none">
                       U
                     </div>
                   </div>
 
                   {/* AI response */}
-                  <div className="flex gap-2.5 items-start">
-                    <div className="w-7 h-7 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center font-bold text-[10px] text-purple-300 shrink-0">
-                      <Brain size={14} />
+                  <div className="flex gap-2">
+                    <div className="w-6 h-6 rounded-full bg-zinc-900 flex items-center justify-center font-bold text-[10px] text-zinc-400 border border-zinc-800 select-none">
+                      AI
                     </div>
-                    <div className="bg-white/5 border border-white/10 rounded-2xl rounded-tl-sm p-4 max-w-[85%] text-slate-200 leading-relaxed shadow-sm">
-                      "Lower the barrier: do just 15 minutes without your phone. Showing up at 20% effort preserves the momentum."
+                    <div className="bg-zinc-900/50 border border-zinc-800/80 rounded-2xl rounded-tl-none p-3.5 max-w-[85%] text-zinc-300">
+                      "Then don't aim for perfect. Aim for showing up."
                     </div>
                   </div>
                 </div>
               </div>
             </section>
 
-            {/* TEAM & STUDENT VISION */}
-            <section id="about" className="px-5 max-w-5xl mx-auto space-y-12">
-              <div className="text-center space-y-3 max-w-2xl mx-auto">
-                <div className="text-[10px] font-black uppercase tracking-[0.25em] text-purple-400">Our Origin</div>
-                <h2 className="text-2xl md:text-4xl font-black tracking-tight text-white">Built by students with purpose</h2>
-                <p className="text-xs md:text-sm text-slate-400 leading-relaxed">
-                  OneDay was created by students who wanted a minimal, high-performance system for mastering discipline and daily consistency.
+            {/* OUR STORY SECTION */}
+            <section id="story" className="px-5 max-w-3xl mx-auto text-center space-y-8">
+              <div className="space-y-4">
+                <h2 className="text-2xl md:text-4xl font-bold tracking-tight text-white leading-tight">
+                  Our story<br />begins with a simple belief.
+                </h2>
+                <p className="text-sm md:text-lg text-zinc-400 leading-relaxed">
+                  Change happens one day at a time.
                 </p>
-                <div className="inline-block bg-purple-500/10 border border-purple-500/20 rounded-full px-4 py-1 text-[11px] md:text-xs text-purple-300 font-semibold">
-                  Students of: <strong className="text-white">Kendriya Vidyalaya Gachibowli (KVGB)</strong>
+              </div>
+
+              <div className="bg-[#0a0a0a]/50 border border-zinc-900 rounded-[2rem] p-6 md:p-12 text-zinc-300 text-xs md:text-sm leading-relaxed text-left space-y-4 max-w-xl mx-auto">
+                <p>We wanted a system that didn't overwhelm people with clutter or childish gamification.</p>
+                <p className="font-semibold text-white">Something focused.</p>
+                <p className="font-semibold text-white">Something disciplined.</p>
+                <p>Something that helped you come back stronger after missing a day.</p>
+                <p>That's why we built OneDay.</p>
+                <p className="font-mono text-[10px] text-zinc-500 tracking-wider">ONE DAY AT A TIME.</p>
+              </div>
+            </section>
+
+            {/* DESIGNED BY STUDENTS SECTION & TEAM CARDS */}
+            <section id="about" className="px-5 max-w-5xl mx-auto space-y-12">
+              <div className="text-center space-y-4 max-w-2xl mx-auto">
+                <h2 className="text-2xl md:text-4xl font-bold tracking-tight text-white">Built with care.</h2>
+                <p className="text-xs md:text-sm text-zinc-400 leading-relaxed">
+                  OneDay is built by students who wanted a cleaner, more focused way to build discipline, consistency and better habits.
+                </p>
+                <div className="inline-block bg-zinc-900/40 border border-zinc-800/50 rounded-full px-4 py-1 text-[11px] md:text-xs text-zinc-300 font-medium">
+                  We are students of: <strong className="text-white">Kendriya Vidyalaya Gachibowli (KVGB)</strong>
                 </div>
               </div>
 
-              {/* 3 Team Cards */}
+              {/* 3 Premium Team Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="liquid-glass-card rounded-2xl p-7 flex flex-col items-center text-center space-y-4 hover:border-white/20 transition-all">
-                  <div className="w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center font-black text-purple-300 text-lg shadow-[0_0_20px_rgba(139,92,246,0.2)]">
+                {/* Team Member 1 */}
+                <div className="bg-[#0a0a0a] border border-zinc-900 rounded-[24px] p-6 md:p-8 flex flex-col items-center text-center space-y-4 hover:border-zinc-800 transition-all">
+                  <div className="w-14 h-14 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center font-bold text-white text-lg select-none shadow-sm">
                     K
                   </div>
                   <div className="space-y-1">
-                    <h3 className="font-extrabold text-sm md:text-base text-white tracking-tight">Kante Harsha Vardhan</h3>
-                    <p className="text-[10px] font-mono uppercase tracking-wider text-purple-400 font-bold">Founder — Core Idea & Vision</p>
+                    <h3 className="font-bold text-sm md:text-base text-white tracking-tight">Kante Harsha Vardhan</h3>
+                    <p className="text-[11px] font-mono uppercase tracking-wider text-zinc-500 font-semibold">Founder — Core Idea & Product Vision</p>
                   </div>
-                  <p className="text-xs text-slate-400 leading-relaxed">
-                    Shapes the core product philosophy, discipline mechanics, and overall architecture of OneDay.
+                  <p className="text-xs text-zinc-400 leading-relaxed max-w-[250px]">
+                    Focused on the core idea, product vision and overall direction of OneDay. Responsible for shaping the product philosophy, experience and long-term vision behind OneDay.
                   </p>
                 </div>
 
-                <div className="liquid-glass-card rounded-2xl p-7 flex flex-col items-center text-center space-y-4 hover:border-white/20 transition-all">
-                  <div className="w-14 h-14 rounded-2xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center font-black text-sky-300 text-lg shadow-[0_0_20px_rgba(56,189,248,0.2)]">
+                {/* Team Member 2 */}
+                <div className="bg-[#0a0a0a] border border-zinc-900 rounded-[24px] p-6 md:p-8 flex flex-col items-center text-center space-y-4 hover:border-zinc-800 transition-all">
+                  <div className="w-14 h-14 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center font-bold text-white text-lg select-none shadow-sm">
                     V
                   </div>
                   <div className="space-y-1">
-                    <h3 className="font-extrabold text-sm md:text-base text-white tracking-tight">Vemuri Venkata Vikhyath</h3>
-                    <p className="text-[10px] font-mono uppercase tracking-wider text-sky-400 font-bold">Feature Strategy & Systems</p>
+                    <h3 className="font-bold text-sm md:text-base text-white tracking-tight">Vemuri Venkata Vikhyath</h3>
+                    <p className="text-[11px] font-mono uppercase tracking-wider text-zinc-500 font-semibold">Feature Strategy & Systems Planning</p>
                   </div>
-                  <p className="text-xs text-slate-400 leading-relaxed">
-                    Translates product strategies into practical systems and orchestrates backend progression algorithms.
+                  <p className="text-xs text-zinc-400 leading-relaxed max-w-[250px]">
+                    Focused on planning features, shaping product updates and translating ideas into practical systems. Works closely with the backend and product architecture to plan how new capabilities should evolve.
                   </p>
                 </div>
 
-                <div className="liquid-glass-card rounded-2xl p-7 flex flex-col items-center text-center space-y-4 hover:border-white/20 transition-all">
-                  <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center font-black text-emerald-300 text-lg shadow-[0_0_20px_rgba(52,211,153,0.2)]">
+                {/* Team Member 3 */}
+                <div className="bg-[#0a0a0a] border border-zinc-900 rounded-[24px] p-6 md:p-8 flex flex-col items-center text-center space-y-4 hover:border-zinc-800 transition-all">
+                  <div className="w-14 h-14 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center font-bold text-white text-lg select-none shadow-sm">
                     R
                   </div>
                   <div className="space-y-1">
-                    <h3 className="font-extrabold text-sm md:text-base text-white tracking-tight">Ravuru Trinay Karthik Ram</h3>
-                    <p className="text-[10px] font-mono uppercase tracking-wider text-emerald-400 font-bold">Design & User Experience</p>
+                    <h3 className="font-bold text-sm md:text-base text-white tracking-tight">Ravuru Trinay Karthik Ram</h3>
+                    <p className="text-[11px] font-mono uppercase tracking-wider text-zinc-500 font-semibold">Design & User Experience</p>
                   </div>
-                  <p className="text-xs text-slate-400 leading-relaxed">
-                    Directs the visual system, interaction design, dark aesthetic, and overall tactile feel of the app.
+                  <p className="text-xs text-zinc-400 leading-relaxed max-w-[250px]">
+                    Focused on designing the pages and creating a minimal, premium and intuitive user experience. Responsible for visual consistency, layout, interaction design and the overall feel of OneDay.
                   </p>
                 </div>
               </div>
+
+              {/* Subtle school section below the team */}
+              <div className="pt-6 border-t border-zinc-900 max-w-md mx-auto text-center space-y-2">
+                <span className="text-[10px] font-mono tracking-widest text-zinc-600 font-bold uppercase block">BUILT BY STUDENTS</span>
+                <p className="text-xs font-bold text-zinc-300">Kendriya Vidyalaya Gachibowli (KVGB)</p>
+                <p className="text-[11px] text-zinc-500">Built by students. Designed for students. Created to make consistency simpler.</p>
+              </div>
             </section>
 
-            {/* FINAL CTA BANNER */}
+            {/* FINAL CTA SECTION */}
             <section className="px-5 max-w-4xl mx-auto py-8">
-              <div className="liquid-glass-card rounded-[2.5rem] p-8 md:p-14 text-center space-y-6 border-purple-500/30 shadow-[0_0_60px_rgba(139,92,246,0.15)] relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-b from-purple-500/10 via-transparent to-transparent pointer-events-none" />
-                <div className="space-y-2 relative z-10">
-                  <h2 className="text-3xl md:text-5xl font-black tracking-tight text-white">Start with one day.</h2>
-                  <p className="text-xs md:text-sm text-slate-400 leading-relaxed max-w-md mx-auto">
-                    You don't need to rebuild your whole life overnight. You just need to show up today.
+              <div className="bg-gradient-to-b from-zinc-950 to-black border border-zinc-900 rounded-[2.5rem] p-8 md:p-14 text-center space-y-6">
+                <div className="space-y-2">
+                  <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-white">Start with one day.</h2>
+                  <p className="text-xs md:text-sm text-zinc-400 leading-relaxed max-w-md mx-auto">
+                    You don't need to change everything today. You just need to start.
                   </p>
                 </div>
-                <div className="relative z-10">
+                <div>
                   <button 
                     onClick={openAuthModal}
-                    className="bg-white text-black px-10 py-4 rounded-full text-sm font-extrabold tracking-tight hover:bg-slate-200 active:scale-95 transition-all shadow-[0_4px_30px_rgba(255,255,255,0.25)] cursor-pointer inline-flex items-center gap-2 group"
+                    className="bg-white text-black px-10 py-4 rounded-full text-sm font-semibold tracking-tight hover:bg-zinc-200 active:scale-95 transition-all shadow-[0_4px_25px_rgba(255,255,255,0.08)] cursor-pointer"
                   >
-                    <span>Start Your Journey</span>
-                    <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                    Start Your Journey
                   </button>
                 </div>
               </div>
@@ -519,14 +617,14 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
           </main>
 
           {/* FOOTER */}
-          <footer className="py-12 border-t border-white/[0.08] bg-[#08080c] mt-16">
-            <div className="max-w-6xl mx-auto px-5 flex flex-col md:flex-row justify-between items-center gap-6 text-center md:text-left">
-              <div className="space-y-1">
-                <div className="text-base font-black text-white tracking-tight">OneDay</div>
-                <p className="text-xs text-slate-500">Build better habits. One day at a time.</p>
+          <footer className="py-12 border-t border-zinc-900 bg-black mt-12">
+            <div className="max-w-5xl mx-auto px-5 flex flex-col md:flex-row justify-between items-center gap-6 text-center md:text-left">
+              <div className="space-y-1.5">
+                <div className="text-sm font-bold text-white tracking-tight">OneDay</div>
+                <p className="text-xs text-zinc-500">Build better habits. One day at a time.</p>
               </div>
 
-              <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8 text-xs text-slate-400 font-medium">
+              <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8 text-xs text-zinc-500 font-medium">
                 <button 
                   onClick={() => { setView("privacy"); window.scrollTo({ top: 0 }); }} 
                   className="hover:text-white transition-colors cursor-pointer"
@@ -539,7 +637,7 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
                 >
                   Terms & Conditions
                 </button>
-                <span className="text-slate-600 text-[10px] md:text-xs">© 2026 OneDay. All rights reserved.</span>
+                <span className="text-zinc-600 text-[10px] md:text-xs">© 2026 OneDay. All rights reserved.</span>
               </div>
             </div>
           </footer>
@@ -552,7 +650,7 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="absolute inset-0 bg-black/85 backdrop-blur-xl"
+                  className="absolute inset-0 bg-black/85 backdrop-blur-md"
                   onClick={() => {
                     if (!authLoading) {
                       setShowAuthModal(false);
@@ -562,50 +660,51 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
                   }}
                 />
                 <motion.div 
-                  initial={{ opacity: 0, scale: 0.94, y: 15 }}
+                  initial={{ opacity: 0, scale: 0.95, y: 15 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.94, y: 15 }}
-                  className="relative bg-[#0d0d14] border border-white/10 rounded-[2rem] p-8 max-w-md w-full shadow-[0_0_80px_rgba(0,0,0,0.8)] space-y-6 z-10"
+                  exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                  className="relative bg-[#0a0a0a] border border-zinc-900 rounded-[2rem] p-8 max-w-md w-full shadow-2xl space-y-6"
                 >
                   <div className="flex flex-col items-center gap-3 text-center pb-2 select-none">
                     <MonolithLogo size={48} />
                     <div className="space-y-1">
-                      <h3 className="text-xl font-black tracking-[0.15em] text-white">ONE DAY</h3>
-                      <p className="text-purple-400 text-[10px] font-bold uppercase tracking-widest">
-                        {!termsAccepted ? "Step 1: Consent & Protocol Agreement" : "Step 2: Sign In"}
+                      <h3 className="text-lg font-bold tracking-[0.2em] text-white">ONE DAY</h3>
+                      <p className="text-zinc-500 text-[9px] font-bold uppercase tracking-widest">
+                        {!termsAccepted ? "Step 1: Consent" : "Step 2: Authenticate"}
                       </p>
                     </div>
                   </div>
 
                   {!termsAccepted ? (
                     <div className="space-y-4">
-                      <div className="text-xs text-slate-300 space-y-2 leading-relaxed">
-                        <p className="font-bold text-white">Terms & Privacy Agreement</p>
-                        <p className="text-slate-400">
-                          Before proceeding to authentication, please review and accept the OneDay platform policies.
+                      <div className="text-xs text-zinc-300 space-y-2 leading-relaxed">
+                        <p className="font-semibold text-white">Terms & Conditions Consent</p>
+                        <p className="text-zinc-400">
+                          Before continuing to account authentication on the OneDay platform, you must explicitly read and agree to our Terms and Policies.
                         </p>
                       </div>
 
-                      <div className="flex items-start gap-3 text-left bg-white/[0.03] border border-white/10 rounded-xl p-3.5">
+                      {/* CHECKBOX AND AGREEMENT */}
+                      <div className="flex items-start gap-3 text-left bg-zinc-950 border border-zinc-900 rounded-xl p-3.5">
                         <input 
                           type="checkbox" 
                           id="agree-policies"
                           checked={isChecked}
                           onChange={(e) => setIsChecked(e.target.checked)}
-                          className="mt-1 w-4 h-4 rounded border-white/20 bg-black text-purple-600 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-purple-500"
+                          className="mt-1 w-3.5 h-3.5 rounded border-zinc-800 bg-black text-white focus:ring-0 focus:ring-offset-0 cursor-pointer accent-white"
                         />
-                        <label htmlFor="agree-policies" className="text-[11px] text-slate-400 leading-normal cursor-pointer select-none">
+                        <label htmlFor="agree-policies" className="text-[11px] text-zinc-400 leading-normal cursor-pointer select-none">
                           I have read and agree to the{" "}
                           <button 
                             onClick={() => { setView("terms"); setShowAuthModal(false); window.scrollTo({ top: 0 }); }} 
-                            className="text-purple-300 hover:underline font-semibold cursor-pointer inline-block"
+                            className="text-white hover:underline font-semibold cursor-pointer inline-block"
                           >
                             Terms & Conditions
                           </button>{" "}
                           and{" "}
                           <button 
                             onClick={() => { setView("privacy"); setShowAuthModal(false); window.scrollTo({ top: 0 }); }} 
-                            className="text-purple-300 hover:underline font-semibold cursor-pointer inline-block"
+                            className="text-white hover:underline font-semibold cursor-pointer inline-block"
                           >
                             Privacy Policy
                           </button>.
@@ -619,18 +718,18 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
                           }
                         }}
                         disabled={!isChecked}
-                        className="w-full bg-white text-black font-extrabold py-3.5 rounded-xl hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-xs uppercase tracking-wider cursor-pointer"
+                        className="w-full bg-white text-black font-semibold py-3 rounded-xl hover:bg-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-xs uppercase tracking-wider cursor-pointer"
                       >
                         Accept & Continue
                       </button>
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      <div className="space-y-3">
+                      <div className="space-y-2.5">
                         <button 
                           onClick={handleGoogleLogin}
                           disabled={authLoading}
-                          className="w-full bg-white text-black font-bold py-3.5 rounded-xl flex items-center justify-center gap-2.5 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-xs tracking-tight cursor-pointer"
+                          className="w-full bg-white text-black font-semibold py-3.5 rounded-xl flex items-center justify-center gap-2.5 hover:bg-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-xs tracking-tight cursor-pointer"
                         >
                           {authLoading ? (
                             <Loader2 size={16} className="animate-spin text-black" />
@@ -647,7 +746,7 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
                         <button 
                           onClick={handleGuestLogin}
                           disabled={authLoading}
-                          className="w-full bg-white/5 border border-white/10 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2.5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-xs tracking-tight cursor-pointer"
+                          className="w-full bg-zinc-900 border border-zinc-800 text-white font-semibold py-3.5 rounded-xl flex items-center justify-center gap-2.5 hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-xs tracking-tight cursor-pointer"
                         >
                           {authLoading ? (
                             <Loader2 size={16} className="animate-spin text-white" />
@@ -663,7 +762,7 @@ export function LandingScreen({ onLoginSuccess }: LandingScreenProps) {
                           onClick={() => {
                             setTermsAccepted(false);
                           }}
-                          className="w-full text-center text-[11px] text-slate-500 hover:text-white transition-colors cursor-pointer block"
+                          className="w-full text-center text-[11px] text-zinc-500 hover:text-white transition-colors cursor-pointer block"
                         >
                           ← Back to Terms
                         </button>

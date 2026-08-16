@@ -91,68 +91,76 @@ export const HabitList = ({ previewMode = false, onCreateClick }: { previewMode?
   };
 
   const safeHabits = Array.isArray(habits) ? habits : [];
+  if (!Array.isArray(habits)) {
+    console.log("habits in HabitList:", habits);
+    console.log("typeof habits:", typeof habits);
+    console.log("Array.isArray:", Array.isArray(habits));
+  }
   const displayHabits = previewMode 
     ? safeHabits.filter(h => h && !h.completedToday && isHabitScheduledForToday(h)).slice(0, 5) 
     : safeHabits;
+
+  if (!Array.isArray(displayHabits)) {
+    console.log("displayHabits:", displayHabits);
+    console.log("typeof displayHabits:", typeof displayHabits);
+    console.log("Array.isArray:", Array.isArray(displayHabits));
+  }
 
   const guardedDisplayHabits = Array.isArray(displayHabits) ? displayHabits : [];
 
   return (
     <>
-    <div className="space-y-3">
-      <div className="grid grid-cols-1 gap-2.5">
+    <div className="space-y-4">
+      {!previewMode && (
+         <div className="mb-6 opacity-0 hidden">
+           {/* Legacy spacing, we hide this because HabitsScreen has its own header now */}
+         </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-3">
         {guardedDisplayHabits.map((habit) => {
           const isToday = isHabitScheduledForToday(habit);
           const isPending = pendingHabitIds?.has(habit.id);
           const IconComp = getHabitIconComponent(habit.icon, habit.name);
           const colorTheme = getHabitColorTheme(habit.category, habit.name);
 
-          // Get subtle stripe class according to category
-          const categoryLower = (habit.category || "").toLowerCase();
-          const stripeClass = 
-            categoryLower.includes("fitness") || categoryLower.includes("health") ? "stripe-emerald" :
-            categoryLower.includes("focus") || categoryLower.includes("work") || categoryLower.includes("study") ? "stripe-sky" :
-            categoryLower.includes("mind") || categoryLower.includes("spirit") ? "stripe-purple" :
-            categoryLower.includes("creative") || categoryLower.includes("art") ? "stripe-amber" :
-            "stripe-purple";
-
           return (
           <motion.div 
             layout
             key={habit.id}
-            className={`p-3.5 sm:p-4 rounded-2xl flex items-center justify-between group transition-all duration-200 liquid-glass-card ${stripeClass} ${
+            className={`p-4 rounded-2xl flex items-center justify-between group transition-all duration-300 border ${
               habit.completedToday 
-                ? 'opacity-55 bg-white/[0.02]' 
-                : 'hover:bg-white/[0.06] hover:border-white/15'
+                ? 'bg-white/5 border-white/10 opacity-60' 
+                : 'bg-white/[0.03] border-white/5 hover:bg-white/[0.08] hover:border-white/20'
             }`}
           >
-            <div className="flex items-center gap-3 min-w-0 pr-2">
-              <div className={`w-10 h-10 rounded-xl ${colorTheme.bg} border ${colorTheme.border} flex items-center justify-center ${colorTheme.text} shrink-0 transition-all duration-300 shadow-md ${habit.completedToday ? 'opacity-50 grayscale' : colorTheme.glow}`}>
-                <IconComp size={18} />
+            <div className="flex items-center gap-3.5 min-w-0 pr-2">
+              <div className={`w-11 h-11 rounded-2xl ${colorTheme.bg} border ${colorTheme.border} flex items-center justify-center ${colorTheme.text} shrink-0 transition-all duration-300 shadow-md ${habit.completedToday ? 'opacity-50 grayscale' : colorTheme.glow}`}>
+                <IconComp size={20} />
               </div>
-              <div className="flex flex-col gap-0.5 min-w-0">
+              <div className="flex flex-col gap-1 min-w-0">
                 <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                  <h4 className={`font-black transition-all text-sm truncate ${habit.completedToday ? 'text-slate-400 line-through' : 'text-white'}`}>
+                  <h4 className={`font-bold transition-all text-sm truncate ${habit.completedToday ? 'text-slate-500 line-through' : 'text-white'}`}>
                     {habit.name}
                   </h4>
                   {habit.difficulty && (
-                    <span className={`text-[8px] font-extrabold uppercase px-2 py-0.5 rounded-full border shrink-0 ${
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${
                       habit.difficulty.toLowerCase() === 'easy' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' :
                       habit.difficulty.toLowerCase() === 'hard' ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' :
-                      habit.difficulty.toLowerCase() === 'elite' ? 'bg-rose-500/10 border-rose-500/30 text-rose-400' :
-                      'bg-purple-500/10 border-purple-500/30 text-purple-300'
+                      habit.difficulty.toLowerCase() === 'elite' ? 'bg-red-500/10 border-red-500/30 text-red-400' :
+                      'bg-blue-500/10 border-blue-500/30 text-blue-400'
                     }`}>
                       {toDisplayDifficulty(habit.difficulty)} (+{getXpForDifficulty(habit.difficulty)} XP)
                     </span>
                   )}
                 </div>
-                <p className={`text-[10px] font-bold uppercase tracking-wider truncate ${habit.completedToday ? 'text-emerald-400' : 'text-slate-400'}`}>
+                <p className={`text-[10px] font-bold uppercase tracking-widest truncate ${habit.completedToday ? 'text-green-500/50' : 'text-slate-500'}`}>
                   {isPending ? 'Updating...' : (habit.completedToday ? 'Completed' : (isToday ? 'Scheduled Today' : getScheduledDaysMessage(habit)))}
                 </p>
               </div>
             </div>
             
-            <div className="flex items-center gap-1.5 shrink-0">
+            <div className="flex items-center gap-2 shrink-0">
               <motion.button 
                 onClick={async () => {
                   if (isPending) return;
@@ -164,7 +172,7 @@ export const HabitList = ({ previewMode = false, onCreateClick }: { previewMode?
                   if (habit.completedToday) {
                     setConfirmModal({
                       isOpen: true,
-                      title: "Undo habit completion?",
+                      title: "Lied to Yourself ?",
                       action: async () => {
                         try {
                           const res = await undoHabit(habit.id);
@@ -177,6 +185,7 @@ export const HabitList = ({ previewMode = false, onCreateClick }: { previewMode?
                       }
                     });
                   } else if (!loading) {
+                    // Tap-and-Go Immediate completion for fluid responsiveness & game feel
                     try {
                       const res = await completeHabit(habit.id);
                       const xpAwarded = extractXpAwarded(res, habit.difficulty);
@@ -193,20 +202,20 @@ export const HabitList = ({ previewMode = false, onCreateClick }: { previewMode?
                 }}
                 disabled={loading || isPending}
                 whileTap={{ scale: 0.85 }}
-                animate={habit.completedToday ? { scale: [1, 1.2, 1] } : {}}
-                transition={{ duration: 0.3 }}
-                className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all cursor-pointer relative ${
+                animate={habit.completedToday ? { scale: [1, 1.25, 1], rotate: [0, 10, -10, 0] } : {}}
+                transition={{ duration: 0.4 }}
+                className={`w-12 h-12 rounded-full flex items-center justify-center transition-all cursor-pointer relative ${
                   isPending
                     ? 'bg-white/10 text-white cursor-wait border border-white/20'
                     : habit.completedToday 
-                      ? 'bg-white text-black hover:bg-rose-500 hover:text-white border border-transparent shadow-[0_0_15px_rgba(255,255,255,0.2)]' 
-                      : (isToday ? 'bg-white/5 border border-white/10 group-hover:border-purple-500/40 text-slate-400 group-hover:text-purple-300' : 'bg-white/5 border border-white/5 opacity-40 cursor-not-allowed')
+                      ? 'bg-white text-black hover:bg-red-500 hover:text-white border border-transparent' 
+                      : (isToday ? 'bg-white/5 border border-white/10 group-hover:border-white/30 text-white/30 sm:text-transparent sm:hover:text-white' : 'bg-white/5 border border-white/5 opacity-50 cursor-not-allowed')
                 }`}
               >
                 {isPending ? (
-                  <Loader2 size={16} className="animate-spin text-white" />
+                  <Loader2 size={18} className="animate-spin text-white" />
                 ) : (
-                  <Check size={18} strokeWidth={habit.completedToday ? 3 : 2} className={habit.completedToday ? '' : (isToday ? 'text-slate-400 group-hover:text-purple-300' : 'text-white/20')} />
+                  <Check size={18} className={habit.completedToday ? '' : (isToday ? 'text-white/40 sm:group-hover:text-white/20' : 'text-white/10')} />
                 )}
               </motion.button>
 
@@ -224,7 +233,7 @@ export const HabitList = ({ previewMode = false, onCreateClick }: { previewMode?
                         return copy;
                       });
                     }}
-                    className="absolute -top-4 right-14 pointer-events-none text-purple-300 font-black text-[11px] uppercase tracking-widest drop-shadow-[0_0_12px_rgba(139,92,246,0.8)] whitespace-nowrap select-none z-[60]"
+                    className="absolute -top-4 right-14 pointer-events-none text-amber-400 font-black text-[11px] uppercase tracking-widest drop-shadow-[0_0_12px_rgba(245,158,11,0.7)] whitespace-nowrap select-none z-[60]"
                   >
                     +{floatingXp[habit.id]} XP
                   </motion.div>
@@ -242,7 +251,7 @@ export const HabitList = ({ previewMode = false, onCreateClick }: { previewMode?
                     e.stopPropagation();
                     setActiveDropdownId(prev => prev === habit.id ? null : habit.id);
                   }}
-                  className="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-white transition-colors rounded-xl focus:outline-none cursor-pointer"
+                  className="w-11 h-11 flex items-center justify-center text-slate-500 hover:text-white transition-colors rounded-xl focus:outline-none focus:ring-2 focus:ring-white/20 cursor-pointer"
                 >
                   <MoreVertical size={16} />
                 </motion.button>
@@ -255,7 +264,7 @@ export const HabitList = ({ previewMode = false, onCreateClick }: { previewMode?
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95, y: -4 }}
                       transition={{ duration: 0.12 }}
-                      className="absolute right-0 top-11 z-50 min-w-[170px] bg-[#101018] border border-white/10 rounded-xl p-1.5 shadow-2xl backdrop-blur-xl"
+                      className="absolute right-0 top-11 z-50 min-w-[170px] bg-[#121212] border border-white/10 rounded-xl p-1.5 shadow-2xl backdrop-blur-xl"
                       role="menu"
                       aria-label="Habit options"
                     >
@@ -300,9 +309,9 @@ export const HabitList = ({ previewMode = false, onCreateClick }: { previewMode?
                           setActiveDropdownId(null);
                           setDeleteConfirmationHabit(habit);
                         }}
-                        className="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors flex items-center gap-2.5 focus:outline-none focus:bg-rose-500/10"
+                        className="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors flex items-center gap-2.5 focus:outline-none focus:bg-red-500/10"
                       >
-                        <Trash2 size={14} className="text-rose-400 shrink-0" />
+                        <Trash2 size={14} className="text-red-400 shrink-0" />
                         <span>Delete Habit</span>
                       </button>
                     </motion.div>
@@ -314,24 +323,24 @@ export const HabitList = ({ previewMode = false, onCreateClick }: { previewMode?
         )})}
 
         {(guardedDisplayHabits || []).length === 0 && (
-          <div className="col-span-full py-16 px-6 text-center liquid-glass-card rounded-[2rem] border-dashed flex flex-col items-center justify-center min-h-[300px]">
-            <div className="w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-2xl mb-4 shadow-[0_0_30px_rgba(139,92,246,0.15)] select-none">
+          <div className="col-span-full py-16 px-6 text-center bg-white/[0.01] rounded-[2rem] border border-white/5 border-dashed flex flex-col items-center justify-center min-h-[340px]">
+            <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-2xl mb-4 shadow-[0_0_30px_rgba(255,255,255,0.02)] select-none">
               🌱
             </div>
-            <h3 className="text-white font-black uppercase tracking-[0.2em] text-xs mb-2">
-              No Habits Established
+            <h3 className="text-zinc-300 font-extrabold uppercase tracking-[0.25em] text-xs mb-2">
+              NO ACTIVE HABITS
             </h3>
-            <p className="text-slate-400 text-xs max-w-[280px] mx-auto leading-relaxed mb-6">
-              Create your daily habits to initiate your consistency protocol and start earning XP.
+            <p className="text-slate-500 text-xs max-w-[280px] mx-auto leading-relaxed mb-8">
+              Every master was once a beginner. Establish your daily discipline protocol today and build your streak, one day at a time.
             </p>
             {onCreateClick && (
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={onCreateClick}
-                className="w-full max-w-[240px] py-3.5 bg-white hover:bg-slate-200 text-black font-black uppercase tracking-wider text-xs rounded-xl shadow-xl transition-all cursor-pointer flex items-center justify-center gap-2 h-12"
+                className="w-full max-w-[260px] py-4 bg-white text-black font-black uppercase tracking-widest text-xs rounded-xl shadow-xl hover:bg-slate-200 transition-all cursor-pointer flex items-center justify-center gap-2 h-14"
               >
-                <Plus size={15} strokeWidth={3} />
-                <span>Create First Habit</span>
+                <Plus size={16} strokeWidth={3} />
+                <span>Create your first habit</span>
               </motion.button>
             )}
           </div>
@@ -362,26 +371,58 @@ export const HabitList = ({ previewMode = false, onCreateClick }: { previewMode?
       }}
     />
     
-    {/* Custom Undo Confirm Modal */}
-    <ConfirmationDialog
-      isOpen={confirmModal.isOpen}
-      title={confirmModal.title}
-      description="Undoing this completion will remove the XP earned for today."
-      cancelText="Keep"
-      confirmText="Undo"
-      destructive={true}
-      isLoading={isSubmittingModal}
-      onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })}
-      onConfirm={async () => {
-        setIsSubmittingModal(true);
-        try {
-          await confirmModal.action();
-          setConfirmModal({ ...confirmModal, isOpen: false });
-        } finally {
-          setIsSubmittingModal(false);
-        }
-      }}
-    />
+    {/* Custom Confirm Modal */}
+    <AnimatePresence>
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-sm">
+          {/* Backdrop overlay clickable to dismiss */}
+          <div className="absolute inset-0" onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })} />
+
+          <motion.div 
+            initial={{ y: "100%", opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: "100%", opacity: 0 }}
+            transition={{ type: "spring", damping: 30, stiffness: 350 }}
+            className="bg-[#0c0c0c] p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6 rounded-t-[2rem] sm:rounded-2xl border border-white/10 w-full sm:max-w-sm shadow-2xl relative z-10"
+          >
+            {/* Native sheet drag handle */}
+            <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-4 block sm:hidden" />
+
+            <h3 className="text-base font-bold mb-6 text-white text-center leading-snug px-4">{confirmModal.title}</h3>
+            <div className="flex gap-3">
+              <button 
+                type="button"
+                disabled={isSubmittingModal}
+                onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })} 
+                className="flex-1 py-3 focus:outline-none rounded-xl bg-white/5 text-white font-bold hover:bg-white/10 transition-all uppercase tracking-wider text-xs border border-white/10 disabled:opacity-50 cursor-pointer h-12"
+              >
+                Nope
+              </button>
+              <button 
+                type="button"
+                disabled={isSubmittingModal}
+                onClick={async () => {
+                  setIsSubmittingModal(true);
+                  try {
+                    await confirmModal.action();
+                    setConfirmModal({ ...confirmModal, isOpen: false });
+                  } finally {
+                    setIsSubmittingModal(false);
+                  }
+                }} 
+                className="flex-1 py-3 focus:outline-none rounded-xl bg-white text-black font-bold hover:bg-slate-200 transition-all uppercase tracking-wider text-xs disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer h-12"
+              >
+                {isSubmittingModal ? (
+                  <Loader2 size={16} className="animate-spin text-black" />
+                ) : (
+                  "Yes"
+                )}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
     </>
   );
 };
