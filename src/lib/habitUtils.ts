@@ -1,3 +1,33 @@
+export function isHabitScheduledForDate(habit: any, dateObj: Date): boolean {
+  if (!habit) return false;
+  if (!habit.repeatType || habit.repeatType === "every_day") {
+    return true;
+  }
+
+  const dayStr = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
+  const dayIndex = dateObj.getDay();
+
+  if (habit.repeatType === "weekdays") {
+    return dayIndex >= 1 && dayIndex <= 5;
+  }
+
+  if (habit.repeatType === "weekends") {
+    return dayIndex === 0 || dayIndex === 6;
+  }
+
+  if (habit.repeatType === "custom_days" && Array.isArray(habit.customDays)) {
+    const dayShort = dayStr.substring(0, 3);
+    return (
+      habit.customDays.includes(dayStr) ||
+      habit.customDays.includes(dayShort) ||
+      habit.customDays.includes(dayStr.toLowerCase()) ||
+      habit.customDays.includes(dayShort.toLowerCase())
+    );
+  }
+
+  return true;
+}
+
 export function isHabitScheduledForToday(habit: any): boolean {
   if (!habit) return false;
   if (!habit.repeatType || habit.repeatType === "every_day") {

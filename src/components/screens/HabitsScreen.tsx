@@ -2,38 +2,75 @@ import { useStore } from "../../store/useStore";
 import { HabitList } from "../HabitList";
 import { useState } from "react";
 import { CreateHabitModal } from "../CreateHabitModal";
-import { Plus } from "lucide-react";
+import { Plus, ListFilter, BarChart3 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { HabitTrendsView } from "../HabitTrendsView";
 
 export function HabitsScreen() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activeSubTab, setActiveSubTab] = useState<"list" | "trends">("list");
 
   return (
     <motion.div 
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
-      className="p-6 md:p-8 max-w-4xl mx-auto min-h-screen relative"
+      className="p-6 md:p-8 max-w-5xl mx-auto min-h-screen relative space-y-6"
     >
-      <header className="flex justify-between items-center pt-4 mb-8">
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-4 mb-2">
         <div>
           <h1 className="text-3xl font-extrabold tracking-tighter">Habits</h1>
           <p className="text-slate-500 text-[10px] tracking-widest uppercase font-bold mt-1">
             Build your system
           </p>
         </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 bg-white text-black font-bold px-5 py-2.5 rounded-xl hover:bg-slate-200 transition-all text-xs uppercase tracking-widest"
-        >
-          <Plus size={16} />
-          <span>New Habit</span>
-        </button>
+
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          {/* SubTab Toggle */}
+          <div className="flex items-center bg-white/[0.04] border border-white/10 p-1 rounded-2xl">
+            <button
+              onClick={() => setActiveSubTab("list")}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                activeSubTab === "list"
+                  ? "bg-white text-black shadow-md"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              <ListFilter size={14} />
+              <span>List</span>
+            </button>
+            <button
+              onClick={() => setActiveSubTab("trends")}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                activeSubTab === "trends"
+                  ? "bg-white text-black shadow-md"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              <BarChart3 size={14} />
+              <span>30-Day Trends</span>
+            </button>
+          </div>
+
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 bg-white text-black font-bold px-4 py-2 rounded-xl hover:bg-slate-200 transition-all text-xs uppercase tracking-widest shrink-0 ml-auto sm:ml-0"
+          >
+            <Plus size={16} />
+            <span className="hidden sm:inline">New Habit</span>
+          </button>
+        </div>
       </header>
 
-      <section className="mt-8">
-        <HabitList onCreateClick={() => setIsModalOpen(true)} />
-      </section>
+      {activeSubTab === "list" ? (
+        <section className="mt-4">
+          <HabitList onCreateClick={() => setIsModalOpen(true)} />
+        </section>
+      ) : (
+        <section className="mt-4">
+          <HabitTrendsView />
+        </section>
+      )}
 
       {/* Mobile Reachable Floating Action Button */}
       <div className="fixed bottom-[calc(7.2rem+env(safe-area-inset-bottom))] right-6 z-[60] sm:hidden">

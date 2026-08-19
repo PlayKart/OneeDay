@@ -10,6 +10,7 @@ import { isHabitScheduledForToday } from "../../lib/habitUtils";
 import { getPersonalizedGreeting } from "../../utils/greetingUtils";
 import { getEquippedTitle } from "../../utils/titleUtils";
 import { calculateLevelProgress } from "../../utils";
+import { HabitTrendsView } from "../HabitTrendsView";
 
 export function DashboardScreen() {
   const { user, habits, deactivateFreeze, refreshFromBackend, setActiveTab } = useStore();
@@ -356,6 +357,11 @@ export function DashboardScreen() {
 
         </div>
       </div>
+
+      {/* 30-DAY HABIT COMPLETION TRENDS & DATA VISUALIZATION */}
+      <section className="relative z-10 pt-4">
+        <HabitTrendsView />
+      </section>
 
       {/* Level Up Premium Celebration Overlay */}
       <AnimatePresence>
