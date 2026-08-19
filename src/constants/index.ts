@@ -1,6 +1,14 @@
 // src/constants/index.ts
 
-export const BACKEND_URL = "";
+const getBackendUrl = (): string => {
+  const envUrl =
+    (typeof import.meta !== "undefined" && (import.meta.env?.RENDER_BACKEND_URL as string)) ||
+    (typeof process !== "undefined" && (process.env as any)?.RENDER_BACKEND_URL) ||
+    "";
+  return (envUrl || "https://oneday-backend-xocv.onrender.com").trim().replace(/\/+$/, "");
+};
+
+export const BACKEND_URL = getBackendUrl();
 
 export const QUOTE_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 

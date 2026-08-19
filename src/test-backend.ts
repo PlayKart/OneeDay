@@ -13,7 +13,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
-const BACKEND_URL = "https://oneday-backend-xocv.onrender.com";
+import { BACKEND_URL } from "./constants";
 
 async function test() {
   console.log("Signing in anonymously...");

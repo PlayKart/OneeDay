@@ -7,8 +7,11 @@ export default defineConfig(({mode}) => {
   const env = loadEnv(mode, '.', '');
   return {
     plugins: [react(), tailwindcss()],
+    envPrefix: ['VITE_', 'RENDER_'],
     define: {
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
+      'process.env.RENDER_BACKEND_URL': JSON.stringify(env.RENDER_BACKEND_URL || ''),
+      'import.meta.env.RENDER_BACKEND_URL': JSON.stringify(env.RENDER_BACKEND_URL || ''),
     },
     resolve: {
       alias: {

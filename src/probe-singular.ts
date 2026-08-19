@@ -1,4 +1,4 @@
-const BACKEND_URL = "https://oneday-backend-xocv.onrender.com";
+import { BACKEND_URL } from "./constants";
 
 async function probe() {
   const dummyToken = "Bearer dummy_token_value_for_probing";
