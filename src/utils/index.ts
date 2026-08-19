@@ -309,9 +309,9 @@ export function normalizeUser(u: any, existingUser?: User | null): User {
     hasCompletedOnboarding: isCompleted,
     onboarding_completed: isCompleted,
     onboardingCompleted: isCompleted,
-    needsOnboarding: !isCompleted,
-    needs_onboarding: !isCompleted,
-    nextRoute: isCompleted ? "/dashboard" : "/onboarding",
+    needsOnboarding: isCompleted === undefined ? undefined : !isCompleted,
+    needs_onboarding: isCompleted === undefined ? undefined : !isCompleted,
+    nextRoute: isCompleted === true ? "/dashboard" : (isCompleted === false ? "/onboarding" : undefined),
     onboardingStep: typeof onboardingStepVal === "number" ? onboardingStepVal : (typeof rawUser?.onboardingStep === "number" ? rawUser.onboardingStep : (typeof rawUser?.onboarding_step === "number" ? rawUser.onboarding_step : (typeof rawUser?.onboardingStep === "string" ? parseInt(rawUser.onboardingStep, 10) : (typeof rawUser?.onboarding_step === "string" ? parseInt(rawUser.onboarding_step, 10) : existingUser?.onboardingStep)))),
   };
 }

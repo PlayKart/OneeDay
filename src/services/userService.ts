@@ -7,7 +7,7 @@ import { handleFirestoreError, OperationType } from "../lib/firestoreErrors";
 
 export const userService = {
   async getUserProfile(existingUser?: User): Promise<User> {
-    const fbUser = auth.currentUser;
+    const fbUser = auth.currentUser || useStore.getState().firebaseUser;
     if (!fbUser) throw new Error("Not authenticated");
 
     const docPath = `users/${fbUser.uid}`;
@@ -50,7 +50,7 @@ export const userService = {
   },
 
   async updateProfile(data: Partial<User> & Record<string, any>): Promise<User> {
-    const fbUser = auth.currentUser;
+    const fbUser = auth.currentUser || useStore.getState().firebaseUser;
     if (!fbUser) throw new Error("Not authenticated");
 
     if (data.gender !== undefined) {

@@ -8,7 +8,7 @@ import { habitService } from '../services/habitService';
 import { chatService } from '../services/chatService';
 import { userService } from '../services/userService';
 import { quoteService } from '../services/quoteService';
-import { safeArray, normalizeCompletedDates, normalizeUser, hasCompletedOnboarding, calculateLevelProgress, getXpForDifficulty, extractXpAwarded } from '../utils';
+import { safeArray, normalizeCompletedDates, normalizeUser, hasCompletedOnboarding, getOnboardingStatus, calculateLevelProgress, getXpForDifficulty, extractXpAwarded } from '../utils';
 import { isHabitScheduledForToday } from '../lib/habitUtils';
 import { isTitleNew, markTitleAsSeen, getTitleDescription, setEquippedTitle, getEquippedTitle } from '../utils/titleUtils';
 import { apiRequest } from '../api/client';
@@ -83,22 +83,6 @@ interface StoreState {
 }
 
 export const useStore = create<StoreState>((set, get) => {
-  const sessionActive = localStorage.getItem("oneday_session_active") === "true";
-  const cachedUid = localStorage.getItem("oneday_firebase_uid") || "";
-  const cachedEmail = localStorage.getItem("oneday_firebase_email") || "";
-  const cachedToken = localStorage.getItem("oneday_firebase_token") || "";
-
-  let initialFirebaseUser: FirebaseUser | null = null;
-  if (sessionActive && cachedUid) {
-    initialFirebaseUser = {
-      uid: cachedUid,
-      email: cachedEmail,
-      getIdToken: async (force?: boolean) => {
-        return localStorage.getItem("oneday_firebase_token") || cachedToken;
-      }
-    } as any;
-  }
-
   let initialUser: BackendUser | null = null;
   const cachedUserStr = localStorage.getItem("oneday_cached_user");
   if (cachedUserStr) {
@@ -108,6 +92,12 @@ export const useStore = create<StoreState>((set, get) => {
       // Ignore
     }
   }
+
+  // Diagnostic log for boot
+  console.log("[BOOT] initialization started");
+  console.log("[BOOT] auth initialization started");
+
+  let authListenerFired = false;
 
   // 1. Process potential redirect results from signInWithRedirect
   getRedirectResult(auth)
@@ -131,18 +121,33 @@ export const useStore = create<StoreState>((set, get) => {
       console.warn("[Auth Step - Redirect Warning] Error handling redirect result:", err);
     });
 
+  // Fallback safety timer in case Firebase Auth listener is stalled (e.g. offline/IndexedDB issue)
+  const authTimeoutId = setTimeout(() => {
+    if (!authListenerFired) {
+      authListenerFired = true;
+      console.warn("[BOOT] auth initialization fallback timeout reached");
+      console.log("[BOOT] auth initialization completed");
+      console.log("[BOOT] authenticated user: none (fallback)");
+      console.log("[BOOT] session available: false");
+      set({ initialized: true, firebaseUser: null, loading: false });
+    }
+  }, 4000);
+
   // 2. Listen to Auth state changes and boot store sync
-  console.log("[AUTH] Firebase auth initializing");
   onAuthStateChanged(auth, async (fbUser) => {
-    console.log("[AUTH] Firebase auth state received:", fbUser ? "authenticated" : "unauthenticated");
-    
+    if (!authListenerFired) {
+      authListenerFired = true;
+      clearTimeout(authTimeoutId);
+    }
+
+    console.log("[BOOT] auth initialization completed");
+
     if (fbUser) {
-      console.log("[AUTH] Firebase user:", fbUser.email || fbUser.displayName || fbUser.uid);
-      console.log("[AUTH] Firebase UID:", fbUser.uid);
+      console.log(`[BOOT] authenticated user: ${fbUser.uid} ${fbUser.email ? `(${fbUser.email})` : ""}`);
+      console.log("[BOOT] session available: true");
       try {
         const token = await fbUser.getIdToken();
         if (token) {
-          console.log("[AUTH] ID token acquired");
           localStorage.setItem("oneday_firebase_token", token);
         }
         localStorage.setItem("oneday_session_active", "true");
@@ -152,10 +157,10 @@ export const useStore = create<StoreState>((set, get) => {
         console.warn("[AUTH] Failed to acquire ID token on auth change:", tokenErr);
       }
       set({ firebaseUser: fbUser, initialized: true });
-      console.log("[AUTH] Requesting backend profile sync from onAuthStateChanged...");
       await get().refreshFromBackend();
     } else {
-      console.log("[AUTH] Firebase user: null");
+      console.log("[BOOT] authenticated user: none");
+      console.log("[BOOT] session available: false");
       localStorage.removeItem("oneday_session_active");
       localStorage.removeItem("oneday_firebase_uid");
       localStorage.removeItem("oneday_firebase_email");
@@ -172,18 +177,19 @@ export const useStore = create<StoreState>((set, get) => {
         chatMessages: [],
         initialized: true,
         profileSynced: false,
+        loading: false,
+        backendError: null,
         profileVersion: get().profileVersion + 1,
       });
     }
-    console.log("[AUTH] Auth initialization completed");
   });
 
   return {
-    firebaseUser: initialFirebaseUser,
+    firebaseUser: null,
     user: initialUser,
     habits: [],
     quote: "One day broke. Don't let two.",
-    initialized: sessionActive ? true : false,
+    initialized: false,
     loading: false,
     profileSynced: false,
     profileVersion: 0,
@@ -226,7 +232,6 @@ export const useStore = create<StoreState>((set, get) => {
 
     refreshFromBackend: async () => {
       const activeFbUser = auth.currentUser || get().firebaseUser;
-      console.log("[TRACE] auth.currentUser", activeFbUser ? { uid: activeFbUser.uid, email: activeFbUser.email } : null);
 
       if (!activeFbUser) {
         console.warn("[AUTH] No authenticated Firebase user present, skipping backend sync.");
@@ -240,23 +245,14 @@ export const useStore = create<StoreState>((set, get) => {
       }
 
       const reqVersion = get().profileVersion;
-      console.error("[SYNC 1] Firebase user:", activeFbUser.email || activeFbUser.displayName || activeFbUser.uid);
-      console.error("[SYNC 2] Firebase UID:", activeFbUser.uid);
-
-      let token = "";
-      try {
-        token = await activeFbUser.getIdToken();
-      } catch (tErr) {
-        console.warn("Failed to acquire ID token in refreshFromBackend:", tErr);
-      }
-      console.log("[TRACE] token", token ? `${token.substring(0, 15)}... [length: ${token.length}]` : null);
-      console.error("[SYNC 3] Token acquired:", !!token);
+      console.log("[BOOT] backend sync started");
+      console.log("[BOOT] profile fetch started");
 
       set({ loading: true, backendError: null });
 
       try {
         const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("Connection timed out. Uplink took more than 60 seconds to respond.")), 60000)
+          setTimeout(() => reject(new Error("Network timeout: Uplink took longer than 15 seconds to respond.")), 15000)
         );
 
         const data = await Promise.race([
@@ -264,8 +260,8 @@ export const useStore = create<StoreState>((set, get) => {
           timeoutPromise
         ]);
 
-        console.log("[TRACE] dashboard state", data);
-        console.log("[AUTH] Backend response:", data);
+        console.log("[BOOT] profile fetch completed");
+        console.log("[BOOT] dashboard hydration started");
 
         if (get().profileVersion > reqVersion) {
           console.log("[STALE] Ignored response due to higher profile version.");
@@ -340,12 +336,9 @@ export const useStore = create<StoreState>((set, get) => {
           localStorage.setItem("oneday_cached_user", JSON.stringify(finalUser));
         }
 
-        console.log("[TRACE] user state", finalUser);
-        console.log("[TRACE] profile state", finalUser);
-        console.log("[TRACE] onboarding state", finalUser ? { onboarded: finalUser.onboarded, hasCompletedOnboarding: finalUser.hasCompletedOnboarding, onboardingStep: finalUser.onboardingStep } : null);
-
-        console.log("[AUTH] Profile loaded:", finalUser?.name || finalUser?.email || "User");
-        console.log("[AUTH] needsOnboarding:", !hasCompletedOnboarding(finalUser));
+        const rawOnboarding = getOnboardingStatus(finalUser);
+        const onboardingState = rawOnboarding === true ? "completed" : rawOnboarding === false ? "not completed" : "unknown";
+        console.log(`[BOOT] onboarding state: ${onboardingState}`);
 
         set({
           user: finalUser,
@@ -356,13 +349,19 @@ export const useStore = create<StoreState>((set, get) => {
           backendError: null,
         });
 
-        console.error("[SYNC 10] Sync completed");
-        get().fetchSessions();
+        console.log("[BOOT] dashboard hydration completed");
+        console.log("[BOOT] backend sync completed");
+        get().fetchSessions().catch((sErr) => console.warn("Failed to fetch chat sessions:", sErr));
       } catch (err: any) {
-        console.error("[SYNC ERROR]", err);
-        console.error("[SYNC ERROR STACK]", err?.stack);
+        console.error("[BOOT] initialization failed:", err?.message || String(err));
 
-        const errorMsg = err?.message || "Failed to sync profile with server.";
+        let errorMsg = err?.message || "Sync failed. Try again.";
+        try {
+          const parsed = JSON.parse(errorMsg);
+          if (parsed?.error) {
+            errorMsg = `Sync error: ${parsed.error}`;
+          }
+        } catch (_) {}
 
         set({
           loading: false,

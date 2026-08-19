@@ -276,53 +276,55 @@ export default function App() {
 
 
   // ── 3. Authenticated -> Show Sync Error screen if backend request failed ──
-  if (backendError && !profileSynced && !user) {
+  if (backendError && !profileSynced) {
     return (
       <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center font-sans p-6">
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
+          initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="flex flex-col items-center gap-6 max-w-sm text-center px-6"
+          className="flex flex-col items-center gap-6 max-w-md text-center px-6"
         >
-          <div className="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center">
+          <div className="w-16 h-16 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-center">
             <AlertTriangle size={32} className="text-red-400" />
           </div>
           <div className="flex flex-col gap-2">
-            <h2 className="text-xl font-bold tracking-tight text-white">Sync Failure</h2>
+            <h2 className="text-2xl font-bold tracking-tight text-white">Sync failed. Try again.</h2>
             <p className="text-slate-500 text-xs uppercase tracking-widest font-black">Uplink Error</p>
-            <p className="text-slate-400 text-sm mt-2">{backendError}</p>
+            <p className="text-slate-400 text-sm mt-1 leading-relaxed max-w-sm">{backendError}</p>
           </div>
-          <button
-            onClick={async () => {
-              console.log("[AUTH] Retrying profile sync...");
-              useStore.setState({ backendError: null });
-              await refreshFromBackend();
-            }}
-            className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white font-bold px-8 py-3 rounded-xl transition-all text-sm uppercase tracking-widest cursor-pointer"
-          >
-            <RefreshCw size={14} />
-            Retry Connection
-          </button>
-          <button
-            onClick={() => signOut(auth)}
-            className="text-xs text-slate-600 hover:text-red-400 transition-colors uppercase tracking-widest font-bold cursor-pointer"
-          >
-            Sign Out
-          </button>
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full max-w-xs pt-2">
+            <button
+              onClick={async () => {
+                console.log("[AUTH] User triggered RETRY for profile sync...");
+                useStore.setState({ backendError: null, loading: true });
+                await refreshFromBackend();
+              }}
+              className="w-full flex items-center justify-center gap-2 bg-white text-black hover:bg-slate-200 font-bold px-6 py-3.5 rounded-xl transition-all text-xs uppercase tracking-widest cursor-pointer shadow-lg active:scale-95"
+            >
+              <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+              {loading ? "Retrying..." : "RETRY"}
+            </button>
+            <button
+              onClick={() => signOut(auth)}
+              className="w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-slate-300 font-bold px-6 py-3.5 rounded-xl transition-all text-xs uppercase tracking-widest cursor-pointer border border-white/10"
+            >
+              Sign Out
+            </button>
+          </div>
         </motion.div>
       </div>
     );
   }
 
   // ── 4. Authenticated -> Show Syncing screen while profile is loading or onboarded state is unknown ──────
-  const onboardingStatus = getOnboardingStatus(user);
-  if (!user || !profileSynced || onboardingStatus === null || onboardingStatus === undefined || (loading && !profileSynced)) {
+  const onboardingStatus = profileSynced && user ? getOnboardingStatus(user) : null;
+  if (!profileSynced || !user || onboardingStatus === null || loading) {
     return (
-      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center font-sans">
+      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center font-sans p-6">
         <motion.div 
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="flex flex-col items-center gap-6"
+          className="flex flex-col items-center gap-6 text-center max-w-sm"
         >
           <div className="animate-pulse">
             <MonolithLogo size={64} />
@@ -330,6 +332,18 @@ export default function App() {
           <div className="flex flex-col items-center gap-2">
             <h2 className="text-xl font-bold tracking-tight text-white">Syncing Discipline...</h2>
             <p className="text-slate-500 text-xs uppercase tracking-widest font-black">Connecting to Uplink</p>
+          </div>
+          <div className="pt-4 flex flex-col items-center gap-2">
+            <button
+              onClick={async () => {
+                console.log("[AUTH] Manual retry invoked from loading screen");
+                useStore.setState({ backendError: null, loading: false });
+                await refreshFromBackend();
+              }}
+              className="text-[11px] text-slate-500 hover:text-white transition-colors cursor-pointer uppercase tracking-wider font-semibold underline underline-offset-4"
+            >
+              Taking too long? Retry Sync
+            </button>
           </div>
         </motion.div>
       </div>
