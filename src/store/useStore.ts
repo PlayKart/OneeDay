@@ -7,6 +7,7 @@ import { dashboardService } from '../services/dashboardService';
 import { habitService } from '../services/habitService';
 import { chatService } from '../services/chatService';
 import { userService } from '../services/userService';
+import { syncService } from '../services/syncService';
 import { quoteService } from '../services/quoteService';
 import { safeArray, normalizeCompletedDates, normalizeUser, hasCompletedOnboarding, getOnboardingStatus, calculateLevelProgress, getXpForDifficulty, extractXpAwarded } from '../utils';
 import { isHabitScheduledForToday } from '../lib/habitUtils';
@@ -239,135 +240,13 @@ export const useStore = create<StoreState>((set, get) => {
         return;
       }
 
-      if (get().loading) {
-        console.log("[AUTH] Backend sync already in progress, ignoring duplicate call.");
-        return;
-      }
-
-      const reqVersion = get().profileVersion;
-      console.log("[BOOT] backend sync started");
-      console.log("[BOOT] profile fetch started");
-
       set({ loading: true, backendError: null });
 
       try {
-        const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("Network timeout: Uplink took longer than 15 seconds to respond.")), 15000)
-        );
-
-        const data = await Promise.race([
-          dashboardService.fetchDashboardData(),
-          timeoutPromise
-        ]);
-
-        console.log("[BOOT] profile fetch completed");
-        console.log("[BOOT] dashboard hydration started");
-
-        if (get().profileVersion > reqVersion) {
-          console.log("[STALE] Ignored response due to higher profile version.");
-          set({ loading: false });
-          return;
-        }
-
-        if (data) {
-          const root = (data as any).data || data;
-          const userObj = root?.user || root;
-          const targetTitle = root?.title || userObj?.title || root?.unlockedTitle;
-          const currentUserId = userObj?.id || userObj?.userId || get().user?.id || get().user?.userId;
-
-          if ((root?.titleUnlocked || userObj?.titleUnlocked) && targetTitle) {
-            const isGenuinelyNew = isTitleNew(targetTitle, currentUserId);
-            if (isGenuinelyNew) {
-              set({
-                titleUnlockData: {
-                  title: targetTitle,
-                  signature: getTitleDescription(targetTitle, root?.signature || userObj?.signature),
-                  level: root?.level || userObj?.level || data?.user?.level || 1,
-                }
-              });
-            }
-          }
-          if (root?.titleLost || userObj?.titleLost) {
-            set({
-              titleLossData: {
-                title: root?.title || userObj?.title || "TITLE",
-                signature: root?.signature || userObj?.signature || "Every setback is temporary. Earn it back.",
-                reason: root?.reason || userObj?.reason || "Your XP dropped below the required threshold.",
-              }
-            });
-          }
-        }
-        const todayStr = new Date().toISOString().split("T")[0];
-        const incomingHabits = safeArray<Habit>(data?.habits);
-        const currentHabits = get().habits;
-        const mergedHabits = incomingHabits.map((inc) => {
-          const local = currentHabits.find((h) => h.id === inc.id);
-          if (local?.completedToday && !inc.completedToday) {
-            const isPending = get().pendingHabitIds.has(inc.id);
-            const hasToday = local.completedDates?.includes(todayStr);
-            if (isPending || hasToday) {
-              return {
-                ...inc,
-                completedToday: true,
-                completedDates: inc.completedDates?.includes(todayStr)
-                  ? inc.completedDates
-                  : [...(inc.completedDates || []), todayStr],
-              };
-            }
-          }
-          return inc;
-        });
-
-        const fetchedUser = normalizeUser(data, get().user);
-        const currentXp = get().user?.xp ?? 0;
-        const fetchedXp = fetchedUser?.xp ?? 0;
-        const finalXp = Math.max(currentXp, fetchedXp);
-        const finalLevel = Math.max(fetchedUser?.level ?? 1, get().user?.level ?? 1, Math.floor(finalXp / 100) + 1);
-        const finalUser = fetchedUser
-          ? {
-              ...fetchedUser,
-              xp: finalXp,
-              level: finalLevel,
-              levelProgress: calculateLevelProgress(finalXp, finalLevel, 100),
-            }
-          : fetchedUser;
-
-        if (finalUser) {
-          localStorage.setItem("oneday_cached_user", JSON.stringify(finalUser));
-        }
-
-        const rawOnboarding = getOnboardingStatus(finalUser);
-        const onboardingState = rawOnboarding === true ? "completed" : rawOnboarding === false ? "not completed" : "unknown";
-        console.log(`[BOOT] onboarding state: ${onboardingState}`);
-
-        set({
-          user: finalUser,
-          habits: mergedHabits.length > 0 ? mergedHabits : (currentHabits.length > 0 ? currentHabits : incomingHabits),
-          quote: data?.quote || "Discipline makes it all.",
-          loading: false,
-          profileSynced: true,
-          backendError: null,
-        });
-
-        console.log("[BOOT] dashboard hydration completed");
-        console.log("[BOOT] backend sync completed");
+        await syncService.syncUserData(true);
         get().fetchSessions().catch((sErr) => console.warn("Failed to fetch chat sessions:", sErr));
       } catch (err: any) {
-        console.error("[BOOT] initialization failed:", err?.message || String(err));
-
-        let errorMsg = err?.message || "Sync failed. Try again.";
-        try {
-          const parsed = JSON.parse(errorMsg);
-          if (parsed?.error) {
-            errorMsg = `Sync error: ${parsed.error}`;
-          }
-        } catch (_) {}
-
-        set({
-          loading: false,
-          profileSynced: false,
-          backendError: errorMsg,
-        });
+        console.error("[SYNC ERROR] refreshFromBackend failed:", err?.message || err);
       }
     },
 
@@ -389,11 +268,10 @@ export const useStore = create<StoreState>((set, get) => {
       set((state) => ({ habits: [optimistic, ...state.habits] }));
 
       try {
-        const created = await habitService.createHabit(habitData);
+        const created = await syncService.saveHabit(habitData);
         set((state) => ({
           habits: state.habits.map((h) => (h.id === tempId ? created : h)),
         }));
-        await get().refreshFromBackend();
       } catch (e) {
         set((state) => ({ habits: state.habits.filter((h) => h.id !== tempId) }));
         throw e;
@@ -407,11 +285,10 @@ export const useStore = create<StoreState>((set, get) => {
       }));
 
       try {
-        const updated = await habitService.updateHabit(habitId, habitData);
+        const updated = await syncService.saveHabit(habitData, habitId);
         set((state) => ({
           habits: state.habits.map((h) => (h.id === habitId ? updated : h)),
         }));
-        await get().refreshFromBackend();
       } catch (e) {
         if (original) {
           set((state) => ({
@@ -426,7 +303,7 @@ export const useStore = create<StoreState>((set, get) => {
       try {
         await habitService.deleteHabit(habitId);
         set((state) => ({ habits: state.habits.filter((h) => h.id !== habitId) }));
-        await get().refreshFromBackend();
+        syncService.scheduleBackgroundSync(1000);
       } catch (e) {
         throw e;
       }
@@ -525,7 +402,7 @@ export const useStore = create<StoreState>((set, get) => {
       );
 
       try {
-        const res = await habitService.completeHabit(habitId);
+        const res = await syncService.saveHabitCompletion(habitId, true);
 
         if (res && res.success === false) {
           const errMsg =
@@ -596,7 +473,6 @@ export const useStore = create<StoreState>((set, get) => {
           };
         });
 
-        await get().refreshFromBackend();
         return res;
       } catch (e: any) {
         console.error(`[useStore] completeHabit error:`, e);
@@ -693,7 +569,7 @@ export const useStore = create<StoreState>((set, get) => {
       });
 
       try {
-        const res = await habitService.undoHabit(habitId);
+        const res = await syncService.saveHabitCompletion(habitId, false);
 
         if (res && res.success === false) {
           const errMsg =
@@ -732,7 +608,6 @@ export const useStore = create<StoreState>((set, get) => {
           };
         });
 
-        await get().refreshFromBackend();
         return res;
       } catch (e: any) {
         console.error(`[useStore] undoHabit error:`, e);
@@ -790,13 +665,13 @@ export const useStore = create<StoreState>((set, get) => {
         if (Object.keys(data).length === 1 && data.onboardingStep !== undefined) {
           await userService.updateOnboardingStep(data.onboardingStep);
         } else {
-          await userService.updateProfile(data);
+          await syncService.saveProfile(data);
         }
         
         const isCompletingOnboarding = Boolean(data.onboarded || data.hasCompletedOnboarding);
         const newVersion = isCompletingOnboarding ? get().profileVersion + 1 : get().profileVersion;
         set({ profileVersion: newVersion });
-        await get().refreshFromBackend();
+        syncService.scheduleBackgroundSync(800);
       } catch (e) {
         console.error("[useStore] updateProfile error:", e);
         throw e;

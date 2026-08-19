@@ -2,6 +2,7 @@ import React from "react";
 import { useStore } from "../store/useStore";
 import { LayoutDashboard, CheckSquare, MessageSquare, Settings } from "lucide-react";
 import { motion } from "motion/react";
+import { SyncStatusBadge } from "./SyncStatusBadge";
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -42,7 +43,10 @@ export function MainLayout({ children }: MainLayoutProps) {
   ] as const;
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-[#000000] text-white overflow-hidden">
+    <div className="flex flex-col h-[100dvh] bg-[#000000] text-white overflow-hidden relative">
+      <div className="fixed top-3 right-4 z-50 pointer-events-auto">
+        <SyncStatusBadge />
+      </div>
       <main className={`flex-1 min-h-0 ${
         activeTab === 'coach' 
           ? `overflow-hidden flex flex-col ${isKeyboardOpen ? 'pb-0' : 'pb-[calc(5.2rem+env(safe-area-inset-bottom))]'}` 

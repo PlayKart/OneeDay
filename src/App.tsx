@@ -277,6 +277,10 @@ export default function App() {
 
   // ── 3. Authenticated -> Show Sync Error screen if backend request failed ──
   if (backendError && !profileSynced) {
+    const userFriendlyError = backendError.includes("timeout") || backendError.includes("Uplink")
+      ? "Unable to connect to service. Please check your internet connection."
+      : backendError;
+
     return (
       <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center font-sans p-6">
         <motion.div
@@ -289,8 +293,8 @@ export default function App() {
           </div>
           <div className="flex flex-col gap-2">
             <h2 className="text-2xl font-bold tracking-tight text-white">Sync failed. Try again.</h2>
-            <p className="text-slate-500 text-xs uppercase tracking-widest font-black">Uplink Error</p>
-            <p className="text-slate-400 text-sm mt-1 leading-relaxed max-w-sm">{backendError}</p>
+            <p className="text-slate-500 text-xs uppercase tracking-widest font-black">Connection Notice</p>
+            <p className="text-slate-400 text-sm mt-1 leading-relaxed max-w-sm">{userFriendlyError}</p>
           </div>
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full max-w-xs pt-2">
             <button
@@ -316,9 +320,9 @@ export default function App() {
     );
   }
 
-  // ── 4. Authenticated -> Show Syncing screen while profile is loading or onboarded state is unknown ──────
+  // ── 4. Authenticated -> Show Syncing screen while initial profile is sync loading ──────
   const onboardingStatus = profileSynced && user ? getOnboardingStatus(user) : null;
-  if (!profileSynced || !user || onboardingStatus === null || loading) {
+  if (!profileSynced || !user || onboardingStatus === null) {
     return (
       <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center font-sans p-6">
         <motion.div 
@@ -331,7 +335,7 @@ export default function App() {
           </div>
           <div className="flex flex-col items-center gap-2">
             <h2 className="text-xl font-bold tracking-tight text-white">Syncing Discipline...</h2>
-            <p className="text-slate-500 text-xs uppercase tracking-widest font-black">Connecting to Uplink</p>
+            <p className="text-slate-500 text-xs uppercase tracking-widest font-black">Connecting Service</p>
           </div>
           <div className="pt-4 flex flex-col items-center gap-2">
             <button
