@@ -1,38 +1,24 @@
-// src/services/userService.ts
-
-import { apiClient } from "../api/client";
 import { User } from "../types";
 import { normalizeUser, hasCompletedOnboarding, normalizeGenderValue } from "../utils";
 import { useStore } from "../store/useStore";
 import { auth } from "../lib/firebase";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
+
+const db = getFirestore();
 
 export const userService = {
   async getUserProfile(existingUser?: User): Promise<User> {
-    console.error("[SYNC 4] GET /api/users started");
     try {
-      const res = await apiClient.get<User | { user: User }>("/api/users");
-      console.log("[TRACE] /api/users raw response", res.data);
-      console.error("[SYNC 5] Raw /api/users response:", res.data);
-      const userObj = normalizeUser(res.data, existingUser || useStore.getState().user || undefined);
-      console.log("[TRACE] /api/users normalized response", userObj);
-      console.error("[SYNC 6] Normalized /api/users data:", userObj);
-      console.error("[SYNC 7] User object:", userObj);
-      console.error("[SYNC 8] Profile object:", userObj);
-      console.error("[SYNC 9] Onboarding state:", hasCompletedOnboarding(userObj));
-      return userObj;
-    } catch (err: any) {
-      console.error("[SYNC ERROR]", err);
-      console.error("[SYNC ERROR STACK]", err?.stack);
+      const fbUser = auth.currentUser;
+      if (!fbUser) throw new Error("Not authenticated");
 
-      const fbUser = auth.currentUser || useStore.getState().firebaseUser;
-      const errorMsg = err?.message || String(err);
-      const isMissingBackendUser =
-        errorMsg.includes("reading 'length'") ||
-        errorMsg.includes("Failed to retrieve user record") ||
-        err?.response?.status === 404;
+      const docRef = doc(db, "users", fbUser.uid);
+      const docSnap = await getDoc(docRef);
 
-      if (fbUser && isMissingBackendUser) {
-        console.warn("[userService] Backend user record missing/uninitialized for authenticated Firebase user. Creating un-onboarded fallback profile.", fbUser.uid);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        return normalizeUser({ ...data, id: fbUser.uid, userId: fbUser.uid }, existingUser || useStore.getState().user || undefined);
+      } else {
         const fallbackUser = normalizeUser(
           {
             id: fbUser.uid,
@@ -50,24 +36,27 @@ export const userService = {
             habits: [],
             hobbies: [],
             sports: [],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
           },
           existingUser || useStore.getState().user || undefined
         );
-        console.error("[SYNC 6] Normalized /api/users data (fallback):", fallbackUser);
-        console.error("[SYNC 7] User object (fallback):", fallbackUser);
-        console.error("[SYNC 8] Profile object (fallback):", fallbackUser);
-        console.error("[SYNC 9] Onboarding state (fallback):", hasCompletedOnboarding(fallbackUser));
         return fallbackUser;
       }
-
+    } catch (err: any) {
+      console.error("[SYNC ERROR]", err);
       throw err;
     }
   },
 
   async updateProfile(data: Partial<User> & Record<string, any>): Promise<User> {
+    const fbUser = auth.currentUser;
+    if (!fbUser) throw new Error("Not authenticated");
+
     if (data.gender !== undefined) {
       data.gender = normalizeGenderValue(data.gender);
     }
+
     const whyValue = data.why_oneday ?? data.whyOneday ?? data.reasonForJoining ?? data.reason;
     if (whyValue !== undefined && whyValue !== null) {
       const cleanWhy = String(whyValue).trim();
@@ -75,40 +64,56 @@ export const userService = {
       data.whyOneday = cleanWhy;
       data.reasonForJoining = cleanWhy;
     }
-    const res = await apiClient.post<User | { user: User }>("/api/onboarding", data);
-    return normalizeUser(res.data, useStore.getState().user || undefined);
+
+    const docRef = doc(db, "users", fbUser.uid);
+    const docSnap = await getDoc(docRef);
+    
+    data.updatedAt = new Date().toISOString();
+
+    if (docSnap.exists()) {
+      await updateDoc(docRef, data);
+    } else {
+      await setDoc(docRef, { ...data, uid: fbUser.uid, createdAt: new Date().toISOString() }, { merge: true });
+    }
+
+    const updatedSnap = await getDoc(docRef);
+    return normalizeUser({ ...updatedSnap.data(), id: fbUser.uid }, useStore.getState().user || undefined);
   },
 
   async getOnboardingStep(): Promise<number> {
-    const res = await apiClient.get<{ step?: number; onboardingStep?: number; onboarding_step?: number }>("/api/onboarding/step");
-    const step = res.data?.step ?? res.data?.onboardingStep ?? res.data?.onboarding_step ?? 1;
-    return typeof step === "number" ? step : parseInt(String(step), 10) || 1;
+    const fbUser = auth.currentUser;
+    if (!fbUser) return 1;
+    const docSnap = await getDoc(doc(db, "users", fbUser.uid));
+    if (docSnap.exists()) {
+      return docSnap.data().onboardingStep || 1;
+    }
+    return 1;
   },
 
   async updateOnboardingStep(step: number): Promise<User> {
-    const res = await apiClient.post<User | { user: User }>("/api/onboarding/step", { step, onboardingStep: step });
-    return normalizeUser(res.data, useStore.getState().user || undefined);
+    return this.updateProfile({ onboardingStep: step, step });
   },
 
   async freezeStreak(days: number): Promise<User> {
-    const res = await apiClient.post<User | { user: User }>("/api/freeze", { days });
-    return normalizeUser(res.data);
+    const freezeUntil = new Date();
+    freezeUntil.setDate(freezeUntil.getDate() + days);
+    return this.updateProfile({ freezeUntil: freezeUntil.toISOString() });
   },
 
   async deactivateFreeze(): Promise<User> {
-    const res = await apiClient.post<User | { user: User }>("/api/freeze", { days: 0 });
-    const user = normalizeUser(res.data);
-    user.freezeUntil = null;
-    user.freeze_until = null;
-    return user;
+    return this.updateProfile({ freezeUntil: null, freeze_until: null });
   },
 
   async resetProgress(): Promise<void> {
-    await apiClient.post("/api/reset");
+    const fbUser = auth.currentUser;
+    if (!fbUser) return;
+    await updateDoc(doc(db, "users", fbUser.uid), { xp: 0, level: 1, streak: 0 });
   },
 
   async deleteAccount(): Promise<void> {
-    // Backend API contract does not expose an account deletion endpoint.
-    // Proceeding with Firebase auth deletion only.
+    const fbUser = auth.currentUser;
+    if (!fbUser) return;
+    await deleteDoc(doc(db, "users", fbUser.uid));
+    await fbUser.delete();
   },
 };

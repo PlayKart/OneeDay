@@ -21,6 +21,7 @@ service cloud.firestore {
         && data.level is int && data.level >= 1
         && data.streak is int && data.streak >= 0
         && (data.freezeUntil == null || data.freezeUntil is timestamp)
+        && (data.get('why_oneday', null) == null || (data.why_oneday is string && data.why_oneday.size() <= 500 && data.why_oneday.matches('(?s)^.*(?:\\S.*){5,}$')))
         && data.updatedAt == request.time;
     }
 

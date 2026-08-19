@@ -37,7 +37,7 @@ import { TitleLossModal } from './components/TitleLossModal';
 import { LevelUpModal } from './components/LevelUpAnimation';
 import { OnboardingModal } from './components/OnboardingModal';
 import { AppIntroFlow } from './components/AppIntroFlow';
-import { hasCompletedOnboarding } from './utils';
+import { getOnboardingStatus, hasCompletedOnboarding } from './utils';
 
 const GoogleIcon = () => (
   <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
@@ -106,26 +106,47 @@ export default function App() {
       return;
     }
 
-    if (!user) {
+    // Must wait for backend profile to sync and receive authoritative onboarded status
+    if (!profileSynced || !user) {
       return;
     }
 
-    const onboarded = hasCompletedOnboarding(user);
-    console.log(`[AUTH] needsOnboarding: ${!onboarded}`);
+    const onboardingStatus = getOnboardingStatus(user);
+    if (onboardingStatus === null || onboardingStatus === undefined) {
+      // Unknown/loading state - never interpret undefined/null as false!
+      return;
+    }
 
-    const uid = firebaseUser.uid || user.id || "";
-    const seenIntro = hasSeenAppIntro(uid, user);
-    const targetRoute = !onboarded ? "/onboarding" : (seenIntro ? "/dashboard" : "/intro");
+    console.log(`[AUTH] Authoritative onboarded status: ${onboardingStatus}`);
 
-    if (currentRoute !== targetRoute) {
-      if (currentRoute === "/intro" && onboarded && !seenIntro) {
-        return;
+    if (onboardingStatus === false) {
+      // onboarded === false -> Onboarding
+      if (currentRoute !== "/onboarding") {
+        console.log("[AUTH] Routing to Onboarding");
+        if (window.location.pathname !== "/onboarding") {
+          window.history.pushState({}, "", "/onboarding");
+        }
+        setCurrentRoute("/onboarding");
       }
-      console.log(`[AUTH] Redirecting to: ${targetRoute}`);
-      if (window.location.pathname !== targetRoute) {
-        window.history.pushState({}, "", targetRoute);
+      return;
+    }
+
+    if (onboardingStatus === true) {
+      // onboarded === true -> Dashboard (or intro if not yet seen)
+      const uid = firebaseUser.uid || user.id || "";
+      const seenIntro = hasSeenAppIntro(uid, user);
+      const targetRoute = seenIntro ? "/dashboard" : "/intro";
+
+      if (currentRoute !== targetRoute) {
+        if (currentRoute === "/intro" && !seenIntro) {
+          return;
+        }
+        console.log(`[AUTH] Routing to: ${targetRoute}`);
+        if (window.location.pathname !== targetRoute) {
+          window.history.pushState({}, "", targetRoute);
+        }
+        setCurrentRoute(targetRoute);
       }
-      setCurrentRoute(targetRoute);
     }
   }, [initialized, firebaseUser, user, currentRoute, profileSynced, loading, backendError]);
 
@@ -293,8 +314,9 @@ export default function App() {
     );
   }
 
-  // ── 4. Authenticated -> Show Syncing screen while profile is loading ──────
-  if (!user || (loading && !profileSynced)) {
+  // ── 4. Authenticated -> Show Syncing screen while profile is loading or onboarded state is unknown ──────
+  const onboardingStatus = getOnboardingStatus(user);
+  if (!user || !profileSynced || onboardingStatus === null || onboardingStatus === undefined || (loading && !profileSynced)) {
     return (
       <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center font-sans">
         <motion.div 
@@ -315,7 +337,7 @@ export default function App() {
   }
 
   // ── 5. /onboarding view ───────────────────────────────────────────────────
-  if (currentRoute === "/onboarding") {
+  if (onboardingStatus === false || currentRoute === "/onboarding") {
     return (
       <div className="min-h-screen bg-[#050505] flex items-center justify-center relative overflow-hidden">
         <Toaster 
@@ -341,20 +363,7 @@ export default function App() {
 
             incrementProfileVersion();
 
-            const currentUser = useStore.getState().user;
-            const updatedUser = { 
-              ...currentUser, 
-              onboarded: true, 
-              hasCompletedOnboarding: true, 
-              onboarding_completed: true,
-              onboardingCompleted: true,
-              needsOnboarding: false,
-              needs_onboarding: false,
-              nextRoute: "/dashboard" 
-            };
-            useStore.setState({ user: updatedUser });
-
-            const activeUser = useStore.getState().user || updatedUser;
+            const activeUser = useStore.getState().user;
             const uid = firebaseUser?.uid || activeUser?.id || "";
             const seenIntro = hasSeenAppIntro(uid, activeUser);
             const targetRoute = seenIntro ? "/dashboard" : "/intro";

@@ -1,7 +1,6 @@
 // src/constants/index.ts
 
-export const BACKEND_URL =
-  import.meta.env.VITE_BACKEND_URL || "https://oneday-backend-xocv.onrender.com";
+export const BACKEND_URL = "";
 
 export const QUOTE_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
@@ -19,3 +18,4 @@ export const DEFAULT_HABIT_COLORS = [
 ];
 
 export const APP_NAME = "OneDay";
+console.log('Constants loaded');

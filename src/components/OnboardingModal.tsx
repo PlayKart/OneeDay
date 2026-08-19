@@ -7,7 +7,7 @@ import {
 import { useStore } from '../store/useStore';
 import { User } from '../types';
 import { toast } from 'react-hot-toast';
-import { VALID_GENDERS, normalizeGenderValue, countWords } from '../utils';
+import { VALID_GENDERS, normalizeGenderValue, countWords, getOnboardingStatus } from '../utils';
 
 const HOBBIES_LIST = [
   "Reading", "Coding", "Fitness", "Writing", "Meditation", 
@@ -159,8 +159,9 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
   const [isCompletedState, setIsCompletedState] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Real-time word count for Why OneDay question
-  const wordCount = useMemo(() => countWords(whyOneday), [whyOneday]);
+  // Real-time character count for Why OneDay question
+  const nonSpaceCharCount = useMemo(() => whyOneday.replace(/\s/g, '').length, [whyOneday]);
+  const totalCharCount = useMemo(() => whyOneday.length, [whyOneday]);
 
   // Save current step to localStorage
   useEffect(() => {
@@ -279,8 +280,9 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
         // Optional step but has a limit
         return sports.length <= 5;
       case 6: {
-        const count = countWords(whyOneday);
-        return count >= 5 && count <= 500;
+        const nonSpaceCount = (whyOneday || "").replace(/\s/g, '').length;
+        const totalCount = (whyOneday || "").length;
+        return nonSpaceCount >= 5 && totalCount <= 500;
       }
       default:
         return true;
@@ -321,11 +323,12 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
       if (step === 3) toast.error("Please select a gender option.");
       if (step === 5) toast.error("Maximum 5 favorite sports allowed.");
       if (step === 6) {
-        const count = countWords(whyOneday);
-        if (count < 5) {
-          toast.error("Please write at least 5 words.");
-        } else if (count > 500) {
-          toast.error("Please keep your answer within 500 words.");
+        const nonSpaceCount = whyOneday.replace(/\s/g, '').length;
+        const totalCount = whyOneday.length;
+        if (nonSpaceCount < 5) {
+          toast.error("Please enter at least 5 characters.");
+        } else if (totalCount > 500) {
+          toast.error("Please keep your response under 500 characters.");
         }
       }
       return;
@@ -370,24 +373,26 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
       }
 
       const cleanWhyOneday = (whyOneday || "").trim();
-      const count = countWords(cleanWhyOneday);
-      const isValid = count >= 5 && count <= 500;
+      const nonSpaceCount = cleanWhyOneday.replace(/\s/g, '').length;
+      const totalCount = cleanWhyOneday.length;
+      const isValid = nonSpaceCount >= 5 && totalCount <= 500;
 
       // Log Step 6 submission info
       console.log("[ONBOARDING SUBMIT]", {
         why_oneday: cleanWhyOneday,
-        wordCount: count,
+        nonSpaceCount,
+        totalCount,
         isValid,
       });
 
-      if (count < 5) {
-        toast.error("Please write at least 5 words.");
+      if (nonSpaceCount < 5) {
+        toast.error("Please enter at least 5 characters.");
         setSaving(false);
         return;
       }
 
-      if (count > 500) {
-        toast.error("Please keep your answer within 500 words.");
+      if (totalCount > 500) {
+        toast.error("Please keep your response under 500 characters.");
         setSaving(false);
         return;
       }
@@ -428,14 +433,9 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
         await refreshFromBackend();
       }
 
-      // 3. Confirm onboarding_completed = true (or equivalent) from refreshed profile
+      // 3. Confirm onboarded = true strictly from refreshed backend profile
       const refreshedUser = useStore.getState().user;
-      const isConfirmedOnboarded = refreshedUser?.needsOnboarding === false ||
-                                   refreshedUser?.needs_onboarding === false ||
-                                   refreshedUser?.onboarding_completed === true || 
-                                   refreshedUser?.onboardingCompleted === true || 
-                                   refreshedUser?.onboarded === true ||
-                                   refreshedUser?.hasCompletedOnboarding === true;
+      const isConfirmedOnboarded = getOnboardingStatus(refreshedUser) === true;
 
       console.log("[ONBOARDING] Confirmed onboarded status from backend refresh:", isConfirmedOnboarded);
 
@@ -806,7 +806,7 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
                   <div className="space-y-2">
                     <span className="text-[10px] font-black uppercase tracking-[0.25em] text-indigo-400">Purpose & Commitment</span>
                     <h2 className="text-2xl font-black text-white tracking-tight">Why did you choose OneDay?</h2>
-                    <p className="text-slate-400 text-xs">Declare your core intention and commitment (5 – 500 words).</p>
+                    <p className="text-slate-400 text-xs">Declare your core intention and commitment (5 – 500 characters).</p>
                   </div>
 
                   <div className="space-y-2">
@@ -821,15 +821,15 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
                     </div>
                     <div className="flex items-center justify-between px-1">
                       <div>
-                        {wordCount === 0 ? (
-                          <span className="text-[11px] text-slate-500 font-medium">Please write at least 5 words.</span>
-                        ) : wordCount < 5 ? (
+                        {nonSpaceCharCount === 0 ? (
+                          <span className="text-[11px] text-slate-500 font-medium">Please enter at least 5 characters.</span>
+                        ) : nonSpaceCharCount < 5 ? (
                           <span className="text-[11px] text-amber-400 font-medium">
-                            {5 - wordCount} more word{5 - wordCount === 1 ? "" : "s"} needed (minimum 5)
+                            {5 - nonSpaceCharCount} more character{5 - nonSpaceCharCount === 1 ? "" : "s"} needed (minimum 5)
                           </span>
-                        ) : wordCount > 500 ? (
+                        ) : totalCharCount > 500 ? (
                           <span className="text-[11px] text-rose-400 font-bold">
-                            Please keep your answer within 500 words ({wordCount - 500} over)
+                            Please keep your response under 500 characters ({totalCharCount - 500} over)
                           </span>
                         ) : (
                           <span className="text-[11px] text-emerald-400 font-medium flex items-center gap-1">
@@ -839,14 +839,14 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
                       </div>
                       <div
                         className={`text-xs font-bold uppercase tracking-wider ${
-                          wordCount > 500
+                          totalCharCount > 500
                             ? "text-rose-400 font-extrabold"
-                            : wordCount >= 5
+                            : nonSpaceCharCount >= 5
                             ? "text-slate-300"
                             : "text-slate-500"
                         }`}
                       >
-                        {wordCount} / 500 words
+                        {totalCharCount} / 500 chars
                       </div>
                     </div>
                   </div>

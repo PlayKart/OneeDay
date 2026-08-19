@@ -36,46 +36,47 @@ export function safeArray<T>(val: any): T[] {
   return [];
 }
 
-export function hasCompletedOnboarding(u: any): boolean {
-  if (!u) return false;
+/**
+ * Authoritative helper to determine onboarding status strictly from backend profile state.
+ * Returns:
+ *   true  -> onboarded === true (completed)
+ *   false -> onboarded === false (needs onboarding)
+ *   null  -> onboarded is unknown / undefined / null (profile still loading)
+ * 
+ * IMPORTANT: Never interpret undefined/null as false.
+ */
+export function getOnboardingStatus(u: any): boolean | null {
+  if (!u) return null;
 
-  // Prioritize needsOnboarding or needs_onboarding
-  if (u.needsOnboarding === false || u.needsOnboarding === "false") return true;
-  if (u.needs_onboarding === false || u.needs_onboarding === "false") return true;
-  if (u.needsOnboarding === true || u.needsOnboarding === "true") return false;
-  if (u.needs_onboarding === true || u.needs_onboarding === "true") return false;
-
-  // Fallback to onboarding_completed / onboardingCompleted / onboarded / hasCompletedOnboarding
-  if (u.onboarding_completed === true || u.onboarding_completed === "true") return true;
-  if (u.onboardingCompleted === true || u.onboardingCompleted === "true") return true;
-  if (u.hasCompletedOnboarding === true || u.hasCompletedOnboarding === "true") return true;
+  // Direct authoritative check on onboarded field
   if (u.onboarded === true || u.onboarded === "true") return true;
+  if (u.onboarded === false || u.onboarded === "false") return false;
 
-  if (u.nextRoute === "/dashboard") return true;
-  if (typeof u.onboardingStep === "number" && u.onboardingStep >= 6) return true;
-  if (typeof u.onboarding_step === "number" && u.onboarding_step >= 6) return true;
+  // Check alternative authoritative backend fields
+  if (u.hasCompletedOnboarding === true || u.hasCompletedOnboarding === "true") return true;
+  if (u.hasCompletedOnboarding === false || u.hasCompletedOnboarding === "false") return false;
 
-  return false;
+  if (u.onboarding_completed === true || u.onboarding_completed === "true") return true;
+  if (u.onboarding_completed === false || u.onboarding_completed === "false") return false;
+
+  if (u.onboardingCompleted === true || u.onboardingCompleted === "true") return true;
+  if (u.onboardingCompleted === false || u.onboardingCompleted === "false") return false;
+
+  if (u.needsOnboarding === false || u.needsOnboarding === "false" || u.needs_onboarding === false || u.needs_onboarding === "false") return true;
+  if (u.needsOnboarding === true || u.needsOnboarding === "true" || u.needs_onboarding === true || u.needs_onboarding === "true") return false;
+
+  // Return null when onboarding state is unknown/undefined/null
+  return null;
+}
+
+export function hasCompletedOnboarding(u: any): boolean | null {
+  return getOnboardingStatus(u);
 }
 
 function isUserOnboarded(rawUser: any): boolean | undefined {
-  if (!rawUser) return undefined;
-
-  if (rawUser.needsOnboarding === false || rawUser.needsOnboarding === "false") return true;
-  if (rawUser.needs_onboarding === false || rawUser.needs_onboarding === "false") return true;
-  if (rawUser.needsOnboarding === true || rawUser.needsOnboarding === "true") return false;
-  if (rawUser.needs_onboarding === true || rawUser.needs_onboarding === "true") return false;
-
-  if (rawUser.onboarding_completed === true || rawUser.onboarding_completed === "true") return true;
-  if (rawUser.onboardingCompleted === true || rawUser.onboardingCompleted === "true") return true;
-  if (rawUser.hasCompletedOnboarding === true || rawUser.hasCompletedOnboarding === "true") return true;
-  if (rawUser.onboarded === true || rawUser.onboarded === "true") return true;
-
-  if (rawUser.nextRoute === "/dashboard") return true;
-  if (typeof rawUser.onboardingStep === "number" && rawUser.onboardingStep >= 6) return true;
-  if (typeof rawUser.onboarding_step === "number" && rawUser.onboarding_step >= 6) return true;
-
-  return undefined;
+  const status = getOnboardingStatus(rawUser);
+  if (status === null) return undefined;
+  return status;
 }
 
 /**
@@ -205,7 +206,7 @@ export function normalizeUser(u: any, existingUser?: User | null): User {
   const rawUser = u.user || u.data?.user || u.data || u;
 
   const rawOnboarded = isUserOnboarded(rawUser);
-  const isCompleted = rawOnboarded !== undefined ? rawOnboarded : false;
+  const isCompleted = rawOnboarded !== undefined ? rawOnboarded : (existingUser?.onboarded !== undefined ? existingUser.onboarded : undefined);
 
   let finalXp = existingUser?.xp ?? 0;
   if (typeof xpVal === "number") {

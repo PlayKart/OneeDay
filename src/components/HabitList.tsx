@@ -8,6 +8,21 @@ import { EditHabitModal } from './EditHabitModal';
 import { getHabitIconComponent, getHabitColorTheme } from '../lib/habitIcons';
 import { getXpForDifficulty, extractXpAwarded, toDisplayDifficulty } from '../utils';
 
+
+const getBorderClass = (id: string) => {
+  const map: Record<string, string> = {
+    emerald: "border-l-emerald-500",
+    cyan: "border-l-cyan-500",
+    blue: "border-l-blue-500",
+    purple: "border-l-purple-500",
+    rose: "border-l-rose-500",
+    amber: "border-l-amber-500",
+    orange: "border-l-orange-500",
+    indigo: "border-l-indigo-500",
+  };
+  return map[id] || "border-l-slate-500";
+};
+
 export const HabitList = ({ previewMode = false, onCreateClick }: { previewMode?: boolean; onCreateClick?: () => void }) => {
   const { habits, completeHabit, undoHabit, deleteHabit, refreshFromBackend, loading, pendingHabitIds } = useStore();
   
@@ -127,10 +142,10 @@ export const HabitList = ({ previewMode = false, onCreateClick }: { previewMode?
           <motion.div 
             layout
             key={habit.id}
-            className={`p-4 rounded-2xl flex items-center justify-between group transition-all duration-300 border ${
+            className={`p-4 rounded-3xl flex items-center justify-between group transition-all duration-300 border-y border-r ${
               habit.completedToday 
-                ? 'bg-white/5 border-white/10 opacity-60' 
-                : 'bg-white/[0.03] border-white/5 hover:bg-white/[0.08] hover:border-white/20'
+                ? 'bg-white/5 border-white/10 opacity-60 border-l-4 border-l-white/20' 
+                : `bg-white/[0.03] border-white/5 hover:bg-white/[0.08] hover:border-white/20 hover:-translate-y-1 hover:shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5)] border-l-4 ${getBorderClass(colorTheme.id || 'emerald')}`
             }`}
           >
             <div className="flex items-center gap-3.5 min-w-0 pr-2">
@@ -207,8 +222,8 @@ export const HabitList = ({ previewMode = false, onCreateClick }: { previewMode?
                   isPending
                     ? 'bg-white/10 text-white cursor-wait border border-white/20'
                     : habit.completedToday 
-                      ? 'bg-white text-black hover:bg-red-500 hover:text-white border border-transparent' 
-                      : (isToday ? 'bg-white/5 border border-white/10 group-hover:border-white/30 text-white/30 sm:text-transparent sm:hover:text-white' : 'bg-white/5 border border-white/5 opacity-50 cursor-not-allowed')
+                      ? 'bg-emerald-500 text-black hover:bg-red-500 hover:text-white border border-transparent shadow-[0_0_20px_rgba(16,185,129,0.4)]' 
+                      : (isToday ? 'bg-white/5 border border-white/10 hover:border-white/30 hover:bg-white/10 text-white/30 hover:text-white transition-colors' : 'bg-white/5 border border-white/5 opacity-50 cursor-not-allowed')
                 }`}
               >
                 {isPending ? (
