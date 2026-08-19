@@ -1,9 +1,8 @@
 import { Habit } from "../types";
 import { safeArray } from "../utils";
-import { auth } from "../lib/firebase";
-import { getFirestore, collection, query, where, getDocs, doc, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
-
-const db = getFirestore();
+import { auth, db } from "../lib/firebase";
+import { collection, query, where, getDocs, doc, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import { handleFirestoreError, OperationType } from "../lib/firestoreErrors";
 
 function normalizeCompletedDates(dates: any): string[] {
   if (!dates) return [];
@@ -17,40 +16,44 @@ export const habitService = {
     const fbUser = auth.currentUser;
     if (!fbUser) return [];
 
-    const habitsRef = collection(db, "habits");
-    const q = query(habitsRef, where("userId", "==", fbUser.uid));
-    const snapshot = await getDocs(q);
+    try {
+      const habitsRef = collection(db, "habits");
+      const q = query(habitsRef, where("userId", "==", fbUser.uid));
+      const snapshot = await getDocs(q);
 
-    const today = new Date().toISOString().split("T")[0];
-    
-    // Also fetch completions
-    const completionsRef = collection(db, "completions");
-    const compQ = query(completionsRef, where("userId", "==", fbUser.uid));
-    const compSnapshot = await getDocs(compQ);
-    const completions = compSnapshot.docs.map(d => d.data());
-
-    return snapshot.docs.map(docSnap => {
-      const h = docSnap.data();
-      const id = docSnap.id;
+      const today = new Date().toISOString().split("T")[0];
       
-      const habitComps = completions.filter(c => c.habitId === id);
-      const completedDates = habitComps.map(c => c.date);
-      const finalCompletedToday = completedDates.includes(today);
+      // Also fetch completions
+      const completionsRef = collection(db, "completions");
+      const compQ = query(completionsRef, where("userId", "==", fbUser.uid));
+      const compSnapshot = await getDocs(compQ);
+      const completions = compSnapshot.docs.map(d => d.data());
 
-      return {
-        id: String(id),
-        name: h.title || h.name || "Unnamed Habit",
-        completedToday: finalCompletedToday,
-        completedDates: completedDates,
-        repeatType: h.repeatType || h.repeat_type || "every_day",
-        customDays: safeArray<string>(h.customDays || h.custom_days),
-        difficulty: h.difficulty || "Medium",
-        notes: h.notes ?? h.description ?? "",
-        icon: h.icon || "dumbbell",
-        category: h.category || h.color || "emerald",
-        reminderTime: h.reminderTime || h.reminder_time || "",
-      };
-    });
+      return snapshot.docs.map(docSnap => {
+        const h = docSnap.data();
+        const id = docSnap.id;
+        
+        const habitComps = completions.filter(c => c.habitId === id);
+        const completedDates = habitComps.map(c => c.date);
+        const finalCompletedToday = completedDates.includes(today);
+
+        return {
+          id: String(id),
+          name: h.title || h.name || "Unnamed Habit",
+          completedToday: finalCompletedToday,
+          completedDates: completedDates,
+          repeatType: h.repeatType || h.repeat_type || "every_day",
+          customDays: safeArray<string>(h.customDays || h.custom_days),
+          difficulty: h.difficulty || "Medium",
+          notes: h.notes ?? h.description ?? "",
+          icon: h.icon || "dumbbell",
+          category: h.category || h.color || "emerald",
+          reminderTime: h.reminderTime || h.reminder_time || "",
+        };
+      });
+    } catch (err) {
+      handleFirestoreError(err, OperationType.LIST, "habits");
+    }
   },
 
   async createHabit(habitData: any): Promise<Habit> {
@@ -77,22 +80,26 @@ export const habitService = {
       createdAt: new Date().toISOString()
     };
 
-    const newDocRef = doc(collection(db, "habits"));
-    await setDoc(newDocRef, payload);
+    try {
+      const newDocRef = doc(collection(db, "habits"));
+      await setDoc(newDocRef, payload);
 
-    return {
-      id: newDocRef.id,
-      name: payload.name,
-      completedToday: false,
-      completedDates: [],
-      repeatType: payload.repeatType,
-      customDays: payload.customDays,
-      difficulty: payload.difficulty,
-      notes: payload.notes,
-      icon: payload.icon,
-      category: payload.category,
-      reminderTime: payload.reminderTime,
-    };
+      return {
+        id: newDocRef.id,
+        name: payload.name,
+        completedToday: false,
+        completedDates: [],
+        repeatType: payload.repeatType,
+        customDays: payload.customDays,
+        difficulty: payload.difficulty,
+        notes: payload.notes,
+        icon: payload.icon,
+        category: payload.category,
+        reminderTime: payload.reminderTime,
+      };
+    } catch (err) {
+      handleFirestoreError(err, OperationType.CREATE, "habits");
+    }
   },
 
   async updateHabit(habitId: string, habitData: Partial<Habit>): Promise<Habit> {
@@ -109,16 +116,24 @@ export const habitService = {
     if (habitData.category) { payload.category = habitData.category; payload.color = habitData.category; }
     if (habitData.reminderTime !== undefined) payload.reminderTime = habitData.reminderTime;
 
-    const docRef = doc(db, "habits", habitId);
-    await updateDoc(docRef, payload);
+    const docPath = `habits/${habitId}`;
+    try {
+      const docRef = doc(db, "habits", habitId);
+      await updateDoc(docRef, payload);
 
-    // Return mock updated habit, frontend will refresh
-    return { id: habitId, ...payload } as any;
+      return { id: habitId, ...payload } as any;
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, docPath);
+    }
   },
 
   async deleteHabit(habitId: string): Promise<void> {
-    await deleteDoc(doc(db, "habits", habitId));
-    // also delete completions (omitted for brevity, or we can just ignore since they're orphaned)
+    const docPath = `habits/${habitId}`;
+    try {
+      await deleteDoc(doc(db, "habits", habitId));
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, docPath);
+    }
   },
 
   async completeHabit(habitId: string): Promise<any> {
@@ -126,13 +141,18 @@ export const habitService = {
     if (!fbUser) throw new Error("Not authenticated");
     const today = new Date().toISOString().split("T")[0];
     const compId = `${fbUser.uid}_${habitId}_${today}`;
-    await setDoc(doc(db, "completions", compId), {
-      userId: fbUser.uid,
-      habitId: habitId,
-      date: today,
-      timestamp: new Date().toISOString()
-    });
-    return { success: true };
+    const docPath = `completions/${compId}`;
+    try {
+      await setDoc(doc(db, "completions", compId), {
+        userId: fbUser.uid,
+        habitId: habitId,
+        date: today,
+        timestamp: new Date().toISOString()
+      });
+      return { success: true };
+    } catch (err) {
+      handleFirestoreError(err, OperationType.CREATE, docPath);
+    }
   },
 
   async undoHabit(habitId: string): Promise<any> {
@@ -140,7 +160,12 @@ export const habitService = {
     if (!fbUser) throw new Error("Not authenticated");
     const today = new Date().toISOString().split("T")[0];
     const compId = `${fbUser.uid}_${habitId}_${today}`;
-    await deleteDoc(doc(db, "completions", compId));
-    return { success: true };
+    const docPath = `completions/${compId}`;
+    try {
+      await deleteDoc(doc(db, "completions", compId));
+      return { success: true };
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, docPath);
+    }
   },
 };

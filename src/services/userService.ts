@@ -1,17 +1,17 @@
 import { User } from "../types";
 import { normalizeUser, hasCompletedOnboarding, normalizeGenderValue } from "../utils";
 import { useStore } from "../store/useStore";
-import { auth } from "../lib/firebase";
-import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
-
-const db = getFirestore();
+import { auth, db } from "../lib/firebase";
+import { doc, getDoc, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import { handleFirestoreError, OperationType } from "../lib/firestoreErrors";
 
 export const userService = {
   async getUserProfile(existingUser?: User): Promise<User> {
-    try {
-      const fbUser = auth.currentUser;
-      if (!fbUser) throw new Error("Not authenticated");
+    const fbUser = auth.currentUser;
+    if (!fbUser) throw new Error("Not authenticated");
 
+    const docPath = `users/${fbUser.uid}`;
+    try {
       const docRef = doc(db, "users", fbUser.uid);
       const docSnap = await getDoc(docRef);
 
@@ -45,7 +45,7 @@ export const userService = {
       }
     } catch (err: any) {
       console.error("[SYNC ERROR]", err);
-      throw err;
+      handleFirestoreError(err, OperationType.GET, docPath);
     }
   },
 
@@ -65,29 +65,38 @@ export const userService = {
       data.reasonForJoining = cleanWhy;
     }
 
+    const docPath = `users/${fbUser.uid}`;
     const docRef = doc(db, "users", fbUser.uid);
-    const docSnap = await getDoc(docRef);
-    
     data.updatedAt = new Date().toISOString();
 
-    if (docSnap.exists()) {
-      await updateDoc(docRef, data);
-    } else {
-      await setDoc(docRef, { ...data, uid: fbUser.uid, createdAt: new Date().toISOString() }, { merge: true });
-    }
+    try {
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        await updateDoc(docRef, data);
+      } else {
+        await setDoc(docRef, { ...data, uid: fbUser.uid, email: fbUser.email || "", createdAt: new Date().toISOString() }, { merge: true });
+      }
 
-    const updatedSnap = await getDoc(docRef);
-    return normalizeUser({ ...updatedSnap.data(), id: fbUser.uid }, useStore.getState().user || undefined);
+      const updatedSnap = await getDoc(docRef);
+      return normalizeUser({ ...updatedSnap.data(), id: fbUser.uid }, useStore.getState().user || undefined);
+    } catch (err: any) {
+      handleFirestoreError(err, OperationType.WRITE, docPath);
+    }
   },
 
   async getOnboardingStep(): Promise<number> {
     const fbUser = auth.currentUser;
     if (!fbUser) return 1;
-    const docSnap = await getDoc(doc(db, "users", fbUser.uid));
-    if (docSnap.exists()) {
-      return docSnap.data().onboardingStep || 1;
+    const docPath = `users/${fbUser.uid}`;
+    try {
+      const docSnap = await getDoc(doc(db, "users", fbUser.uid));
+      if (docSnap.exists()) {
+        return docSnap.data().onboardingStep || 1;
+      }
+      return 1;
+    } catch (err) {
+      handleFirestoreError(err, OperationType.GET, docPath);
     }
-    return 1;
   },
 
   async updateOnboardingStep(step: number): Promise<User> {
@@ -107,13 +116,23 @@ export const userService = {
   async resetProgress(): Promise<void> {
     const fbUser = auth.currentUser;
     if (!fbUser) return;
-    await updateDoc(doc(db, "users", fbUser.uid), { xp: 0, level: 1, streak: 0 });
+    const docPath = `users/${fbUser.uid}`;
+    try {
+      await updateDoc(doc(db, "users", fbUser.uid), { xp: 0, level: 1, streak: 0 });
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, docPath);
+    }
   },
 
   async deleteAccount(): Promise<void> {
     const fbUser = auth.currentUser;
     if (!fbUser) return;
-    await deleteDoc(doc(db, "users", fbUser.uid));
-    await fbUser.delete();
+    const docPath = `users/${fbUser.uid}`;
+    try {
+      await deleteDoc(doc(db, "users", fbUser.uid));
+      await fbUser.delete();
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, docPath);
+    }
   },
 };
