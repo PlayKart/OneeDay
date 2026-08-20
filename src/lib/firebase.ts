@@ -12,6 +12,7 @@ const firebaseConfig = {
   firestoreDatabaseId: import.meta.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID || "ai-studio-da5d5bdc-b58b-4b95-8ea7-d2a02951c76d"
 };
 
+console.log("[FIREBASE INIT] Initializing Firebase App with Project ID:", firebaseConfig.projectId);
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
@@ -20,4 +21,5 @@ export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 setPersistence(auth, browserLocalPersistence).catch((err) => {
   console.warn("[AUTH] Failed to set Firebase persistence:", err);
 });
+
 

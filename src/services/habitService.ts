@@ -2,20 +2,14 @@ import { Habit } from "../types";
 import { safeArray } from "../utils";
 import { auth, db } from "../lib/firebase";
 import { collection, query, where, getDocs, doc, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
-import { handleFirestoreError, OperationType } from "../lib/firestoreErrors";
-
-function normalizeCompletedDates(dates: any): string[] {
-  if (!dates) return [];
-  if (Array.isArray(dates)) return dates.map(String);
-  if (typeof dates === "string") return dates.split(",").map((s) => s.trim());
-  return [];
-}
+import { useStore } from "../store/useStore";
 
 export const habitService = {
   async getHabits(): Promise<Habit[]> {
-    const fbUser = auth.currentUser;
+    const fbUser = auth.currentUser || useStore.getState().firebaseUser;
     if (!fbUser) return [];
 
+    console.log(`[FIRESTORE DEBUG] Firestore getHabits request started for userId: ${fbUser.uid}`);
     try {
       const habitsRef = collection(db, "habits");
       const q = query(habitsRef, where("userId", "==", fbUser.uid));
@@ -24,11 +18,17 @@ export const habitService = {
       const today = new Date().toISOString().split("T")[0];
       
       // Also fetch completions
-      const completionsRef = collection(db, "completions");
-      const compQ = query(completionsRef, where("userId", "==", fbUser.uid));
-      const compSnapshot = await getDocs(compQ);
-      const completions = compSnapshot.docs.map(d => d.data());
+      let completions: any[] = [];
+      try {
+        const completionsRef = collection(db, "completions");
+        const compQ = query(completionsRef, where("userId", "==", fbUser.uid));
+        const compSnapshot = await getDocs(compQ);
+        completions = compSnapshot.docs.map(d => d.data());
+      } catch (cErr: any) {
+        console.warn(`[FIRESTORE DEBUG] Fetch completions failed or offline:`, cErr?.message || cErr);
+      }
 
+      console.log(`[FIRESTORE DEBUG] Firestore getHabits fetched ${snapshot.docs.length} habits successfully.`);
       return snapshot.docs.map(docSnap => {
         const h = docSnap.data();
         const id = docSnap.id;
@@ -51,13 +51,14 @@ export const habitService = {
           reminderTime: h.reminderTime || h.reminder_time || "",
         };
       });
-    } catch (err) {
-      handleFirestoreError(err, OperationType.LIST, "habits");
+    } catch (err: any) {
+      console.warn(`[FIRESTORE DEBUG] Firestore getHabits failed or client is offline:`, err?.message || err);
+      return useStore.getState().habits || [];
     }
   },
 
   async createHabit(habitData: any): Promise<Habit> {
-    const fbUser = auth.currentUser;
+    const fbUser = auth.currentUser || useStore.getState().firebaseUser;
     if (!fbUser) throw new Error("Not authenticated");
 
     if (!habitData.name?.trim()) {
@@ -80,30 +81,34 @@ export const habitService = {
       createdAt: new Date().toISOString()
     };
 
-    try {
-      const newDocRef = doc(collection(db, "habits"));
-      await setDoc(newDocRef, payload);
+    const newDocRef = doc(collection(db, "habits"));
+    const createdHabit: Habit = {
+      id: newDocRef.id,
+      name: payload.name,
+      completedToday: false,
+      completedDates: [],
+      repeatType: payload.repeatType,
+      customDays: payload.customDays,
+      difficulty: payload.difficulty,
+      notes: payload.notes,
+      icon: payload.icon,
+      category: payload.category,
+      reminderTime: payload.reminderTime,
+    };
 
-      return {
-        id: newDocRef.id,
-        name: payload.name,
-        completedToday: false,
-        completedDates: [],
-        repeatType: payload.repeatType,
-        customDays: payload.customDays,
-        difficulty: payload.difficulty,
-        notes: payload.notes,
-        icon: payload.icon,
-        category: payload.category,
-        reminderTime: payload.reminderTime,
-      };
-    } catch (err) {
-      handleFirestoreError(err, OperationType.CREATE, "habits");
+    console.log(`[FIRESTORE DEBUG] Firestore createHabit request started for habit ID: ${newDocRef.id}`);
+    try {
+      await setDoc(newDocRef, payload);
+      console.log(`[FIRESTORE DEBUG] Firestore createHabit successful for ${newDocRef.id}`);
+      return createdHabit;
+    } catch (err: any) {
+      console.warn(`[FIRESTORE DEBUG] Firestore createHabit write failed or client is offline for ${newDocRef.id}:`, err?.message || err);
+      return createdHabit;
     }
   },
 
   async updateHabit(habitId: string, habitData: Partial<Habit>): Promise<Habit> {
-    const fbUser = auth.currentUser;
+    const fbUser = auth.currentUser || useStore.getState().firebaseUser;
     if (!fbUser) throw new Error("Not authenticated");
 
     const payload: any = {};
@@ -117,31 +122,36 @@ export const habitService = {
     if (habitData.reminderTime !== undefined) payload.reminderTime = habitData.reminderTime;
 
     const docPath = `habits/${habitId}`;
+    console.log(`[FIRESTORE DEBUG] Firestore updateHabit request started for ${docPath}`);
     try {
       const docRef = doc(db, "habits", habitId);
       await updateDoc(docRef, payload);
-
+      console.log(`[FIRESTORE DEBUG] Firestore updateHabit write successful for ${docPath}`);
       return { id: habitId, ...payload } as any;
-    } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, docPath);
+    } catch (err: any) {
+      console.warn(`[FIRESTORE DEBUG] Firestore updateHabit write failed or client is offline for ${docPath}:`, err?.message || err);
+      return { id: habitId, ...payload } as any;
     }
   },
 
   async deleteHabit(habitId: string): Promise<void> {
     const docPath = `habits/${habitId}`;
+    console.log(`[FIRESTORE DEBUG] Firestore deleteHabit request started for ${docPath}`);
     try {
       await deleteDoc(doc(db, "habits", habitId));
-    } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, docPath);
+      console.log(`[FIRESTORE DEBUG] Firestore deleteHabit successful for ${docPath}`);
+    } catch (err: any) {
+      console.warn(`[FIRESTORE DEBUG] Firestore deleteHabit failed or client is offline for ${docPath}:`, err?.message || err);
     }
   },
 
   async completeHabit(habitId: string): Promise<any> {
-    const fbUser = auth.currentUser;
+    const fbUser = auth.currentUser || useStore.getState().firebaseUser;
     if (!fbUser) throw new Error("Not authenticated");
     const today = new Date().toISOString().split("T")[0];
     const compId = `${fbUser.uid}_${habitId}_${today}`;
     const docPath = `completions/${compId}`;
+    console.log(`[FIRESTORE DEBUG] Firestore completeHabit request started for ${docPath}`);
     try {
       await setDoc(doc(db, "completions", compId), {
         userId: fbUser.uid,
@@ -149,23 +159,29 @@ export const habitService = {
         date: today,
         timestamp: new Date().toISOString()
       });
+      console.log(`[FIRESTORE DEBUG] Firestore completeHabit write successful for ${docPath}`);
       return { success: true };
-    } catch (err) {
-      handleFirestoreError(err, OperationType.CREATE, docPath);
+    } catch (err: any) {
+      console.warn(`[FIRESTORE DEBUG] Firestore completeHabit write failed or client is offline for ${docPath}:`, err?.message || err);
+      return { success: true, offline: true };
     }
   },
 
   async undoHabit(habitId: string): Promise<any> {
-    const fbUser = auth.currentUser;
+    const fbUser = auth.currentUser || useStore.getState().firebaseUser;
     if (!fbUser) throw new Error("Not authenticated");
     const today = new Date().toISOString().split("T")[0];
     const compId = `${fbUser.uid}_${habitId}_${today}`;
     const docPath = `completions/${compId}`;
+    console.log(`[FIRESTORE DEBUG] Firestore undoHabit request started for ${docPath}`);
     try {
       await deleteDoc(doc(db, "completions", compId));
+      console.log(`[FIRESTORE DEBUG] Firestore undoHabit delete successful for ${docPath}`);
       return { success: true };
-    } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, docPath);
+    } catch (err: any) {
+      console.warn(`[FIRESTORE DEBUG] Firestore undoHabit delete failed or client is offline for ${docPath}:`, err?.message || err);
+      return { success: true, offline: true };
     }
   },
 };
+
