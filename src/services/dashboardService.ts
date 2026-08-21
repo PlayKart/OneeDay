@@ -4,7 +4,7 @@ import { userService } from "./userService";
 import { habitService } from "./habitService";
 import { quoteService } from "./quoteService";
 import { User, Habit, Statistics, Achievement, NotificationItem } from "../types";
-import { safeArray, calculateStreak } from "../utils";
+import { calculateStreak } from "../utils";
 
 export interface DashboardData {
   user: User;
@@ -17,11 +17,14 @@ export interface DashboardData {
 
 export const dashboardService = {
   async fetchDashboardData(): Promise<DashboardData> {
-    const [userRes, habitsRes, quoteRes] = await Promise.all([
+    // 1. Parallel loading of essential account state & habits
+    const [userRes, habitsRes] = await Promise.all([
       userService.getUserProfile(),
       habitService.getHabits().catch(() => []),
-      quoteService.getQuote().catch(() => "Discipline makes it all."),
     ]);
+
+    // 2. Non-blocking quote fetch (uses cache/instant fallback)
+    const quoteRes = await quoteService.getQuote().catch(() => "Discipline makes it all.");
 
     const completedTodayCount = habitsRes.filter((h) => h.completedToday).length;
     const calculatedStreak = calculateStreak(habitsRes);
@@ -65,3 +68,4 @@ export const dashboardService = {
     };
   },
 };
+

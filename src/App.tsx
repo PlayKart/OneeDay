@@ -202,7 +202,6 @@ export default function App() {
 
     const handleFocus = () => {
       checkNewDayAndRefresh();
-      refreshFromBackend();
     };
 
     window.addEventListener("focus", handleFocus);

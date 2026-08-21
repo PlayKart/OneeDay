@@ -82,7 +82,6 @@ export function EditHabitModal({ habit, onClose }: EditHabitModalProps) {
 
     try {
       await editHabit(habit.id, payload);
-      await refreshFromBackend();
       toast.success("Habit updated successfully!");
       onClose();
     } catch (err: any) {
@@ -101,7 +100,6 @@ export function EditHabitModal({ habit, onClose }: EditHabitModalProps) {
     setIsDeleting(true);
     try {
       await deleteHabit(habit.id);
-      await refreshFromBackend();
       toast.success("Habit deleted successfully!");
       onClose();
     } catch (err: any) {

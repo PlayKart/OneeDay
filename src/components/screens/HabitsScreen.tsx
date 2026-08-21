@@ -1,10 +1,16 @@
 import { useStore } from "../../store/useStore";
 import { HabitList } from "../HabitList";
-import { useState } from "react";
-import { CreateHabitModal } from "../CreateHabitModal";
-import { Plus, ListFilter, BarChart3 } from "lucide-react";
+import { useState, lazy, Suspense } from "react";
+import { Plus, ListFilter, BarChart3, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { HabitTrendsView } from "../HabitTrendsView";
+
+const HabitTrendsView = lazy(() =>
+  import("../HabitTrendsView").then((m) => ({ default: m.HabitTrendsView }))
+);
+
+const CreateHabitModal = lazy(() =>
+  import("../CreateHabitModal").then((m) => ({ default: m.CreateHabitModal }))
+);
 
 export function HabitsScreen() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -68,7 +74,15 @@ export function HabitsScreen() {
         </section>
       ) : (
         <section className="mt-4">
-          <HabitTrendsView />
+          <Suspense
+            fallback={
+              <div className="flex items-center justify-center py-20 text-slate-500">
+                <Loader2 size={24} className="animate-spin text-white/40" />
+              </div>
+            }
+          >
+            <HabitTrendsView />
+          </Suspense>
         </section>
       )}
 
@@ -86,7 +100,9 @@ export function HabitsScreen() {
 
       <AnimatePresence>
         {isModalOpen && (
-          <CreateHabitModal onClose={() => setIsModalOpen(false)} />
+          <Suspense fallback={null}>
+            <CreateHabitModal onClose={() => setIsModalOpen(false)} />
+          </Suspense>
         )}
       </AnimatePresence>
     </motion.div>
@@ -94,4 +110,5 @@ export function HabitsScreen() {
 }
 
 export default HabitsScreen;
+
 

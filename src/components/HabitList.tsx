@@ -7,6 +7,7 @@ import { isHabitScheduledForToday, getScheduledDaysMessage } from '../lib/habitU
 import { EditHabitModal } from './EditHabitModal';
 import { getHabitIconComponent, getHabitColorTheme } from '../lib/habitIcons';
 import { getXpForDifficulty, extractXpAwarded, toDisplayDifficulty } from '../utils';
+import { perfLogger } from '../utils/perfLogger';
 
 
 const getBorderClass = (id: string) => {
@@ -71,7 +72,6 @@ export const HabitList = ({ previewMode = false, onCreateClick }: { previewMode?
     setIsDeleting(true);
     try {
       await deleteHabit(habit.id);
-      await refreshFromBackend();
       toast.success("Habit deleted successfully.");
       setDeleteConfirmationHabit(null);
     } catch (err: any) {
@@ -90,7 +90,6 @@ export const HabitList = ({ previewMode = false, onCreateClick }: { previewMode?
   const handleUndoCompletion = async (habit: Habit) => {
     try {
       const res = await undoHabit(habit.id);
-      await refreshFromBackend();
       const xp = extractXpAwarded(res, habit.difficulty);
       toast.success(`Completion undone (-${xp} XP)`);
     } catch (err: any) {
@@ -200,8 +199,10 @@ export const HabitList = ({ previewMode = false, onCreateClick }: { previewMode?
                     });
                   } else if (!loading) {
                     // Tap-and-Go Immediate completion for fluid responsiveness & game feel
+                    const tapStart = performance.now();
                     try {
                       const res = await completeHabit(habit.id);
+                      perfLogger.markHabitTap(habit.id, performance.now() - tapStart);
                       const xpAwarded = extractXpAwarded(res, habit.difficulty);
                       setFloatingXp(prev => ({ ...prev, [habit.id]: xpAwarded }));
                       toast.success(`+${xpAwarded} XP`);
@@ -209,6 +210,7 @@ export const HabitList = ({ previewMode = false, onCreateClick }: { previewMode?
                         navigator.vibrate([15, 30]);
                       }
                     } catch (e: any) {
+                      perfLogger.markHabitTap(habit.id, performance.now() - tapStart);
                       const errorMessage = e?.response?.data?.error || e?.message || "Failed to complete habit";
                       toast.error(errorMessage);
                     }

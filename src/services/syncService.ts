@@ -7,6 +7,7 @@ import { habitService } from "./habitService";
 import { useStore } from "../store/useStore";
 import { User, Habit } from "../types";
 import { normalizeUser, safeArray, calculateStreak, getLocalCalendarDate } from "../utils";
+import { perfLogger } from "../utils/perfLogger";
 
 export type SyncStatus = 'idle' | 'syncing' | 'success' | 'retrying' | 'error' | 'offline';
 
@@ -93,17 +94,24 @@ class SyncService {
       this.setStatus("offline");
     });
 
+    // Throttled visibility/focus sync: at most once every 60 seconds
+    const handleReengagement = () => {
+      if (typeof navigator !== "undefined" && navigator.onLine) {
+        const now = Date.now();
+        if (!this.lastSyncedAt || now - this.lastSyncedAt > 60000) {
+          this.scheduleBackgroundSync(2000);
+        }
+      }
+    };
+
     document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible" && navigator.onLine) {
-        console.log("[SYNC] Page visible. Triggering background sync...");
-        this.scheduleBackgroundSync(400);
+      if (document.visibilityState === "visible") {
+        handleReengagement();
       }
     });
 
     window.addEventListener("focus", () => {
-      if (navigator.onLine) {
-        this.scheduleBackgroundSync(400);
-      }
+      handleReengagement();
     });
   }
 
@@ -175,6 +183,7 @@ class SyncService {
     }
 
     this.setStatus("syncing");
+    perfLogger.mark("syncStart");
 
     const promise = (async () => {
       try {
@@ -250,6 +259,8 @@ class SyncService {
         });
 
         this.setStatus("success");
+        perfLogger.mark("syncEnd");
+        perfLogger.mark("habitsReady");
         return data;
       } catch (err: any) {
         console.error("[SYNC ERROR] syncUserData failed:", err?.message || err);
@@ -337,7 +348,6 @@ class SyncService {
         );
 
         this.setStatus("success");
-        this.scheduleBackgroundSync(1200);
         return res;
       } catch (err: any) {
         console.warn(`[SYNC] Network completion mutation failed for habit ${habitId}. Queueing offline mutation...`);
@@ -384,7 +394,6 @@ class SyncService {
           );
         }
         this.setStatus("success");
-        this.scheduleBackgroundSync(1200);
         return result;
       } catch (err) {
         this.setStatus("error", "Failed to save habit");
@@ -409,7 +418,6 @@ class SyncService {
         `updateProfile`
       );
       this.setStatus("success");
-      this.scheduleBackgroundSync(1000);
       return result;
     } catch (err) {
       this.setStatus("error", "Failed to update profile");

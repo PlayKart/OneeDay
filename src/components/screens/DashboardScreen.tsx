@@ -10,6 +10,7 @@ import { isHabitScheduledForToday } from "../../lib/habitUtils";
 import { getPersonalizedGreeting } from "../../utils/greetingUtils";
 import { getEquippedTitle } from "../../utils/titleUtils";
 import { calculateLevelProgress, calculateStreak } from "../../utils";
+import { perfLogger } from "../../utils/perfLogger";
 
 export function DashboardScreen() {
   const { user, habits, deactivateFreeze, setActiveTab } = useStore();
@@ -22,7 +23,9 @@ export function DashboardScreen() {
   const [showLevelUp, setShowLevelUp] = useState(false);
 
   useEffect(() => {
-    console.log(`[PERF] dashboard-ready: ${Math.round(performance.now())}ms`);
+    const elapsed = Math.round(performance.now());
+    console.log(`[PERF] dashboard-ready: ${elapsed}ms`);
+    perfLogger.mark("dashboardReady", elapsed);
   }, []);
 
   useEffect(() => {

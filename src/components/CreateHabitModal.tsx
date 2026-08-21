@@ -82,9 +82,6 @@ export function CreateHabitModal({ onClose }: CreateHabitModalProps) {
       // Requirement 4 & 10: Call backend endpoint via store
       await addHabit(payload);
 
-      // Requirement 8: Refresh habits list after successful save
-      await refreshFromBackend();
-
       // Requirement 6: Success toast notification
       toast.success("Habit saved successfully!");
 

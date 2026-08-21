@@ -13,6 +13,7 @@ import { safeArray, normalizeCompletedDates, normalizeUser, hasCompletedOnboardi
 import { isHabitScheduledForToday } from '../lib/habitUtils';
 import { isTitleNew, markTitleAsSeen, getTitleDescription, setEquippedTitle, getEquippedTitle } from '../utils/titleUtils';
 import { apiRequest } from '../api/client';
+import { perfLogger } from '../utils/perfLogger';
 import { 
   User as BackendUser, 
   Habit, 
@@ -155,6 +156,7 @@ export const useStore = create<StoreState>((set, get) => {
 
     const authDuration = Math.round(performance.now() - authStartTime);
     console.log(`[PERF] auth: ${authDuration}ms`);
+    perfLogger.mark("authReady", authDuration);
     console.log("[BOOT] auth initialization completed");
 
     if (fbUser) {
