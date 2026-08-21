@@ -69,10 +69,9 @@ export function DashboardScreen() {
     : "";
 
   const equippedTitle = getEquippedTitle(user);
-  const calculatedStreak = calculateStreak(safeHabits);
   const activeStreak = typeof user.currentStreak === "number" && !isNaN(user.currentStreak)
     ? user.currentStreak
-    : (typeof user.streak === "number" && !isNaN(user.streak) ? user.streak : calculatedStreak);
+    : (typeof user.streak === "number" && !isNaN(user.streak) ? user.streak : 0);
 
   const greeting = getPersonalizedGreeting({
     user, habits, completedTodayCount: completedToday, totalHabitsCount: totalHabits, isFrozen: Boolean(isFrozen),

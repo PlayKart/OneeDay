@@ -27,23 +27,25 @@ export const dashboardService = {
     const quoteRes = await quoteService.getQuote().catch(() => "Discipline makes it all.");
 
     const completedTodayCount = habitsRes.filter((h) => h.completedToday).length;
-    const calculatedStreak = calculateStreak(habitsRes);
+    const authoritativeStreak = typeof userRes.streak === "number"
+      ? userRes.streak
+      : (typeof userRes.currentStreak === "number" ? userRes.currentStreak : calculateStreak(habitsRes));
 
-    userRes.streak = calculatedStreak;
-    userRes.currentStreak = calculatedStreak;
+    userRes.streak = authoritativeStreak;
+    userRes.currentStreak = authoritativeStreak;
 
     const statistics: Statistics = {
       totalHabits: habitsRes.length,
       completedToday: completedTodayCount,
-      currentStreak: calculatedStreak,
-      longestStreak: Math.max(calculatedStreak, (userRes as any)?.longestStreak ?? 7),
+      currentStreak: authoritativeStreak,
+      longestStreak: Math.max(authoritativeStreak, (userRes as any)?.longestStreak ?? 7),
       completionRate: habitsRes.length > 0 ? Math.round((completedTodayCount / habitsRes.length) * 100) : 0,
       weeklyHistory: [],
     };
 
     const achievements: Achievement[] = [
       { id: "1", title: "First Step", description: "Complete your first habit", unlocked: completedTodayCount > 0 },
-      { id: "2", title: "Unstoppable", description: "Reach a 7-day streak", unlocked: calculatedStreak >= 7, progress: calculatedStreak, maxProgress: 7 },
+      { id: "2", title: "Unstoppable", description: "Reach a 7-day streak", unlocked: authoritativeStreak >= 7, progress: authoritativeStreak, maxProgress: 7 },
       { id: "3", title: "Master System", description: "Maintain 5 active habits", unlocked: habitsRes.length >= 5, progress: habitsRes.length, maxProgress: 5 },
     ];
 

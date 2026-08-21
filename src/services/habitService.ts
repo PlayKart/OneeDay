@@ -1,7 +1,7 @@
 import { Habit } from "../types";
-import { safeArray, getLocalCalendarDate } from "../utils";
+import { safeArray, getLocalCalendarDate, getPreviousCalendarDate } from "../utils";
 import { auth, db } from "../lib/firebase";
-import { collection, query, where, getDocs, doc, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, setDoc, updateDoc, deleteDoc, getDoc } from "firebase/firestore";
 import { useStore } from "../store/useStore";
 
 export const habitService = {
@@ -169,7 +169,44 @@ export const habitService = {
         timestamp: new Date().toISOString()
       });
       console.log(`[FIRESTORE DEBUG] Firestore completeHabit write successful for ${docPath}`);
-      return { success: true };
+
+      const userRef = doc(db, "users", fbUser.uid);
+      const userSnap = await getDoc(userRef);
+      const userData = userSnap.exists() ? userSnap.data() : {};
+
+      const currentStreak = typeof userData.streak === "number" ? userData.streak : (typeof userData.currentStreak === "number" ? userData.currentStreak : 0);
+      const lastActiveDate = userData.lastActiveDate || userData.last_active_date;
+
+      let newStreak = currentStreak;
+      if (lastActiveDate !== today) {
+        const yesterday = getPreviousCalendarDate(today);
+        if (lastActiveDate === yesterday && currentStreak > 0) {
+          newStreak = currentStreak + 1;
+        } else {
+          newStreak = 1;
+        }
+      } else {
+        newStreak = Math.max(1, currentStreak);
+      }
+
+      await setDoc(userRef, {
+        streak: newStreak,
+        currentStreak: newStreak,
+        lastActiveDate: today,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+
+      return {
+        success: true,
+        streak: newStreak,
+        currentStreak: newStreak,
+        user: {
+          ...userData,
+          streak: newStreak,
+          currentStreak: newStreak,
+          lastActiveDate: today
+        }
+      };
     } catch (err: any) {
       console.warn(`[FIRESTORE DEBUG] Firestore completeHabit write failed or client is offline for ${docPath}:`, err?.message || err);
       return { success: true, offline: true };
@@ -186,7 +223,44 @@ export const habitService = {
     try {
       await deleteDoc(doc(db, "completions", compId));
       console.log(`[FIRESTORE DEBUG] Firestore undoHabit delete successful for ${docPath}`);
-      return { success: true };
+
+      const completionsRef = collection(db, "completions");
+      const compQ = query(completionsRef, where("userId", "==", fbUser.uid), where("date", "==", today));
+      const todayCompsSnap = await getDocs(compQ).catch(() => ({ docs: [] } as any));
+      const hasOtherCompletionsToday = todayCompsSnap.docs.length > 0;
+
+      const userRef = doc(db, "users", fbUser.uid);
+      const userSnap = await getDoc(userRef);
+      const userData = userSnap.exists() ? userSnap.data() : {};
+      const currentStreak = typeof userData.streak === "number" ? userData.streak : (typeof userData.currentStreak === "number" ? userData.currentStreak : 0);
+
+      let newStreak = currentStreak;
+      let newLastActiveDate = userData.lastActiveDate || userData.last_active_date;
+
+      if (!hasOtherCompletionsToday) {
+        const yesterday = getPreviousCalendarDate(today);
+        newStreak = Math.max(0, currentStreak - 1);
+        newLastActiveDate = newStreak > 0 ? yesterday : null;
+
+        await setDoc(userRef, {
+          streak: newStreak,
+          currentStreak: newStreak,
+          lastActiveDate: newLastActiveDate,
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+      }
+
+      return {
+        success: true,
+        streak: newStreak,
+        currentStreak: newStreak,
+        user: {
+          ...userData,
+          streak: newStreak,
+          currentStreak: newStreak,
+          lastActiveDate: newLastActiveDate
+        }
+      };
     } catch (err: any) {
       console.warn(`[FIRESTORE DEBUG] Firestore undoHabit delete failed or client is offline for ${docPath}:`, err?.message || err);
       return { success: true, offline: true };

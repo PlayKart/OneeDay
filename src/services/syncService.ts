@@ -233,15 +233,19 @@ class SyncService {
           localStorage.setItem("oneday_cached_habits", JSON.stringify(finalHabits));
         }
 
-        const calculatedStreak = calculateStreak(finalHabits, todayStr);
+        const authoritativeStreak = typeof fetchedUser?.streak === "number"
+          ? fetchedUser.streak
+          : (typeof fetchedUser?.currentStreak === "number"
+            ? fetchedUser.currentStreak
+            : calculateStreak(finalHabits, todayStr));
 
         const finalUser = fetchedUser
           ? {
               ...fetchedUser,
               xp: finalXp,
               level: finalLevel,
-              streak: calculatedStreak,
-              currentStreak: calculatedStreak,
+              streak: authoritativeStreak,
+              currentStreak: authoritativeStreak,
             }
           : fetchedUser;
 
