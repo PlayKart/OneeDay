@@ -1,30 +1,17 @@
-import { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  Snowflake,
-  Plus,
-  Send,
-  User as UserIcon,
-  LayoutDashboard,
-  LogOut,
-  ChevronRight,
-  ShieldCheck,
-  RefreshCw,
-  AlertTriangle
+  AlertTriangle,
+  RefreshCw
 } from 'lucide-react';
-import { signInWithPopup, GoogleAuthProvider, signOut, signInAnonymously } from 'firebase/auth';
-import { auth } from './lib/firebase';
 import { useStore } from './store/useStore';
-import { Toaster, toast } from 'react-hot-toast';
-import { HabitList } from './components/HabitList';
-import { AICoach } from './components/AICoach';
-import { MotivationalQuote } from './components/MotivationalQuote';
+import { Toaster } from 'react-hot-toast';
 import { MonolithLogo } from './components/MonolithLogo';
-
 import { lazyWithRetry } from './utils/lazyWithRetry';
 import { ScreenErrorBoundary } from './components/ScreenErrorBoundary';
+import { resolveOnboardingStatus, OnboardingLogicalStatus } from './utils';
 
-// Lazy loading the screen components with resilient retry logic
+// Lazy loading screen components with resilient retry logic
 const DashboardScreen = lazyWithRetry(() => import('./components/screens/DashboardScreen'), 'DashboardScreen');
 const HabitsScreen = lazyWithRetry(() => import('./components/screens/HabitsScreen'), 'HabitsScreen');
 const CoachScreen = lazyWithRetry(() => import('./components/screens/CoachScreen'), 'CoachScreen');
@@ -37,16 +24,15 @@ const TitleLossModal = lazy(() => import('./components/TitleLossModal').then(m =
 const LevelUpModal = lazy(() => import('./components/LevelUpAnimation').then(m => ({ default: m.LevelUpModal })));
 const OnboardingModal = lazy(() => import('./components/OnboardingModal').then(m => ({ default: m.OnboardingModal })));
 const AppIntroFlow = lazy(() => import('./components/AppIntroFlow').then(m => ({ default: m.AppIntroFlow })));
-import { getOnboardingStatus, hasCompletedOnboarding } from './utils';
 
-const GoogleIcon = () => (
-  <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
-    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-  </svg>
-);
+export type AppState =
+  | "INITIALIZING"
+  | "UNAUTHENTICATED"
+  | "AUTHENTICATED_SYNC_ERROR"
+  | "AUTHENTICATED_LOADING"
+  | "AUTHENTICATED_ONBOARDING_INCOMPLETE"
+  | "AUTHENTICATED_INTRO"
+  | "AUTHENTICATED_READY";
 
 function hasSeenAppIntro(userId: string, u: any): boolean {
   if (!userId) return false;
@@ -55,14 +41,86 @@ function hasSeenAppIntro(userId: string, u: any): boolean {
   return false;
 }
 
+/**
+ * Authoritative Pure Selector for deterministic App State transitions
+ */
+export function getAppState({
+  initialized,
+  firebaseUser,
+  user,
+  loading,
+  profileSynced,
+  backendError,
+}: {
+  initialized: boolean;
+  firebaseUser: any;
+  user: any;
+  loading: boolean;
+  profileSynced: boolean;
+  backendError: string | null;
+}): AppState {
+  // 1. Auth not yet initialized
+  if (!initialized) {
+    return "INITIALIZING";
+  }
+
+  // 2. Unauthenticated user
+  if (!firebaseUser) {
+    return "UNAUTHENTICATED";
+  }
+
+  // 3. Authenticated - Check onboarding status (3-state: complete, incomplete, unknown)
+  const onboardingStatus: OnboardingLogicalStatus = user ? resolveOnboardingStatus(user) : "unknown";
+
+  // 4. If there is a backend/sync error and we have NO resolved user state or status is unknown
+  if (backendError && !profileSynced && onboardingStatus === "unknown") {
+    return "AUTHENTICATED_SYNC_ERROR";
+  }
+
+  // 5. If profile is still syncing / loading and onboarding status is not yet known
+  if (onboardingStatus === "unknown") {
+    return "AUTHENTICATED_LOADING";
+  }
+
+  // 6. Explicitly incomplete onboarding (ONLY when status is confirmed incomplete)
+  if (onboardingStatus === "incomplete") {
+    return "AUTHENTICATED_ONBOARDING_INCOMPLETE";
+  }
+
+  // 7. Explicitly completed onboarding
+  if (onboardingStatus === "complete") {
+    const uid = firebaseUser.uid || user?.id || "";
+    const seenIntro = hasSeenAppIntro(uid, user);
+    if (!seenIntro) {
+      return "AUTHENTICATED_INTRO";
+    }
+    return "AUTHENTICATED_READY";
+  }
+
+  // Fallback safe state: loading, NEVER onboarding
+  return "AUTHENTICATED_LOADING";
+}
+
 export default function App() {
-  const { user, firebaseUser, initialized, loading, backendError, profileSynced, refreshFromBackend, activeTab, incrementProfileVersion } = useStore();
-  const [currentRoute, setCurrentRoute] = useState<string>(() => {
-    const path = window.location.pathname;
-    if (path === "/onboarding") return "/onboarding";
-    if (path === "/intro") return "/intro";
-    if (path === "/dashboard") return "/dashboard";
-    return "/landing";
+  const { 
+    user, 
+    firebaseUser, 
+    initialized, 
+    loading, 
+    backendError, 
+    profileSynced, 
+    refreshFromBackend, 
+    activeTab, 
+    incrementProfileVersion 
+  } = useStore();
+
+  const appState = getAppState({
+    initialized,
+    firebaseUser,
+    user,
+    loading,
+    profileSynced,
+    backendError,
   });
 
   // Log App mounted
@@ -70,91 +128,63 @@ export default function App() {
     console.log("[BOOT] initialization started");
   }, []);
 
-  // Listen to popstate event for native history back/forward
+  // Detailed Route State Logging & URL History Synchronization
   useEffect(() => {
-    const handlePopState = () => {
-      const path = window.location.pathname;
-      if (path === "/onboarding" || path === "/intro" || path === "/dashboard" || path === "/landing") {
-        setCurrentRoute(path);
+    const onboardingLogical: OnboardingLogicalStatus = user ? resolveOnboardingStatus(user) : "unknown";
+    const syncStatus = loading ? "syncing" : backendError ? "error" : profileSynced ? "success" : "idle";
+    const authStatus = !initialized ? "initializing" : firebaseUser ? "authenticated" : "unauthenticated";
+    const profileStatus = profileSynced ? "loaded" : loading ? "pending" : backendError ? "error" : "idle";
+
+    const decision = 
+      appState === "INITIALIZING" || appState === "AUTHENTICATED_LOADING"
+        ? "render OneDay loader"
+        : appState === "UNAUTHENTICATED"
+        ? "render landing"
+        : appState === "AUTHENTICATED_SYNC_ERROR"
+        ? "render sync error"
+        : appState === "AUTHENTICATED_ONBOARDING_INCOMPLETE"
+        ? "render onboarding"
+        : appState === "AUTHENTICATED_INTRO"
+        ? "render app intro"
+        : "render dashboard";
+
+    console.log("[ROUTE STATE]", {
+      authStatus,
+      firebaseUser: firebaseUser ? firebaseUser.uid : null,
+      syncStatus,
+      profileStatus,
+      onboardingStatus: onboardingLogical,
+      currentPath: window.location.pathname,
+      appState,
+      decision,
+    });
+
+    // Synchronize browser URL bar without unrequested redirects
+    if (appState === "UNAUTHENTICATED") {
+      if (window.location.pathname !== "/landing" && window.location.pathname !== "/terms" && window.location.pathname !== "/privacy") {
+        window.history.replaceState({}, "", "/landing");
       }
-    };
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
-
-  // Centralized Protection & Route Guard for Authenticated Users
-  useEffect(() => {
-    if (!initialized) return;
-
-    if (!firebaseUser) {
-      if (currentRoute !== "/landing") {
-        console.error("[ROUTE GUARD] Redirecting to landing", {
-          firebaseUser,
-          authInitialized: initialized,
-          isAuthenticated: false,
-          profileSynced,
-          profileLoading: loading,
-          profileSyncError: backendError,
-          user,
-          currentPath: window.location.pathname
-        });
-        if (window.location.pathname !== "/landing") {
-          window.history.pushState({}, "", "/landing");
-        }
-        setCurrentRoute("/landing");
+    } else if (appState === "AUTHENTICATED_ONBOARDING_INCOMPLETE") {
+      if (window.location.pathname !== "/onboarding") {
+        window.history.replaceState({}, "", "/onboarding");
       }
-      return;
-    }
-
-    // Must wait for user state (either cached or synced) to evaluate onboarding status
-    if (!user) {
-      return;
-    }
-
-    const onboardingStatus = getOnboardingStatus(user);
-    if (onboardingStatus === null || onboardingStatus === undefined) {
-      // Unknown/loading state - never interpret undefined/null as false!
-      return;
-    }
-
-    console.log(`[AUTH] Authoritative onboarded status: ${onboardingStatus}`);
-
-    if (onboardingStatus === false) {
-      // onboarded === false -> Onboarding
-      if (currentRoute !== "/onboarding") {
-        console.log("[AUTH] Routing to Onboarding");
-        if (window.location.pathname !== "/onboarding") {
-          window.history.pushState({}, "", "/onboarding");
-        }
-        setCurrentRoute("/onboarding");
+    } else if (appState === "AUTHENTICATED_INTRO") {
+      if (window.location.pathname !== "/intro") {
+        window.history.replaceState({}, "", "/intro");
       }
-      return;
-    }
-
-    if (onboardingStatus === true) {
-      // onboarded === true -> Dashboard (or intro if not yet seen)
-      const uid = firebaseUser.uid || user.id || "";
-      const seenIntro = hasSeenAppIntro(uid, user);
-      const targetRoute = seenIntro ? "/dashboard" : "/intro";
-
-      if (currentRoute !== targetRoute) {
-        if (currentRoute === "/intro" && !seenIntro) {
-          return;
-        }
-        console.log(`[AUTH] Routing to: ${targetRoute}`);
-        if (window.location.pathname !== targetRoute) {
-          window.history.pushState({}, "", targetRoute);
-        }
-        setCurrentRoute(targetRoute);
+    } else if (appState === "AUTHENTICATED_READY") {
+      if (window.location.pathname === "/onboarding" || window.location.pathname === "/intro" || window.location.pathname === "/landing") {
+        window.history.replaceState({}, "", "/dashboard");
       }
     }
-  }, [initialized, firebaseUser, user, currentRoute, profileSynced, loading, backendError]);
+  }, [appState, initialized, firebaseUser, user, loading, profileSynced, backendError]);
 
   // Log Navigation/Route Changes
   useEffect(() => {
     console.log(`[STARTUP SEQUENCE - Navigation] Tab/Route changed to: ${activeTab}`);
   }, [activeTab]);
 
+  // Refresh on day change / focus
   useEffect(() => {
     if (!firebaseUser) return;
 
@@ -185,6 +215,7 @@ export default function App() {
     };
   }, [firebaseUser, refreshFromBackend]);
 
+  // Document Title
   useEffect(() => {
     if (!firebaseUser) {
       document.title = "OneDay — AI Habit Tracker";
@@ -208,9 +239,8 @@ export default function App() {
     }
   }, [firebaseUser, activeTab]);
 
-  // ── 1. Auth Initializing -> Show initialization screen ──────────
-  if (!initialized) {
-    console.log("[AUTH] Splash rendered - initializing auth");
+  // ── BRANCH 1: INITIALIZING -> Splash Screen ──────────────────────────────
+  if (appState === "INITIALIZING") {
     return (
       <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center relative overflow-hidden font-sans">
         <div className="orb w-[400px] h-[400px] bg-blue-500/5 top-[-100px] left-[-100px] absolute mix-blend-screen animate-pulse" />
@@ -239,16 +269,16 @@ export default function App() {
                transition={{ delay: 0.6, duration: 0.8 }}
                className="text-6xl font-black tracking-tighter mb-4 text-white"
             >
-              OneDay
+              ONEDAY
             </motion.h1>
             
             <motion.p
                initial={{ opacity: 0 }}
                animate={{ opacity: 1 }}
-               transition={{ delay: 1.2, duration: 1 }}
-               className="text-[11px] text-slate-400 font-black tracking-[0.3em] uppercase text-center"
+               transition={{ delay: 0.9, duration: 0.8 }}
+               className="text-xs uppercase tracking-[0.3em] text-slate-500 font-bold"
             >
-              Discipline makes it all
+              One Day Broke. Don't Let Two.
             </motion.p>
           </motion.div>
         </AnimatePresence>
@@ -256,73 +286,49 @@ export default function App() {
     );
   }
 
-  // ── 2. Unauthenticated -> Show Landing Screen ONLY ─────────────────────
-  if (!firebaseUser) {
-    console.log("[AUTH] Landing rendered");
+  // ── BRANCH 2: UNAUTHENTICATED -> Landing Screen ──────────────────────────
+  if (appState === "UNAUTHENTICATED") {
     return (
       <ScreenErrorBoundary name="LandingScreen">
         <Suspense fallback={
-          <div className="min-h-screen bg-[#050505] flex items-center justify-center font-sans">
-            <div className="w-12 h-12 border-2 border-white/5 border-t-white rounded-full animate-spin" />
+          <div className="min-h-screen bg-[#050505] flex items-center justify-center">
+            <div className="w-8 h-8 border-2 border-white/5 border-t-white rounded-full animate-spin" />
           </div>
         }>
-          <LandingScreen onLoginSuccess={() => {
-            console.log("[Landing] Sign in success. Waiting for route guard to evaluate destination...");
-          }} />
+          <LandingScreen />
         </Suspense>
       </ScreenErrorBoundary>
     );
   }
 
-
-  // ── 3. Authenticated -> Show Sync Error screen if backend request failed ──
-  if (backendError && !profileSynced) {
-    const userFriendlyError = backendError.includes("timeout") || backendError.includes("Uplink")
-      ? "Unable to connect to service. Please check your internet connection."
-      : backendError;
-
+  // ── BRANCH 3: AUTHENTICATED_SYNC_ERROR -> Sync Error Screen ───────────────
+  if (appState === "AUTHENTICATED_SYNC_ERROR") {
     return (
-      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center font-sans p-6">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="flex flex-col items-center gap-6 max-w-md text-center px-6"
+      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center font-sans p-6 text-center">
+        <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 mb-6">
+          <AlertTriangle size={32} />
+        </div>
+        <h2 className="text-xl font-bold text-white mb-2">Sync temporarily unavailable</h2>
+        <p className="text-slate-400 text-xs max-w-sm mb-6 leading-relaxed">
+          {backendError || "We couldn't connect to the sync server right now. Your authenticated session is safe."}
+        </p>
+        <button
+          onClick={async () => {
+            console.log("[AUTH] Manual retry invoked from sync error screen");
+            useStore.setState({ backendError: null, loading: false });
+            await refreshFromBackend();
+          }}
+          className="flex items-center gap-2 bg-white text-black text-xs font-bold uppercase tracking-wider px-6 py-3 rounded-xl hover:bg-slate-200 transition-all cursor-pointer shadow-lg shadow-white/5"
         >
-          <div className="w-16 h-16 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-center">
-            <AlertTriangle size={32} className="text-red-400" />
-          </div>
-          <div className="flex flex-col gap-2">
-            <h2 className="text-2xl font-bold tracking-tight text-white">Sync failed. Try again.</h2>
-            <p className="text-slate-500 text-xs uppercase tracking-widest font-black">Connection Notice</p>
-            <p className="text-slate-400 text-sm mt-1 leading-relaxed max-w-sm">{userFriendlyError}</p>
-          </div>
-          <div className="flex flex-col sm:flex-row items-center gap-3 w-full max-w-xs pt-2">
-            <button
-              onClick={async () => {
-                console.log("[AUTH] User triggered RETRY for profile sync...");
-                useStore.setState({ backendError: null, loading: true });
-                await refreshFromBackend();
-              }}
-              className="w-full flex items-center justify-center gap-2 bg-white text-black hover:bg-slate-200 font-bold px-6 py-3.5 rounded-xl transition-all text-xs uppercase tracking-widest cursor-pointer shadow-lg active:scale-95"
-            >
-              <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-              {loading ? "Retrying..." : "RETRY"}
-            </button>
-            <button
-              onClick={() => signOut(auth)}
-              className="w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-slate-300 font-bold px-6 py-3.5 rounded-xl transition-all text-xs uppercase tracking-widest cursor-pointer border border-white/10"
-            >
-              Sign Out
-            </button>
-          </div>
-        </motion.div>
+          <RefreshCw size={14} />
+          <span>Retry Sync</span>
+        </button>
       </div>
     );
   }
 
-  // ── 4. Authenticated -> Show Syncing screen if user state is not yet available ──────
-  const onboardingStatus = user ? getOnboardingStatus(user) : null;
-  if (!user || onboardingStatus === null) {
+  // ── BRANCH 4: AUTHENTICATED_LOADING -> Syncing / Resolving Profile Screen ─
+  if (appState === "AUTHENTICATED_LOADING") {
     return (
       <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center font-sans p-6">
         <motion.div 
@@ -354,8 +360,9 @@ export default function App() {
     );
   }
 
-  // ── 5. /onboarding view ───────────────────────────────────────────────────
-  if (onboardingStatus === false || currentRoute === "/onboarding") {
+  // ── BRANCH 5: AUTHENTICATED_ONBOARDING_INCOMPLETE -> Onboarding Modal ─────
+  // CRITICAL: Rendered ONLY when authentication is resolved, user exists, and status is explicitly "incomplete"
+  if (appState === "AUTHENTICATED_ONBOARDING_INCOMPLETE") {
     return (
       <div className="min-h-screen bg-[#050505] flex items-center justify-center relative overflow-hidden">
         <Toaster 
@@ -380,41 +387,32 @@ export default function App() {
             localStorage.removeItem("oneday_onboarding_data");
 
             incrementProfileVersion();
-
-            const activeUser = useStore.getState().user;
-            const uid = firebaseUser?.uid || activeUser?.id || "";
-            const seenIntro = hasSeenAppIntro(uid, activeUser);
-            const targetRoute = seenIntro ? "/dashboard" : "/intro";
-            console.log(`[AUTH] Redirecting to: ${targetRoute}`);
-            if (window.location.pathname !== targetRoute) {
-              window.history.pushState({}, "", targetRoute);
-            }
-            setCurrentRoute(targetRoute);
+            await refreshFromBackend();
           }} 
         />
       </div>
     );
   }
 
-  // ── 6. /intro view (Welcome & App Introduction) ──────────────────────────
-  if (currentRoute === "/intro") {
+  // ── BRANCH 6: AUTHENTICATED_INTRO -> App Intro Flow ──────────────────────
+  if (appState === "AUTHENTICATED_INTRO") {
     return (
       <AppIntroFlow 
         userId={firebaseUser.uid} 
-        userName={user.name} 
+        userName={user?.name} 
         onComplete={() => {
           console.log("[App Intro] Completed intro. Navigating to /dashboard");
           localStorage.setItem(`oneday_intro_seen_${firebaseUser.uid}`, "true");
           if (window.location.pathname !== "/dashboard") {
-            window.history.pushState({}, "", "/dashboard");
+            window.history.replaceState({}, "", "/dashboard");
           }
-          setCurrentRoute("/dashboard");
+          incrementProfileVersion();
         }} 
       />
     );
   }
 
-  // ── 7. /dashboard view (Authenticated + Onboarded + Intro completed) ────
+  // ── BRANCH 7: AUTHENTICATED_READY -> Main Protected App ──────────────────
   return (
     <div className="min-h-screen relative overflow-hidden bg-[#050505]">
       <Toaster 

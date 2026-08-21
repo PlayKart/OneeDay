@@ -37,13 +37,21 @@ export function safeArray<T>(val: any): T[] {
 }
 
 /**
+ * Three-state onboarding logical type:
+ * - "unknown": Profile / auth is loading or onboarding state not yet resolved from backend
+ * - "complete": User has completed onboarding
+ * - "incomplete": User is confirmed new / explicitly needs onboarding
+ */
+export type OnboardingLogicalStatus = "unknown" | "complete" | "incomplete";
+
+/**
  * Authoritative helper to determine onboarding status strictly from backend profile state.
  * Returns:
  *   true  -> onboarded === true (completed)
  *   false -> onboarded === false (needs onboarding)
- *   null  -> onboarded is unknown / undefined / null (profile still loading)
+ *   null  -> onboarded is unknown / undefined / null (profile still loading or not yet resolved)
  * 
- * IMPORTANT: Never interpret undefined/null as false.
+ * CRITICAL: UNKNOWN (null) must NEVER be treated as INCOMPLETE (false).
  */
 export function getOnboardingStatus(u: any): boolean | null {
   if (!u) return null;
@@ -65,8 +73,22 @@ export function getOnboardingStatus(u: any): boolean | null {
   if (u.needsOnboarding === false || u.needsOnboarding === "false" || u.needs_onboarding === false || u.needs_onboarding === "false") return true;
   if (u.needsOnboarding === true || u.needsOnboarding === "true" || u.needs_onboarding === true || u.needs_onboarding === "true") return false;
 
+  // If user has filled profile details (e.g. why_oneday, dob, gender, hobbies), they completed onboarding
+  const hasWhy = Boolean(u.why_oneday || u.whyOneday || u.reasonForJoining || u.reason);
+  const hasProfileInfo = Boolean(u.dob || (u.gender && u.gender.length > 0 && u.gender !== "Prefer not to say") || (Array.isArray(u.hobbies) && u.hobbies.length > 0));
+  if (hasWhy || hasProfileInfo) {
+    return true;
+  }
+
   // Return null when onboarding state is unknown/undefined/null
   return null;
+}
+
+export function resolveOnboardingStatus(u: any): OnboardingLogicalStatus {
+  const status = getOnboardingStatus(u);
+  if (status === true) return "complete";
+  if (status === false) return "incomplete";
+  return "unknown";
 }
 
 export function hasCompletedOnboarding(u: any): boolean | null {
@@ -134,8 +156,8 @@ export function normalizeUser(u: any, existingUser?: User | null): User {
         streak: 0,
         level: 1,
         levelProgress: 0,
-        onboarded: false,
-        hasCompletedOnboarding: false,
+        onboarded: undefined,
+        hasCompletedOnboarding: undefined,
       }
     );
   }

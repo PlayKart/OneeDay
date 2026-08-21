@@ -29,6 +29,11 @@ export interface User {
   reasonForJoining?: string;
   why_oneday?: string;
   whyOneday?: string;
+  photoUrl?: string;
+  photo_url?: string;
+  habits?: any[];
+  sports?: string[];
+  hasSeenAppIntroduction?: boolean;
   onboarded?: boolean;
   nextRoute?: string;
   hasCompletedOnboarding?: boolean;

@@ -13,27 +13,32 @@ export const userService = {
     const docPath = `users/${fbUser.uid}`;
     console.log(`[FIRESTORE DEBUG] Firestore document request started for ${docPath}`);
 
+    const currentStoreUser = existingUser || useStore.getState().user;
+    const knownOnboarded = currentStoreUser?.onboarded !== undefined 
+      ? currentStoreUser.onboarded 
+      : undefined;
+
     const fallbackUser = normalizeUser(
       {
         id: fbUser.uid,
         userId: fbUser.uid,
         email: fbUser.email || "",
-        name: fbUser.displayName || "User",
-        photoUrl: fbUser.photoURL || "",
-        needsOnboarding: true,
-        onboarded: false,
-        hasCompletedOnboarding: false,
-        onboardingStep: 1,
-        streak: 0,
-        xp: 0,
-        level: 1,
-        habits: [],
-        hobbies: [],
-        sports: [],
-        createdAt: new Date().toISOString(),
+        name: fbUser.displayName || currentStoreUser?.name || "User",
+        photoUrl: fbUser.photoURL || currentStoreUser?.photoUrl || "",
+        onboarded: knownOnboarded,
+        hasCompletedOnboarding: knownOnboarded,
+        needsOnboarding: knownOnboarded !== undefined ? !knownOnboarded : undefined,
+        onboardingStep: currentStoreUser?.onboardingStep || 1,
+        streak: currentStoreUser?.streak ?? 0,
+        xp: currentStoreUser?.xp ?? 0,
+        level: currentStoreUser?.level ?? 1,
+        habits: currentStoreUser?.habits || [],
+        hobbies: currentStoreUser?.hobbies || [],
+        sports: currentStoreUser?.sports || [],
+        createdAt: currentStoreUser?.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       },
-      existingUser || useStore.getState().user || undefined
+      currentStoreUser || undefined
     );
 
     try {
@@ -46,21 +51,38 @@ export const userService = {
       if (docSnap.exists()) {
         const data = docSnap.data();
         console.log(`[FIRESTORE DEBUG] Firestore document fetched successfully for ${docPath}`);
-        return normalizeUser({ ...data, id: fbUser.uid, userId: fbUser.uid }, existingUser || useStore.getState().user || undefined);
+        return normalizeUser({ ...data, id: fbUser.uid, userId: fbUser.uid }, currentStoreUser || undefined);
       } else {
-        console.log(`[FIRESTORE DEBUG] Firestore document does not exist for ${docPath}. Initializing document in background.`);
+        console.log(`[FIRESTORE DEBUG] Firestore document does not exist for ${docPath}. Initializing new account.`);
+        const newUserDoc = {
+          ...fallbackUser,
+          uid: fbUser.uid,
+          email: fbUser.email || "",
+          onboarded: false,
+          hasCompletedOnboarding: false,
+          needsOnboarding: true,
+          onboardingStep: 1,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
         // Background setDoc to seed document
-        setDoc(docRef, { ...fallbackUser, uid: fbUser.uid, email: fbUser.email || "", createdAt: new Date().toISOString() }, { merge: true }).catch((err) => {
+        setDoc(docRef, newUserDoc, { merge: true }).catch((err) => {
           console.warn(`[FIRESTORE DEBUG] Background setDoc for ${docPath} deferred:`, err?.message || err);
         });
-        return fallbackUser;
+        return normalizeUser(newUserDoc, currentStoreUser || undefined);
       }
     } catch (err: any) {
       const profileDuration = Math.round(performance.now() - profileStart);
       console.log(`[PERF] profile: ${profileDuration}ms`);
       console.warn(`[FIRESTORE DEBUG] Firestore document request failed or client is offline for ${docPath}:`, err?.message || err);
-      // Gracefully return local/cached user to ensure Firebase Auth completes independently without blocking UI
-      return fallbackUser;
+      
+      // If we already have a store user with resolved onboarding status, retain it
+      if (currentStoreUser && currentStoreUser.onboarded !== undefined) {
+        return currentStoreUser;
+      }
+
+      // If state is completely unknown and request failed, throw so sync treats it as a sync error rather than assuming incomplete onboarding
+      throw err;
     }
   },
 
