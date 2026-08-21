@@ -6,7 +6,7 @@ import { userService } from "./userService";
 import { habitService } from "./habitService";
 import { useStore } from "../store/useStore";
 import { User, Habit } from "../types";
-import { normalizeUser, safeArray } from "../utils";
+import { normalizeUser, safeArray, calculateStreak, getLocalCalendarDate } from "../utils";
 
 export type SyncStatus = 'idle' | 'syncing' | 'success' | 'retrying' | 'error' | 'offline';
 
@@ -197,20 +197,7 @@ class SyncService {
           Math.floor(finalXp / 100) + 1
         );
 
-        const finalUser = fetchedUser
-          ? {
-              ...fetchedUser,
-              xp: finalXp,
-              level: finalLevel,
-            }
-          : fetchedUser;
-
-        if (finalUser) {
-          localStorage.setItem("oneday_cached_user", JSON.stringify(finalUser));
-        }
-
-        // Merge habits cleanly preserving pending/local updates
-        const todayStr = new Date().toISOString().split("T")[0];
+        const todayStr = getLocalCalendarDate();
         const incomingHabits = safeArray<Habit>(data?.habits);
         const currentHabits = store.habits;
 
@@ -235,6 +222,22 @@ class SyncService {
         const finalHabits = mergedHabits.length > 0 ? mergedHabits : (currentHabits.length > 0 ? currentHabits : incomingHabits);
         if (finalHabits && finalHabits.length > 0) {
           localStorage.setItem("oneday_cached_habits", JSON.stringify(finalHabits));
+        }
+
+        const calculatedStreak = calculateStreak(finalHabits, todayStr);
+
+        const finalUser = fetchedUser
+          ? {
+              ...fetchedUser,
+              xp: finalXp,
+              level: finalLevel,
+              streak: calculatedStreak,
+              currentStreak: calculatedStreak,
+            }
+          : fetchedUser;
+
+        if (finalUser) {
+          localStorage.setItem("oneday_cached_user", JSON.stringify(finalUser));
         }
 
         useStore.setState({
@@ -297,7 +300,7 @@ class SyncService {
     const fbUser = auth.currentUser || useStore.getState().firebaseUser;
     if (!fbUser) throw new Error("Not authenticated");
 
-    const today = dateStr || new Date().toISOString().split("T")[0];
+    const today = dateStr ? getLocalCalendarDate(dateStr) : getLocalCalendarDate();
     const idempotencyKey = `comp_${fbUser.uid}_${habitId}_${today}`;
     const dedupeKey = `complete_${idempotencyKey}_${isCompleted}`;
 

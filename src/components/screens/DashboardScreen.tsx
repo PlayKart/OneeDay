@@ -9,7 +9,7 @@ import { toast } from "react-hot-toast";
 import { isHabitScheduledForToday } from "../../lib/habitUtils";
 import { getPersonalizedGreeting } from "../../utils/greetingUtils";
 import { getEquippedTitle } from "../../utils/titleUtils";
-import { calculateLevelProgress } from "../../utils";
+import { calculateLevelProgress, calculateStreak } from "../../utils";
 
 export function DashboardScreen() {
   const { user, habits, deactivateFreeze, setActiveTab } = useStore();
@@ -66,6 +66,11 @@ export function DashboardScreen() {
     : "";
 
   const equippedTitle = getEquippedTitle(user);
+  const calculatedStreak = calculateStreak(safeHabits);
+  const activeStreak = typeof user.currentStreak === "number" && !isNaN(user.currentStreak)
+    ? user.currentStreak
+    : (typeof user.streak === "number" && !isNaN(user.streak) ? user.streak : calculatedStreak);
+
   const greeting = getPersonalizedGreeting({
     user, habits, completedTodayCount: completedToday, totalHabitsCount: totalHabits, isFrozen: Boolean(isFrozen),
   });
@@ -197,7 +202,7 @@ export function DashboardScreen() {
             <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 bg-white/5 px-2 py-1 rounded-lg">Consistency</span>
           </div>
           <div className="relative z-10">
-            <div className="text-3xl font-black text-white">{user.currentStreak ?? user.streak} <span className="text-lg text-slate-500 font-bold uppercase tracking-widest">Days</span></div>
+            <div className="text-3xl font-black text-white">{activeStreak} <span className="text-lg text-slate-500 font-bold uppercase tracking-widest">Days</span></div>
             <div className="text-[10px] font-bold uppercase text-slate-500 tracking-wider mt-1">
               {isFrozen ? "Streak Frozen" : "Current Streak"}
             </div>

@@ -9,7 +9,7 @@ import { chatService } from '../services/chatService';
 import { userService } from '../services/userService';
 import { syncService } from '../services/syncService';
 import { quoteService } from '../services/quoteService';
-import { safeArray, normalizeCompletedDates, normalizeUser, hasCompletedOnboarding, getOnboardingStatus, calculateLevelProgress, getXpForDifficulty, extractXpAwarded } from '../utils';
+import { safeArray, normalizeCompletedDates, normalizeUser, hasCompletedOnboarding, getOnboardingStatus, calculateLevelProgress, getXpForDifficulty, extractXpAwarded, calculateStreak, getLocalCalendarDate, logStreakDebug } from '../utils';
 import { isHabitScheduledForToday } from '../lib/habitUtils';
 import { isTitleNew, markTitleAsSeen, getTitleDescription, setEquippedTitle, getEquippedTitle } from '../utils/titleUtils';
 import { apiRequest } from '../api/client';
@@ -339,7 +339,7 @@ export const useStore = create<StoreState>((set, get) => {
 
       const originalHabits = get().habits;
       const originalUser = get().user;
-      const today = new Date().toISOString().split("T")[0];
+      const today = getLocalCalendarDate();
       const earnedXp = getXpForDifficulty(targetHabit?.difficulty);
 
       let prevXp = 0;
@@ -364,19 +364,6 @@ export const useStore = create<StoreState>((set, get) => {
 
         const isLevelUp = nextLevel > currentLevel;
 
-        const updatedUser: BackendUser | null = state.user
-          ? {
-              ...state.user,
-              xp: newTotalXp,
-              level: nextLevel,
-              levelProgress: nextProgress,
-            }
-          : null;
-
-        if (updatedUser) {
-          localStorage.setItem("oneday_cached_user", JSON.stringify(updatedUser));
-        }
-
         const updatedHabits = state.habits.map((h) =>
           h.id === habitId
             ? {
@@ -394,6 +381,26 @@ export const useStore = create<StoreState>((set, get) => {
         completedTodayCount = scheduledTodayList.filter((h) => h.completedToday).length;
         totalTodayCount = scheduledTodayList.length;
         todayPct = totalTodayCount === 0 ? 0 : Math.round((completedTodayCount / totalTodayCount) * 100);
+
+        const calculatedStreak = calculateStreak(updatedHabits, today);
+        const prevStreak = state.user?.currentStreak ?? state.user?.streak ?? 0;
+
+        logStreakDebug("completeHabit (optimistic)", updatedHabits, prevStreak, calculatedStreak);
+
+        const updatedUser: BackendUser | null = state.user
+          ? {
+              ...state.user,
+              xp: newTotalXp,
+              level: nextLevel,
+              levelProgress: nextProgress,
+              streak: calculatedStreak,
+              currentStreak: calculatedStreak,
+            }
+          : null;
+
+        if (updatedUser) {
+          localStorage.setItem("oneday_cached_user", JSON.stringify(updatedUser));
+        }
 
         return {
           pendingHabitIds: nextPending,
@@ -457,6 +464,9 @@ export const useStore = create<StoreState>((set, get) => {
           const nextPending = new Set(state.pendingHabitIds);
           nextPending.delete(habitId);
 
+          const currentHabits = state.habits;
+          const authoritativeStreak = calculateStreak(currentHabits, today);
+
           const normalizedUser = normalizeUser(res, state.user);
           const currentXp = state.user?.xp ?? newTotalXp;
           const resXp = normalizedUser?.xp ?? 0;
@@ -468,6 +478,13 @@ export const useStore = create<StoreState>((set, get) => {
           );
           const finalProgress = calculateLevelProgress(finalXp, finalLevel, 100);
 
+          const finalStreak = typeof normalizedUser?.streak === "number" && normalizedUser.streak > 0
+            ? Math.max(normalizedUser.streak, authoritativeStreak)
+            : authoritativeStreak;
+
+          const prevStreak = state.user?.currentStreak ?? state.user?.streak ?? 0;
+          logStreakDebug("completeHabit (authoritative)", currentHabits, prevStreak, finalStreak);
+
           const finalUser = state.user
             ? {
                 ...state.user,
@@ -475,6 +492,8 @@ export const useStore = create<StoreState>((set, get) => {
                 xp: finalXp,
                 level: finalLevel,
                 levelProgress: finalProgress,
+                streak: finalStreak,
+                currentStreak: finalStreak,
               }
             : normalizedUser;
 
@@ -533,7 +552,7 @@ export const useStore = create<StoreState>((set, get) => {
 
       const originalHabits = get().habits;
       const originalUser = get().user;
-      const today = new Date().toISOString().split("T")[0];
+      const today = getLocalCalendarDate();
       const earnedXp = getXpForDifficulty(targetHabit?.difficulty);
 
       let prevXp = 0;
@@ -553,19 +572,6 @@ export const useStore = create<StoreState>((set, get) => {
         nextLevel = Math.max(1, Math.floor(newTotalXp / 100) + 1);
         nextProgress = calculateLevelProgress(newTotalXp, nextLevel, 100);
 
-        const updatedUser: BackendUser | null = state.user
-          ? {
-              ...state.user,
-              xp: newTotalXp,
-              level: nextLevel,
-              levelProgress: nextProgress,
-            }
-          : null;
-
-        if (updatedUser) {
-          localStorage.setItem("oneday_cached_user", JSON.stringify(updatedUser));
-        }
-
         const updatedHabits = state.habits.map((h) =>
           h.id === habitId
             ? {
@@ -575,6 +581,26 @@ export const useStore = create<StoreState>((set, get) => {
               }
             : h
         );
+
+        const calculatedStreak = calculateStreak(updatedHabits, today);
+        const prevStreak = state.user?.currentStreak ?? state.user?.streak ?? 0;
+
+        logStreakDebug("undoHabit (optimistic)", updatedHabits, prevStreak, calculatedStreak);
+
+        const updatedUser: BackendUser | null = state.user
+          ? {
+              ...state.user,
+              xp: newTotalXp,
+              level: nextLevel,
+              levelProgress: nextProgress,
+              streak: calculatedStreak,
+              currentStreak: calculatedStreak,
+            }
+          : null;
+
+        if (updatedUser) {
+          localStorage.setItem("oneday_cached_user", JSON.stringify(updatedUser));
+        }
 
         return {
           pendingHabitIds: nextPending,
@@ -597,11 +623,17 @@ export const useStore = create<StoreState>((set, get) => {
           const nextPending = new Set(state.pendingHabitIds);
           nextPending.delete(habitId);
 
+          const currentHabits = state.habits;
+          const authoritativeStreak = calculateStreak(currentHabits, today);
+
           const normalizedUser = normalizeUser(res, state.user);
           const resHasExplicitXp = res && (res.totalXP !== undefined || res.xp !== undefined || res.data?.xp !== undefined || res.data?.user?.xp !== undefined);
           const finalXp = resHasExplicitXp ? (normalizedUser?.xp ?? newTotalXp) : (state.user?.xp ?? newTotalXp);
           const finalLevel = Math.max(1, Math.floor(finalXp / 100) + 1);
           const finalProgress = calculateLevelProgress(finalXp, finalLevel, 100);
+
+          const prevStreak = state.user?.currentStreak ?? state.user?.streak ?? 0;
+          logStreakDebug("undoHabit (authoritative)", currentHabits, prevStreak, authoritativeStreak);
 
           const finalUser = state.user
             ? {
@@ -610,6 +642,8 @@ export const useStore = create<StoreState>((set, get) => {
                 xp: finalXp,
                 level: finalLevel,
                 levelProgress: finalProgress,
+                streak: authoritativeStreak,
+                currentStreak: authoritativeStreak,
               }
             : normalizedUser;
 

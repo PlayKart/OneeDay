@@ -3,7 +3,7 @@
 import { create } from "zustand";
 import { Habit } from "../types";
 import { habitService } from "../services/habitService";
-import { safeArray } from "../utils";
+import { safeArray, getLocalCalendarDate } from "../utils";
 
 interface HabitState {
   habits: Habit[];
@@ -100,7 +100,7 @@ export const useHabitStore = create<HabitState>((set, get) => ({
     }
   },
   completeHabit: async (habitId) => {
-    const today = new Date().toISOString().split("T")[0];
+    const today = getLocalCalendarDate();
     set((state) => ({
       habits: state.habits.map((h) =>
         h.id === habitId
@@ -122,7 +122,7 @@ export const useHabitStore = create<HabitState>((set, get) => ({
     }
   },
   undoHabit: async (habitId) => {
-    const today = new Date().toISOString().split("T")[0];
+    const today = getLocalCalendarDate();
     set((state) => ({
       habits: state.habits.map((h) =>
         h.id === habitId

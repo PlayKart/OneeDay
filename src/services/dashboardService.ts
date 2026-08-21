@@ -4,7 +4,7 @@ import { userService } from "./userService";
 import { habitService } from "./habitService";
 import { quoteService } from "./quoteService";
 import { User, Habit, Statistics, Achievement, NotificationItem } from "../types";
-import { safeArray } from "../utils";
+import { safeArray, calculateStreak } from "../utils";
 
 export interface DashboardData {
   user: User;
@@ -24,19 +24,23 @@ export const dashboardService = {
     ]);
 
     const completedTodayCount = habitsRes.filter((h) => h.completedToday).length;
+    const calculatedStreak = calculateStreak(habitsRes);
+
+    userRes.streak = calculatedStreak;
+    userRes.currentStreak = calculatedStreak;
 
     const statistics: Statistics = {
       totalHabits: habitsRes.length,
       completedToday: completedTodayCount,
-      currentStreak: userRes.streak,
-      longestStreak: Math.max(userRes.streak, 7),
+      currentStreak: calculatedStreak,
+      longestStreak: Math.max(calculatedStreak, (userRes as any)?.longestStreak ?? 7),
       completionRate: habitsRes.length > 0 ? Math.round((completedTodayCount / habitsRes.length) * 100) : 0,
       weeklyHistory: [],
     };
 
     const achievements: Achievement[] = [
       { id: "1", title: "First Step", description: "Complete your first habit", unlocked: completedTodayCount > 0 },
-      { id: "2", title: "Unstoppable", description: "Reach a 7-day streak", unlocked: userRes.streak >= 7, progress: userRes.streak, maxProgress: 7 },
+      { id: "2", title: "Unstoppable", description: "Reach a 7-day streak", unlocked: calculatedStreak >= 7, progress: calculatedStreak, maxProgress: 7 },
       { id: "3", title: "Master System", description: "Maintain 5 active habits", unlocked: habitsRes.length >= 5, progress: habitsRes.length, maxProgress: 5 },
     ];
 

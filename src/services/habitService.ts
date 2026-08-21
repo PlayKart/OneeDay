@@ -1,5 +1,5 @@
 import { Habit } from "../types";
-import { safeArray } from "../utils";
+import { safeArray, getLocalCalendarDate } from "../utils";
 import { auth, db } from "../lib/firebase";
 import { collection, query, where, getDocs, doc, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { useStore } from "../store/useStore";
@@ -34,7 +34,7 @@ export const habitService = {
       console.log(`[PERF] habits: ${habitsDuration}ms`);
       console.log(`[PERF] completions: ${compDuration}ms`);
 
-      const today = new Date().toISOString().split("T")[0];
+      const today = getLocalCalendarDate();
       const completions = compSnapshot.docs.map((d: any) => d.data());
 
       console.log(`[FIRESTORE DEBUG] Firestore getHabits fetched ${snapshot.docs.length} habits successfully.`);
@@ -43,7 +43,7 @@ export const habitService = {
         const id = docSnap.id;
         
         const habitComps = completions.filter((c: any) => c.habitId === id);
-        const completedDates = habitComps.map((c: any) => c.date);
+        const completedDates = habitComps.map((c: any) => getLocalCalendarDate(c.date || c.timestamp)).filter(Boolean);
         const finalCompletedToday = completedDates.includes(today);
 
         return {
@@ -157,7 +157,7 @@ export const habitService = {
   async completeHabit(habitId: string): Promise<any> {
     const fbUser = auth.currentUser || useStore.getState().firebaseUser;
     if (!fbUser) throw new Error("Not authenticated");
-    const today = new Date().toISOString().split("T")[0];
+    const today = getLocalCalendarDate();
     const compId = `${fbUser.uid}_${habitId}_${today}`;
     const docPath = `completions/${compId}`;
     console.log(`[FIRESTORE DEBUG] Firestore completeHabit request started for ${docPath}`);
@@ -179,7 +179,7 @@ export const habitService = {
   async undoHabit(habitId: string): Promise<any> {
     const fbUser = auth.currentUser || useStore.getState().firebaseUser;
     if (!fbUser) throw new Error("Not authenticated");
-    const today = new Date().toISOString().split("T")[0];
+    const today = getLocalCalendarDate();
     const compId = `${fbUser.uid}_${habitId}_${today}`;
     const docPath = `completions/${compId}`;
     console.log(`[FIRESTORE DEBUG] Firestore undoHabit request started for ${docPath}`);

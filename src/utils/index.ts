@@ -1,6 +1,7 @@
 // src/utils/index.ts
 
 export * from "./camelCase";
+export * from "./streakUtils";
 import { User } from "../types";
 
 export const VALID_GENDERS = ["Male", "Female", "Prefer not to say", "Other"] as const;
