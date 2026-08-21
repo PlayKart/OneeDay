@@ -17,14 +17,11 @@ export interface DashboardData {
 
 export const dashboardService = {
   async fetchDashboardData(): Promise<DashboardData> {
-    const [userRes, habitsRes] = await Promise.all([
+    const [userRes, habitsRes, quoteRes] = await Promise.all([
       userService.getUserProfile(),
       habitService.getHabits().catch(() => []),
+      quoteService.getQuote().catch(() => "Discipline makes it all."),
     ]);
-
-    const quoteRes = await quoteService
-      .getQuote(userRes.streak, habitsRes)
-      .catch(() => "Discipline makes it all.");
 
     const completedTodayCount = habitsRes.filter((h) => h.completedToday).length;
 

@@ -9,9 +9,11 @@ let lastFetchedTime: number = 0;
 
 export const quoteService = {
   async getQuote(streak: number = 0, habits: Habit[] = []): Promise<string> {
+    const quoteStart = performance.now();
     const now = Date.now();
     // Use cache if within 10 minutes TTL
     if (cachedQuote && now - lastFetchedTime < QUOTE_CACHE_TTL_MS) {
+      console.log(`[PERF] quote: ${Math.round(performance.now() - quoteStart)}ms (cached)`);
       return cachedQuote;
     }
 
@@ -26,9 +28,11 @@ export const quoteService = {
 
       cachedQuote = quoteText;
       lastFetchedTime = now;
+      console.log(`[PERF] quote: ${Math.round(performance.now() - quoteStart)}ms`);
       return quoteText;
     } catch (e) {
       console.warn("Quote fetch failed, using cached or default quote:", e);
+      console.log(`[PERF] quote: ${Math.round(performance.now() - quoteStart)}ms (fallback)`);
       return cachedQuote || DEFAULT_QUOTE;
     }
   },

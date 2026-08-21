@@ -232,9 +232,14 @@ class SyncService {
           return inc;
         });
 
+        const finalHabits = mergedHabits.length > 0 ? mergedHabits : (currentHabits.length > 0 ? currentHabits : incomingHabits);
+        if (finalHabits && finalHabits.length > 0) {
+          localStorage.setItem("oneday_cached_habits", JSON.stringify(finalHabits));
+        }
+
         useStore.setState({
           user: finalUser,
-          habits: mergedHabits.length > 0 ? mergedHabits : (currentHabits.length > 0 ? currentHabits : incomingHabits),
+          habits: finalHabits,
           quote: data?.quote || "Discipline makes it all.",
           loading: false,
           profileSynced: true,

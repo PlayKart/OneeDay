@@ -84,11 +84,22 @@ interface StoreState {
 }
 
 export const useStore = create<StoreState>((set, get) => {
+  const authStartTime = performance.now();
   let initialUser: BackendUser | null = null;
   const cachedUserStr = localStorage.getItem("oneday_cached_user");
   if (cachedUserStr) {
     try {
       initialUser = JSON.parse(cachedUserStr);
+    } catch (_) {
+      // Ignore
+    }
+  }
+
+  let initialHabits: Habit[] = [];
+  const cachedHabitsStr = localStorage.getItem("oneday_cached_habits");
+  if (cachedHabitsStr) {
+    try {
+      initialHabits = JSON.parse(cachedHabitsStr);
     } catch (_) {
       // Ignore
     }
@@ -127,6 +138,7 @@ export const useStore = create<StoreState>((set, get) => {
     if (!authListenerFired) {
       authListenerFired = true;
       console.warn("[BOOT] auth initialization fallback timeout reached");
+      console.log(`[PERF] auth: ${Math.round(performance.now() - authStartTime)}ms (timeout)`);
       console.log("[BOOT] auth initialization completed");
       console.log("[BOOT] authenticated user: none (fallback)");
       console.log("[BOOT] session available: false");
@@ -141,6 +153,8 @@ export const useStore = create<StoreState>((set, get) => {
       clearTimeout(authTimeoutId);
     }
 
+    const authDuration = Math.round(performance.now() - authStartTime);
+    console.log(`[PERF] auth: ${authDuration}ms`);
     console.log("[BOOT] auth initialization completed");
 
     if (fbUser) {
@@ -167,6 +181,7 @@ export const useStore = create<StoreState>((set, get) => {
       localStorage.removeItem("oneday_firebase_email");
       localStorage.removeItem("oneday_firebase_token");
       localStorage.removeItem("oneday_cached_user");
+      localStorage.removeItem("oneday_cached_habits");
       localStorage.removeItem("oneday_onboarded");
       localStorage.removeItem("oneday_onboarding_step");
       localStorage.removeItem("oneday_onboarding_data");
@@ -188,7 +203,7 @@ export const useStore = create<StoreState>((set, get) => {
   return {
     firebaseUser: null,
     user: initialUser,
-    habits: [],
+    habits: initialHabits,
     quote: "One day broke. Don't let two.",
     initialized: false,
     loading: false,

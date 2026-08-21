@@ -12,7 +12,7 @@ import { getEquippedTitle } from "../../utils/titleUtils";
 import { calculateLevelProgress } from "../../utils";
 
 export function DashboardScreen() {
-  const { user, habits, deactivateFreeze, refreshFromBackend, setActiveTab } = useStore();
+  const { user, habits, deactivateFreeze, setActiveTab } = useStore();
   const [confirmDeactivate, setConfirmDeactivate] = useState(false);
   const [unfreezing, setUnfreezing] = useState(false);
 
@@ -20,6 +20,10 @@ export function DashboardScreen() {
   const [prevLevel, setPrevLevel] = useState<number>(user?.level ?? 1);
   const [xpPop, setXpPop] = useState(false);
   const [showLevelUp, setShowLevelUp] = useState(false);
+
+  useEffect(() => {
+    console.log(`[PERF] dashboard-ready: ${Math.round(performance.now())}ms`);
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -35,10 +39,6 @@ export function DashboardScreen() {
       setPrevLevel(user.level);
     }
   }, [user?.xp, user?.level, prevXp, prevLevel]);
-
-  useEffect(() => {
-    refreshFromBackend();
-  }, [refreshFromBackend]);
 
   useEffect(() => {
     if (!confirmDeactivate) return;

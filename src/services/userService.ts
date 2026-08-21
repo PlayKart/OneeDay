@@ -9,6 +9,7 @@ export const userService = {
     const fbUser = auth.currentUser || useStore.getState().firebaseUser;
     if (!fbUser) throw new Error("Not authenticated");
 
+    const profileStart = performance.now();
     const docPath = `users/${fbUser.uid}`;
     console.log(`[FIRESTORE DEBUG] Firestore document request started for ${docPath}`);
 
@@ -39,6 +40,9 @@ export const userService = {
       const docRef = doc(db, "users", fbUser.uid);
       const docSnap = await getDoc(docRef);
 
+      const profileDuration = Math.round(performance.now() - profileStart);
+      console.log(`[PERF] profile: ${profileDuration}ms`);
+
       if (docSnap.exists()) {
         const data = docSnap.data();
         console.log(`[FIRESTORE DEBUG] Firestore document fetched successfully for ${docPath}`);
@@ -52,6 +56,8 @@ export const userService = {
         return fallbackUser;
       }
     } catch (err: any) {
+      const profileDuration = Math.round(performance.now() - profileStart);
+      console.log(`[PERF] profile: ${profileDuration}ms`);
       console.warn(`[FIRESTORE DEBUG] Firestore document request failed or client is offline for ${docPath}:`, err?.message || err);
       // Gracefully return local/cached user to ensure Firebase Auth completes independently without blocking UI
       return fallbackUser;

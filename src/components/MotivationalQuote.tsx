@@ -74,9 +74,6 @@ export const MotivationalQuote = () => {
   const triggerRefresh = async () => {
     setLoading(true);
     const prev = currentMindsetRef.current;
-    
-    // Simulate a tiny delay for high-quality feel of the shimmer transition
-    await new Promise((resolve) => setTimeout(resolve, 800));
 
     try {
       const newMindset = await loadMindsetFromBackend(prev);

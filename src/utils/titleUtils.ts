@@ -128,6 +128,7 @@ export function setEquippedTitle(title: string, userId?: string): void {
  * Retrieves all unlocked titles for the user.
  */
 export function getAllUserTitles(user?: any): string[] {
+  const titlesStart = performance.now();
   const titlesSet = new Set<string>();
 
   // Extract from user.titles
@@ -167,7 +168,9 @@ export function getAllUserTitles(user?: any): string[] {
   if (streak >= 14) titlesSet.add("RELENTLESS");
   if (streak >= 30) titlesSet.add("UNBREAKABLE");
 
-  return Array.from(titlesSet);
+  const results = Array.from(titlesSet);
+  console.log(`[PERF] titles: ${Math.round(performance.now() - titlesStart)}ms`);
+  return results;
 }
 
 /**

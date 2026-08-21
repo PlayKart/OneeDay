@@ -32,11 +32,11 @@ const SettingsScreen = lazyWithRetry(() => import('./components/screens/Settings
 const LandingScreen = lazyWithRetry(() => import('./components/screens/LandingScreen'), 'LandingScreen');
 
 import { MainLayout } from './components/MainLayout';
-import { TitleUnlockModal } from './components/TitleUnlockModal';
-import { TitleLossModal } from './components/TitleLossModal';
-import { LevelUpModal } from './components/LevelUpAnimation';
-import { OnboardingModal } from './components/OnboardingModal';
-import { AppIntroFlow } from './components/AppIntroFlow';
+const TitleUnlockModal = lazy(() => import('./components/TitleUnlockModal').then(m => ({ default: m.TitleUnlockModal })));
+const TitleLossModal = lazy(() => import('./components/TitleLossModal').then(m => ({ default: m.TitleLossModal })));
+const LevelUpModal = lazy(() => import('./components/LevelUpAnimation').then(m => ({ default: m.LevelUpModal })));
+const OnboardingModal = lazy(() => import('./components/OnboardingModal').then(m => ({ default: m.OnboardingModal })));
+const AppIntroFlow = lazy(() => import('./components/AppIntroFlow').then(m => ({ default: m.AppIntroFlow })));
 import { getOnboardingStatus, hasCompletedOnboarding } from './utils';
 
 const GoogleIcon = () => (
@@ -106,8 +106,8 @@ export default function App() {
       return;
     }
 
-    // Must wait for backend profile to sync and receive authoritative onboarded status
-    if (!profileSynced || !user) {
+    // Must wait for user state (either cached or synced) to evaluate onboarding status
+    if (!user) {
       return;
     }
 
@@ -320,9 +320,9 @@ export default function App() {
     );
   }
 
-  // ── 4. Authenticated -> Show Syncing screen while initial profile is sync loading ──────
-  const onboardingStatus = profileSynced && user ? getOnboardingStatus(user) : null;
-  if (!profileSynced || !user || onboardingStatus === null) {
+  // ── 4. Authenticated -> Show Syncing screen if user state is not yet available ──────
+  const onboardingStatus = user ? getOnboardingStatus(user) : null;
+  if (!user || onboardingStatus === null) {
     return (
       <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center font-sans p-6">
         <motion.div 

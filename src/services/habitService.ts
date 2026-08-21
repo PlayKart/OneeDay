@@ -13,28 +13,37 @@ export const habitService = {
     try {
       const habitsRef = collection(db, "habits");
       const q = query(habitsRef, where("userId", "==", fbUser.uid));
-      const snapshot = await getDocs(q);
+      
+      const completionsRef = collection(db, "completions");
+      const compQ = query(completionsRef, where("userId", "==", fbUser.uid));
+
+      const habitsStart = performance.now();
+      const compStart = performance.now();
+
+      // Parallelize Firestore queries for maximum throughput
+      const [snapshot, compSnapshot] = await Promise.all([
+        getDocs(q),
+        getDocs(compQ).catch((cErr: any) => {
+          console.warn(`[FIRESTORE DEBUG] Fetch completions failed or offline:`, cErr?.message || cErr);
+          return { docs: [] } as any;
+        })
+      ]);
+
+      const habitsDuration = Math.round(performance.now() - habitsStart);
+      const compDuration = Math.round(performance.now() - compStart);
+      console.log(`[PERF] habits: ${habitsDuration}ms`);
+      console.log(`[PERF] completions: ${compDuration}ms`);
 
       const today = new Date().toISOString().split("T")[0];
-      
-      // Also fetch completions
-      let completions: any[] = [];
-      try {
-        const completionsRef = collection(db, "completions");
-        const compQ = query(completionsRef, where("userId", "==", fbUser.uid));
-        const compSnapshot = await getDocs(compQ);
-        completions = compSnapshot.docs.map(d => d.data());
-      } catch (cErr: any) {
-        console.warn(`[FIRESTORE DEBUG] Fetch completions failed or offline:`, cErr?.message || cErr);
-      }
+      const completions = compSnapshot.docs.map((d: any) => d.data());
 
       console.log(`[FIRESTORE DEBUG] Firestore getHabits fetched ${snapshot.docs.length} habits successfully.`);
-      return snapshot.docs.map(docSnap => {
+      return snapshot.docs.map((docSnap: any) => {
         const h = docSnap.data();
         const id = docSnap.id;
         
-        const habitComps = completions.filter(c => c.habitId === id);
-        const completedDates = habitComps.map(c => c.date);
+        const habitComps = completions.filter((c: any) => c.habitId === id);
+        const completedDates = habitComps.map((c: any) => c.date);
         const finalCompletedToday = completedDates.includes(today);
 
         return {
