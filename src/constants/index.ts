@@ -2,10 +2,13 @@
 
 const getBackendUrl = (): string => {
   const envUrl =
-    (typeof import.meta !== "undefined" && (import.meta.env?.RENDER_BACKEND_URL as string)) ||
-    (typeof process !== "undefined" && (process.env as any)?.RENDER_BACKEND_URL) ||
+    (typeof import.meta !== "undefined" && (import.meta.env?.VITE_BACKEND_URL as string)) ||
+    (typeof process !== "undefined" && (process.env as any)?.VITE_BACKEND_URL) ||
     "";
-  return (envUrl || "https://oneday-backend-xocv.onrender.com").trim().replace(/\/+$/, "");
+  if (envUrl && envUrl.includes("onrender.com")) {
+    return ""; // Route to localExpress server in server.ts
+  }
+  return (envUrl || "").trim().replace(/\/+$/, "");
 };
 
 export const BACKEND_URL = getBackendUrl();

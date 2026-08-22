@@ -1,0 +1,114 @@
+{
+  "users": {
+    "mock_firebase_token_alpha_123": {
+      "id": "mock_firebase_token_alpha_123",
+      "userId": "mock_firebase_token_alpha_123",
+      "email": "mock_firebase_token_alpha_123@oneday.app",
+      "name": "mock_firebase_token_alpha_123",
+      "fullName": "mock_firebase_token_alpha_123",
+      "gender": null,
+      "dob": null,
+      "whyOneday": null,
+      "xp": 20,
+      "level": 1,
+      "levelProgress": 20,
+      "streak": 1,
+      "longestStreak": 1,
+      "onboarded": false,
+      "onboardingStep": 1,
+      "currentTitle": "Newcomer",
+      "unlockedTitles": [
+        "Newcomer"
+      ],
+      "createdAt": "2026-08-22T12:49:24.172Z",
+      "updatedAt": "2026-08-22T12:49:24.173Z",
+      "currentStreak": 1
+    },
+    "mock_firebase_user_verify_456": {
+      "id": "mock_firebase_user_verify_456",
+      "userId": "mock_firebase_user_verify_456",
+      "email": "mock_firebase_user_verify_456@oneday.app",
+      "name": "mock_firebase_user_verify_456",
+      "fullName": "mock_firebase_user_verify_456",
+      "gender": "male",
+      "dob": "1995-05-15",
+      "whyOneday": "Build discipline",
+      "xp": 50,
+      "level": 1,
+      "levelProgress": 50,
+      "streak": 1,
+      "longestStreak": 1,
+      "onboarded": true,
+      "onboardingStep": 4,
+      "currentTitle": "Newcomer",
+      "unlockedTitles": [
+        "Newcomer"
+      ],
+      "createdAt": "2026-08-22T12:50:02.636Z",
+      "updatedAt": "2026-08-22T12:50:02.659Z",
+      "currentStreak": 1
+    }
+  },
+  "habits": {
+    "habit_1787402964216_kituf": {
+      "id": "habit_1787402964216_kituf",
+      "userId": "mock_firebase_token_alpha_123",
+      "name": "Morning Pushups",
+      "title": "Morning Pushups",
+      "difficulty": "Medium",
+      "repeatType": "every_day",
+      "customDays": [],
+      "notes": "",
+      "icon": "dumbbell",
+      "category": "emerald",
+      "reminderTime": "",
+      "completedDates": [
+        "2026-08-22"
+      ],
+      "completedToday": false,
+      "streak": 1,
+      "createdAt": "2026-08-22T12:49:24.216Z",
+      "updatedAt": "2026-08-22T12:49:24.216Z"
+    },
+    "habit_1787403002668_qhv1t": {
+      "id": "habit_1787403002668_qhv1t",
+      "userId": "mock_firebase_user_verify_456",
+      "name": "Cold Shower",
+      "title": "Cold Shower",
+      "difficulty": "Hard",
+      "repeatType": "every_day",
+      "customDays": [],
+      "notes": "",
+      "icon": "dumbbell",
+      "category": "emerald",
+      "reminderTime": "",
+      "completedDates": [
+        "2026-08-22"
+      ],
+      "completedToday": false,
+      "streak": 1,
+      "createdAt": "2026-08-22T12:50:02.668Z",
+      "updatedAt": "2026-08-22T12:50:02.668Z"
+    },
+    "habit_1787403002677_s02qb": {
+      "id": "habit_1787403002677_s02qb",
+      "userId": "mock_firebase_user_verify_456",
+      "name": "Read 10 Pages",
+      "title": "Read 10 Pages",
+      "difficulty": "Medium",
+      "repeatType": "every_day",
+      "customDays": [],
+      "notes": "",
+      "icon": "dumbbell",
+      "category": "emerald",
+      "reminderTime": "",
+      "completedDates": [
+        "2026-08-22"
+      ],
+      "completedToday": false,
+      "streak": 1,
+      "createdAt": "2026-08-22T12:50:02.677Z",
+      "updatedAt": "2026-08-22T12:50:02.677Z"
+    }
+  }
+}
