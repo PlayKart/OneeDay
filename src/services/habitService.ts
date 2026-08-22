@@ -1,56 +1,46 @@
 import { Habit } from "../types";
-import { safeArray, getLocalCalendarDate, getPreviousCalendarDate } from "../utils";
-import { auth, db } from "../lib/firebase";
-import { collection, query, where, getDocs, doc, setDoc, updateDoc, deleteDoc, getDoc } from "firebase/firestore";
+import { safeArray, getLocalCalendarDate, getXpForDifficulty, calculateLevelProgress } from "../utils";
+import { auth } from "../lib/firebase";
+import { apiClient } from "../api/client";
 import { useStore } from "../store/useStore";
 
 export const habitService = {
+  /**
+   * Fetches habits from backend API (backed by Supabase).
+   */
   async getHabits(): Promise<Habit[]> {
     const fbUser = auth.currentUser || useStore.getState().firebaseUser;
     if (!fbUser) return [];
 
-    console.log(`[FIRESTORE DEBUG] Firestore getHabits request started for userId: ${fbUser.uid}`);
+    console.log(`[HABIT SERVICE] Fetching habits from backend API for userId: ${fbUser.uid}`);
     try {
-      const habitsRef = collection(db, "habits");
-      const q = query(habitsRef, where("userId", "==", fbUser.uid));
-      
-      const completionsRef = collection(db, "completions");
-      const compQ = query(completionsRef, where("userId", "==", fbUser.uid));
-
       const habitsStart = performance.now();
-      const compStart = performance.now();
+      const response = await apiClient.get("/api/habits");
+      const duration = Math.round(performance.now() - habitsStart);
+      console.log(`[PERF] backend getHabits: ${duration}ms`);
 
-      // Parallelize Firestore queries for maximum throughput
-      const [snapshot, compSnapshot] = await Promise.all([
-        getDocs(q),
-        getDocs(compQ).catch((cErr: any) => {
-          console.warn(`[FIRESTORE DEBUG] Fetch completions failed or offline:`, cErr?.message || cErr);
-          return { docs: [] } as any;
-        })
-      ]);
-
-      const habitsDuration = Math.round(performance.now() - habitsStart);
-      const compDuration = Math.round(performance.now() - compStart);
-      console.log(`[PERF] habits: ${habitsDuration}ms`);
-      console.log(`[PERF] completions: ${compDuration}ms`);
+      const rawData = response.data || {};
+      const habitsList = Array.isArray(rawData)
+        ? rawData
+        : Array.isArray(rawData.data)
+        ? rawData.data
+        : Array.isArray(rawData.habits)
+        ? rawData.habits
+        : [];
 
       const today = getLocalCalendarDate();
-      const completions = compSnapshot.docs.map((d: any) => d.data());
 
-      console.log(`[FIRESTORE DEBUG] Firestore getHabits fetched ${snapshot.docs.length} habits successfully.`);
-      return snapshot.docs.map((docSnap: any) => {
-        const h = docSnap.data();
-        const id = docSnap.id;
-        
-        const habitComps = completions.filter((c: any) => c.habitId === id);
-        const completedDates = habitComps.map((c: any) => getLocalCalendarDate(c.date || c.timestamp)).filter(Boolean);
-        const finalCompletedToday = completedDates.includes(today);
+      return habitsList.map((h: any) => {
+        const id = String(h.id || h.habitId || h.habit_id);
+        const rawCompletedDates = safeArray<string>(h.completedDates || h.completed_dates);
+        const completedDates = rawCompletedDates.map((d) => getLocalCalendarDate(d)).filter(Boolean);
+        const completedToday = Boolean(h.completedToday || h.completed_today || completedDates.includes(today));
 
         return {
-          id: String(id),
+          id,
           name: h.title || h.name || "Unnamed Habit",
-          completedToday: finalCompletedToday,
-          completedDates: completedDates,
+          completedToday,
+          completedDates,
           repeatType: h.repeatType || h.repeat_type || "every_day",
           customDays: safeArray<string>(h.customDays || h.custom_days),
           difficulty: h.difficulty || "Medium",
@@ -61,11 +51,14 @@ export const habitService = {
         };
       });
     } catch (err: any) {
-      console.warn(`[FIRESTORE DEBUG] Firestore getHabits failed or client is offline:`, err?.message || err);
+      console.warn(`[HABIT SERVICE] Backend getHabits failed:`, err?.message || err);
       return useStore.getState().habits || [];
     }
   },
 
+  /**
+   * Creates a habit via backend API & Supabase.
+   */
   async createHabit(habitData: any): Promise<Habit> {
     const fbUser = auth.currentUser || useStore.getState().firebaseUser;
     if (!fbUser) throw new Error("Not authenticated");
@@ -75,7 +68,6 @@ export const habitService = {
     }
 
     const payload = {
-      userId: fbUser.uid,
       name: habitData.name.trim(),
       title: habitData.name.trim(),
       repeatType: habitData.repeatType || "every_day",
@@ -87,35 +79,36 @@ export const habitService = {
       category: habitData.category || "emerald",
       color: habitData.category || "emerald",
       reminderTime: habitData.reminderTime || "",
-      createdAt: new Date().toISOString()
     };
 
-    const newDocRef = doc(collection(db, "habits"));
-    const createdHabit: Habit = {
-      id: newDocRef.id,
-      name: payload.name,
-      completedToday: false,
-      completedDates: [],
-      repeatType: payload.repeatType,
-      customDays: payload.customDays,
-      difficulty: payload.difficulty,
-      notes: payload.notes,
-      icon: payload.icon,
-      category: payload.category,
-      reminderTime: payload.reminderTime,
-    };
-
-    console.log(`[FIRESTORE DEBUG] Firestore createHabit request started for habit ID: ${newDocRef.id}`);
+    console.log(`[HABIT SERVICE] Creating habit via backend API...`);
     try {
-      await setDoc(newDocRef, payload);
-      console.log(`[FIRESTORE DEBUG] Firestore createHabit successful for ${newDocRef.id}`);
-      return createdHabit;
+      const response = await apiClient.post("/api/habit", payload);
+      const rawData = response.data || {};
+      const created = rawData.data || rawData.habit || rawData;
+
+      return {
+        id: String(created.id || created.habitId || Date.now()),
+        name: created.title || created.name || payload.name,
+        completedToday: false,
+        completedDates: [],
+        repeatType: created.repeatType || created.repeat_type || payload.repeatType,
+        customDays: safeArray<string>(created.customDays || created.custom_days || payload.customDays),
+        difficulty: created.difficulty || payload.difficulty,
+        notes: created.notes ?? created.description ?? payload.notes,
+        icon: created.icon || payload.icon,
+        category: created.category || created.color || payload.category,
+        reminderTime: created.reminderTime || created.reminder_time || payload.reminderTime,
+      };
     } catch (err: any) {
-      console.warn(`[FIRESTORE DEBUG] Firestore createHabit write failed or client is offline for ${newDocRef.id}:`, err?.message || err);
-      return createdHabit;
+      console.warn(`[HABIT SERVICE] Backend createHabit failed:`, err?.message || err);
+      throw err;
     }
   },
 
+  /**
+   * Updates a habit via backend API & Supabase.
+   */
   async updateHabit(habitId: string, habitData: Partial<Habit>): Promise<Habit> {
     const fbUser = auth.currentUser || useStore.getState().firebaseUser;
     if (!fbUser) throw new Error("Not authenticated");
@@ -130,141 +123,112 @@ export const habitService = {
     if (habitData.category) { payload.category = habitData.category; payload.color = habitData.category; }
     if (habitData.reminderTime !== undefined) payload.reminderTime = habitData.reminderTime;
 
-    const docPath = `habits/${habitId}`;
-    console.log(`[FIRESTORE DEBUG] Firestore updateHabit request started for ${docPath}`);
+    console.log(`[HABIT SERVICE] Updating habit ${habitId} via backend API...`);
     try {
-      const docRef = doc(db, "habits", habitId);
-      await updateDoc(docRef, payload);
-      console.log(`[FIRESTORE DEBUG] Firestore updateHabit write successful for ${docPath}`);
-      return { id: habitId, ...payload } as any;
+      const response = await apiClient.put(`/api/habit/${habitId}`, payload).catch(() =>
+        apiClient.post(`/api/habit`, { id: habitId, ...payload })
+      );
+      const rawData = response.data || {};
+      const updated = rawData.data || rawData.habit || rawData;
+
+      return {
+        id: habitId,
+        name: updated.title || updated.name || habitData.name || "Updated Habit",
+        completedToday: Boolean(updated.completedToday),
+        completedDates: safeArray(updated.completedDates),
+        repeatType: updated.repeatType || habitData.repeatType || "every_day",
+        customDays: safeArray(updated.customDays || habitData.customDays),
+        difficulty: updated.difficulty || habitData.difficulty || "Medium",
+        notes: updated.notes ?? updated.description ?? habitData.notes ?? "",
+        icon: updated.icon || habitData.icon || "dumbbell",
+        category: updated.category || habitData.category || "emerald",
+        reminderTime: updated.reminderTime || habitData.reminderTime || "",
+      };
     } catch (err: any) {
-      console.warn(`[FIRESTORE DEBUG] Firestore updateHabit write failed or client is offline for ${docPath}:`, err?.message || err);
-      return { id: habitId, ...payload } as any;
+      console.warn(`[HABIT SERVICE] Backend updateHabit failed:`, err?.message || err);
+      return { id: habitId, ...habitData } as any;
     }
   },
 
+  /**
+   * Deletes a habit via backend API & Supabase.
+   */
   async deleteHabit(habitId: string): Promise<void> {
-    const docPath = `habits/${habitId}`;
-    console.log(`[FIRESTORE DEBUG] Firestore deleteHabit request started for ${docPath}`);
+    console.log(`[HABIT SERVICE] Deleting habit ${habitId} via backend API...`);
     try {
-      await deleteDoc(doc(db, "habits", habitId));
-      console.log(`[FIRESTORE DEBUG] Firestore deleteHabit successful for ${docPath}`);
+      await apiClient.delete(`/api/habit/${habitId}`);
+      console.log(`[HABIT SERVICE] Delete habit ${habitId} successful.`);
     } catch (err: any) {
-      console.warn(`[FIRESTORE DEBUG] Firestore deleteHabit failed or client is offline for ${docPath}:`, err?.message || err);
+      console.warn(`[HABIT SERVICE] Backend deleteHabit failed:`, err?.message || err);
     }
   },
 
+  /**
+   * Completes a habit via backend API & Supabase.
+   * Returns authoritative updated state (streak, XP, level, levelProgress) from backend.
+   */
   async completeHabit(habitId: string): Promise<any> {
     const fbUser = auth.currentUser || useStore.getState().firebaseUser;
     if (!fbUser) throw new Error("Not authenticated");
-    const today = getLocalCalendarDate();
-    const compId = `${fbUser.uid}_${habitId}_${today}`;
-    const docPath = `completions/${compId}`;
-    console.log(`[FIRESTORE DEBUG] Firestore completeHabit request started for ${docPath}`);
+
+    console.log(`[HABIT SERVICE] Completing habit ${habitId} via backend API...`);
     try {
-      await setDoc(doc(db, "completions", compId), {
-        userId: fbUser.uid,
-        habitId: habitId,
-        date: today,
-        timestamp: new Date().toISOString()
-      });
-      console.log(`[FIRESTORE DEBUG] Firestore completeHabit write successful for ${docPath}`);
+      const response = await apiClient.post(`/api/habits/${habitId}/complete`);
+      const rawData = response.data || {};
 
-      const userRef = doc(db, "users", fbUser.uid);
-      const userSnap = await getDoc(userRef);
-      const userData = userSnap.exists() ? userSnap.data() : {};
-
-      const currentStreak = typeof userData.streak === "number" ? userData.streak : (typeof userData.currentStreak === "number" ? userData.currentStreak : 0);
-      const lastActiveDate = userData.lastActiveDate || userData.last_active_date;
-
-      let newStreak = currentStreak;
-      if (lastActiveDate !== today) {
-        const yesterday = getPreviousCalendarDate(today);
-        if (lastActiveDate === yesterday && currentStreak > 0) {
-          newStreak = currentStreak + 1;
-        } else {
-          newStreak = 1;
-        }
-      } else {
-        newStreak = Math.max(1, currentStreak);
-      }
-
-      await setDoc(userRef, {
-        streak: newStreak,
-        currentStreak: newStreak,
-        lastActiveDate: today,
-        updatedAt: new Date().toISOString()
-      }, { merge: true });
+      const streak = rawData.streak ?? rawData.currentStreak ?? rawData.user?.streak ?? rawData.user?.currentStreak;
+      const xp = rawData.xp ?? rawData.user?.xp;
+      const level = rawData.level ?? rawData.user?.level;
+      const levelProgress = rawData.levelProgress ?? rawData.user?.levelProgress;
 
       return {
         success: true,
-        streak: newStreak,
-        currentStreak: newStreak,
-        user: {
-          ...userData,
-          streak: newStreak,
-          currentStreak: newStreak,
-          lastActiveDate: today
-        }
+        streak,
+        currentStreak: streak,
+        xp,
+        level,
+        levelProgress,
+        user: rawData.user || rawData.profile || null,
+        data: rawData,
       };
     } catch (err: any) {
-      console.warn(`[FIRESTORE DEBUG] Firestore completeHabit write failed or client is offline for ${docPath}:`, err?.message || err);
-      return { success: true, offline: true };
+      console.warn(`[HABIT SERVICE] Backend completeHabit failed:`, err?.message || err);
+      throw err;
     }
   },
 
+  /**
+   * Undoes a habit completion via backend API & Supabase.
+   */
   async undoHabit(habitId: string): Promise<any> {
     const fbUser = auth.currentUser || useStore.getState().firebaseUser;
     if (!fbUser) throw new Error("Not authenticated");
-    const today = getLocalCalendarDate();
-    const compId = `${fbUser.uid}_${habitId}_${today}`;
-    const docPath = `completions/${compId}`;
-    console.log(`[FIRESTORE DEBUG] Firestore undoHabit request started for ${docPath}`);
+
+    console.log(`[HABIT SERVICE] Undoing habit ${habitId} completion via backend API...`);
     try {
-      await deleteDoc(doc(db, "completions", compId));
-      console.log(`[FIRESTORE DEBUG] Firestore undoHabit delete successful for ${docPath}`);
+      const response = await apiClient.post(`/api/habits/${habitId}/undo`).catch(() =>
+        apiClient.delete(`/api/habits/${habitId}/complete`).catch(() =>
+          apiClient.post(`/api/habits/${habitId}/complete`, { undo: true })
+        )
+      );
+      const rawData = response.data || {};
 
-      const completionsRef = collection(db, "completions");
-      const compQ = query(completionsRef, where("userId", "==", fbUser.uid), where("date", "==", today));
-      const todayCompsSnap = await getDocs(compQ).catch(() => ({ docs: [] } as any));
-      const hasOtherCompletionsToday = todayCompsSnap.docs.length > 0;
-
-      const userRef = doc(db, "users", fbUser.uid);
-      const userSnap = await getDoc(userRef);
-      const userData = userSnap.exists() ? userSnap.data() : {};
-      const currentStreak = typeof userData.streak === "number" ? userData.streak : (typeof userData.currentStreak === "number" ? userData.currentStreak : 0);
-
-      let newStreak = currentStreak;
-      let newLastActiveDate = userData.lastActiveDate || userData.last_active_date;
-
-      if (!hasOtherCompletionsToday) {
-        const yesterday = getPreviousCalendarDate(today);
-        newStreak = Math.max(0, currentStreak - 1);
-        newLastActiveDate = newStreak > 0 ? yesterday : null;
-
-        await setDoc(userRef, {
-          streak: newStreak,
-          currentStreak: newStreak,
-          lastActiveDate: newLastActiveDate,
-          updatedAt: new Date().toISOString()
-        }, { merge: true });
-      }
+      const streak = rawData.streak ?? rawData.currentStreak ?? rawData.user?.streak;
+      const xp = rawData.xp ?? rawData.user?.xp;
+      const level = rawData.level ?? rawData.user?.level;
 
       return {
         success: true,
-        streak: newStreak,
-        currentStreak: newStreak,
-        user: {
-          ...userData,
-          streak: newStreak,
-          currentStreak: newStreak,
-          lastActiveDate: newLastActiveDate
-        }
+        streak,
+        currentStreak: streak,
+        xp,
+        level,
+        user: rawData.user || rawData.profile || null,
+        data: rawData,
       };
     } catch (err: any) {
-      console.warn(`[FIRESTORE DEBUG] Firestore undoHabit delete failed or client is offline for ${docPath}:`, err?.message || err);
-      return { success: true, offline: true };
+      console.warn(`[HABIT SERVICE] Backend undoHabit failed:`, err?.message || err);
+      throw err;
     }
   },
 };
-

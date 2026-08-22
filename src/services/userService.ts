@@ -1,91 +1,55 @@
 import { User } from "../types";
-import { normalizeUser, hasCompletedOnboarding, normalizeGenderValue } from "../utils";
+import { normalizeUser, normalizeGenderValue } from "../utils";
 import { useStore } from "../store/useStore";
-import { auth, db } from "../lib/firebase";
-import { doc, getDoc, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import { auth } from "../lib/firebase";
+import { apiClient } from "../api/client";
 
 export const userService = {
+  /**
+   * Fetches authoritative user profile from backend API (backed by Supabase).
+   */
   async getUserProfile(existingUser?: User): Promise<User> {
     const fbUser = auth.currentUser || useStore.getState().firebaseUser;
     if (!fbUser) throw new Error("Not authenticated");
 
-    const profileStart = performance.now();
-    const docPath = `users/${fbUser.uid}`;
-    console.log(`[FIRESTORE DEBUG] Firestore document request started for ${docPath}`);
-
     const currentStoreUser = existingUser || useStore.getState().user;
-    const knownOnboarded = currentStoreUser?.onboarded !== undefined 
-      ? currentStoreUser.onboarded 
-      : undefined;
-
-    const fallbackUser = normalizeUser(
-      {
-        id: fbUser.uid,
-        userId: fbUser.uid,
-        email: fbUser.email || "",
-        name: fbUser.displayName || currentStoreUser?.name || "User",
-        photoUrl: fbUser.photoURL || currentStoreUser?.photoUrl || "",
-        onboarded: knownOnboarded,
-        hasCompletedOnboarding: knownOnboarded,
-        needsOnboarding: knownOnboarded !== undefined ? !knownOnboarded : undefined,
-        onboardingStep: currentStoreUser?.onboardingStep || 1,
-        streak: currentStoreUser?.streak ?? 0,
-        xp: currentStoreUser?.xp ?? 0,
-        level: currentStoreUser?.level ?? 1,
-        habits: currentStoreUser?.habits || [],
-        hobbies: currentStoreUser?.hobbies || [],
-        sports: currentStoreUser?.sports || [],
-        createdAt: currentStoreUser?.createdAt || new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      currentStoreUser || undefined
-    );
+    const profileStart = performance.now();
 
     try {
-      const docRef = doc(db, "users", fbUser.uid);
-      const docSnap = await getDoc(docRef);
-
+      const response = await apiClient.get("/api/profile");
       const profileDuration = Math.round(performance.now() - profileStart);
-      console.log(`[PERF] profile: ${profileDuration}ms`);
+      console.log(`[PERF] backend getUserProfile: ${profileDuration}ms`);
 
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        console.log(`[FIRESTORE DEBUG] Firestore document fetched successfully for ${docPath}`);
-        return normalizeUser({ ...data, id: fbUser.uid, userId: fbUser.uid }, currentStoreUser || undefined);
-      } else {
-        console.log(`[FIRESTORE DEBUG] Firestore document does not exist for ${docPath}. Initializing new account.`);
-        const newUserDoc = {
-          ...fallbackUser,
-          uid: fbUser.uid,
-          email: fbUser.email || "",
-          onboarded: false,
-          hasCompletedOnboarding: false,
-          needsOnboarding: true,
-          onboardingStep: 1,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-        // Background setDoc to seed document
-        setDoc(docRef, newUserDoc, { merge: true }).catch((err) => {
-          console.warn(`[FIRESTORE DEBUG] Background setDoc for ${docPath} deferred:`, err?.message || err);
-        });
-        return normalizeUser(newUserDoc, currentStoreUser || undefined);
-      }
+      const rawData = response.data || {};
+      const userData = rawData.user || rawData.profile || rawData.data || rawData;
+
+      const normalized = normalizeUser(
+        {
+          ...userData,
+          id: fbUser.uid,
+          userId: fbUser.uid,
+          email: fbUser.email || userData.email || "",
+          photoUrl: fbUser.photoURL || userData.photoUrl || currentStoreUser?.photoUrl || "",
+        },
+        currentStoreUser || undefined
+      );
+
+      return normalized;
     } catch (err: any) {
-      const profileDuration = Math.round(performance.now() - profileStart);
-      console.log(`[PERF] profile: ${profileDuration}ms`);
-      console.warn(`[FIRESTORE DEBUG] Firestore document request failed or client is offline for ${docPath}:`, err?.message || err);
-      
-      // If we already have a store user with resolved onboarding status, retain it
+      console.warn(`[USER SERVICE] Backend getUserProfile failed:`, err?.message || err);
+
+      // If store already has a valid user profile, fallback gracefully to store state
       if (currentStoreUser && currentStoreUser.onboarded !== undefined) {
         return currentStoreUser;
       }
 
-      // If state is completely unknown and request failed, throw so sync treats it as a sync error rather than assuming incomplete onboarding
       throw err;
     }
   },
 
+  /**
+   * Updates user profile on backend API & Supabase.
+   */
   async updateProfile(data: Partial<User> & Record<string, any>): Promise<User> {
     const fbUser = auth.currentUser || useStore.getState().firebaseUser;
     if (!fbUser) throw new Error("Not authenticated");
@@ -102,78 +66,98 @@ export const userService = {
       data.reasonForJoining = cleanWhy;
     }
 
-    const docPath = `users/${fbUser.uid}`;
-    console.log(`[FIRESTORE DEBUG] Firestore updateProfile request started for ${docPath}`);
-    const docRef = doc(db, "users", fbUser.uid);
-    data.updatedAt = new Date().toISOString();
-
     const currentUser = useStore.getState().user;
-    const mergedUser = normalizeUser({ ...currentUser, ...data, id: fbUser.uid, userId: fbUser.uid }, currentUser || undefined);
+    const payload = {
+      ...data,
+      userId: fbUser.uid,
+      id: fbUser.uid,
+      email: fbUser.email || currentUser?.email || "",
+      updatedAt: new Date().toISOString(),
+    };
 
     try {
-      await setDoc(docRef, { ...data, uid: fbUser.uid, email: fbUser.email || "", updatedAt: new Date().toISOString() }, { merge: true });
-      console.log(`[FIRESTORE DEBUG] Firestore updateProfile write completed for ${docPath}`);
+      const response = await apiClient.post("/api/profile", payload);
+      const rawData = response.data || {};
+      const updatedBackendUser = rawData.user || rawData.profile || rawData.data || rawData;
+
+      const mergedUser = normalizeUser(
+        {
+          ...currentUser,
+          ...payload,
+          ...updatedBackendUser,
+          id: fbUser.uid,
+          userId: fbUser.uid,
+        },
+        currentUser || undefined
+      );
+
       return mergedUser;
     } catch (err: any) {
-      console.warn(`[FIRESTORE DEBUG] Firestore updateProfile write failed or client is offline for ${docPath}:`, err?.message || err);
+      console.warn(`[USER SERVICE] Backend updateProfile failed:`, err?.message || err);
+
+      const mergedUser = normalizeUser(
+        { ...currentUser, ...payload, id: fbUser.uid, userId: fbUser.uid },
+        currentUser || undefined
+      );
       return mergedUser;
     }
   },
 
+  /**
+   * Retrieves current onboarding step from backend user profile.
+   */
   async getOnboardingStep(): Promise<number> {
-    const fbUser = auth.currentUser;
-    if (!fbUser) return 1;
-    const docPath = `users/${fbUser.uid}`;
-    console.log(`[FIRESTORE DEBUG] Firestore getOnboardingStep started for ${docPath}`);
     try {
-      const docSnap = await getDoc(doc(db, "users", fbUser.uid));
-      if (docSnap.exists()) {
-        return docSnap.data().onboardingStep || 1;
-      }
-      return 1;
+      const user = await this.getUserProfile();
+      return user.onboardingStep || 1;
     } catch (err: any) {
-      console.warn(`[FIRESTORE DEBUG] Firestore getOnboardingStep failed or client is offline for ${docPath}:`, err?.message || err);
+      console.warn(`[USER SERVICE] getOnboardingStep failed:`, err?.message || err);
       return 1;
     }
   },
 
+  /**
+   * Updates onboarding step on backend.
+   */
   async updateOnboardingStep(step: number): Promise<User> {
     return this.updateProfile({ onboardingStep: step, step });
   },
 
+  /**
+   * Freezes streak for N days on backend profile.
+   */
   async freezeStreak(days: number): Promise<User> {
     const freezeUntil = new Date();
     freezeUntil.setDate(freezeUntil.getDate() + days);
     return this.updateProfile({ freezeUntil: freezeUntil.toISOString() });
   },
 
+  /**
+   * Deactivates freeze.
+   */
   async deactivateFreeze(): Promise<User> {
     return this.updateProfile({ freezeUntil: null, freeze_until: null });
   },
 
+  /**
+   * Resets progress on backend.
+   */
   async resetProgress(): Promise<void> {
-    const fbUser = auth.currentUser;
-    if (!fbUser) return;
-    const docPath = `users/${fbUser.uid}`;
-    console.log(`[FIRESTORE DEBUG] Firestore resetProgress started for ${docPath}`);
-    try {
-      await updateDoc(doc(db, "users", fbUser.uid), { xp: 0, level: 1, streak: 0 });
-    } catch (err: any) {
-      console.warn(`[FIRESTORE DEBUG] Firestore resetProgress failed or client is offline for ${docPath}:`, err?.message || err);
-    }
+    await this.updateProfile({ xp: 0, level: 1, streak: 0, currentStreak: 0 });
   },
 
+  /**
+   * Deletes user account.
+   */
   async deleteAccount(): Promise<void> {
     const fbUser = auth.currentUser;
     if (!fbUser) return;
-    const docPath = `users/${fbUser.uid}`;
-    console.log(`[FIRESTORE DEBUG] Firestore deleteAccount started for ${docPath}`);
+
     try {
-      await deleteDoc(doc(db, "users", fbUser.uid));
+      await apiClient.delete("/api/user");
       await fbUser.delete();
     } catch (err: any) {
-      console.warn(`[FIRESTORE DEBUG] Firestore deleteAccount failed or client is offline for ${docPath}:`, err?.message || err);
+      console.warn(`[USER SERVICE] deleteAccount failed:`, err?.message || err);
     }
   },
 };
-

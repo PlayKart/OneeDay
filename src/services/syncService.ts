@@ -192,52 +192,35 @@ class SyncService {
           "fetchDashboardData"
         );
 
-        // Hydrate data into Zustand store without resetting profile
+        console.log(`[DATA SOURCE] Authoritative state loaded from backend for user ${activeFbUser.uid}:`, {
+          streak: data?.user?.streak,
+          xp: data?.user?.xp,
+          level: data?.user?.level,
+          habitsCount: data?.habits?.length,
+          completedTodayCount: data?.habits?.filter((h: any) => h.completedToday).length,
+        });
+
+        // Hydrate data into Zustand store authoritatively from backend
         const store = useStore.getState();
         const currentLocalUser = store.user;
 
         const fetchedUser = normalizeUser(data, currentLocalUser);
-        const currentXp = typeof currentLocalUser?.xp === "number" && !isNaN(currentLocalUser.xp) ? currentLocalUser.xp : 0;
-        const fetchedXp = typeof fetchedUser?.xp === "number" && !isNaN(fetchedUser.xp) ? fetchedUser.xp : 0;
-        const finalXp = Math.max(currentXp, fetchedXp);
-        const finalLevel = Math.max(
-          fetchedUser?.level ?? 1,
-          currentLocalUser?.level ?? 1,
-          Math.floor(finalXp / 100) + 1
-        );
+        const finalXp = typeof fetchedUser?.xp === "number" && !isNaN(fetchedUser.xp) ? fetchedUser.xp : 0;
+        const finalLevel = typeof fetchedUser?.level === "number" && !isNaN(fetchedUser.level) && fetchedUser.level >= 1
+          ? fetchedUser.level
+          : Math.max(1, Math.floor(finalXp / 100) + 1);
 
         const todayStr = getLocalCalendarDate();
         const incomingHabits = safeArray<Habit>(data?.habits);
-        const currentHabits = store.habits;
 
-        const mergedHabits = incomingHabits.map((inc) => {
-          const local = currentHabits.find((h) => h.id === inc.id);
-          if (local?.completedToday && !inc.completedToday) {
-            const isPending = store.pendingHabitIds.has(inc.id);
-            const hasToday = local.completedDates?.includes(todayStr);
-            if (isPending || hasToday) {
-              return {
-                ...inc,
-                completedToday: true,
-                completedDates: inc.completedDates?.includes(todayStr)
-                  ? inc.completedDates
-                  : [...(inc.completedDates || []), todayStr],
-              };
-            }
-          }
-          return inc;
-        });
-
-        const finalHabits = mergedHabits.length > 0 ? mergedHabits : (currentHabits.length > 0 ? currentHabits : incomingHabits);
-        if (finalHabits && finalHabits.length > 0) {
-          localStorage.setItem("oneday_cached_habits", JSON.stringify(finalHabits));
-        }
+        // Authoritative habits from backend
+        const finalHabits = incomingHabits;
 
         const authoritativeStreak = typeof fetchedUser?.streak === "number"
           ? fetchedUser.streak
           : (typeof fetchedUser?.currentStreak === "number"
             ? fetchedUser.currentStreak
-            : calculateStreak(finalHabits, todayStr));
+            : 0);
 
         const finalUser = fetchedUser
           ? {
@@ -248,10 +231,6 @@ class SyncService {
               currentStreak: authoritativeStreak,
             }
           : fetchedUser;
-
-        if (finalUser) {
-          localStorage.setItem("oneday_cached_user", JSON.stringify(finalUser));
-        }
 
         useStore.setState({
           user: finalUser,

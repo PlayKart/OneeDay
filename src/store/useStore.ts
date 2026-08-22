@@ -86,25 +86,6 @@ interface StoreState {
 
 export const useStore = create<StoreState>((set, get) => {
   const authStartTime = performance.now();
-  let initialUser: BackendUser | null = null;
-  const cachedUserStr = localStorage.getItem("oneday_cached_user");
-  if (cachedUserStr) {
-    try {
-      initialUser = JSON.parse(cachedUserStr);
-    } catch (_) {
-      // Ignore
-    }
-  }
-
-  let initialHabits: Habit[] = [];
-  const cachedHabitsStr = localStorage.getItem("oneday_cached_habits");
-  if (cachedHabitsStr) {
-    try {
-      initialHabits = JSON.parse(cachedHabitsStr);
-    } catch (_) {
-      // Ignore
-    }
-  }
 
   // Diagnostic log for boot
   console.log("[BOOT] initialization started");
@@ -116,22 +97,13 @@ export const useStore = create<StoreState>((set, get) => {
   getRedirectResult(auth)
     .then(async (result) => {
       if (result && result.user) {
-        console.log("[Auth Step - Redirect] Successful redirect login. User UID:", result.user.uid);
-        try {
-          const token = await result.user.getIdToken(true);
-          localStorage.setItem("oneday_session_active", "true");
-          localStorage.setItem("oneday_firebase_uid", result.user.uid);
-          localStorage.setItem("oneday_firebase_email", result.user.email || "");
-          localStorage.setItem("oneday_firebase_token", token);
-        } catch (tokenErr) {
-          console.warn("[Auth Step - Redirect Warning] Failed to retrieve ID token:", tokenErr);
-        }
+        console.log("[AUTH] Successful redirect login. User UID:", result.user.uid);
         set({ firebaseUser: result.user, initialized: true });
         await get().refreshFromBackend();
       }
     })
     .catch((err) => {
-      console.warn("[Auth Step - Redirect Warning] Error handling redirect result:", err);
+      console.warn("[AUTH] Error handling redirect result:", err);
     });
 
   // Fallback safety timer in case Firebase Auth listener is stalled (e.g. offline/IndexedDB issue)
@@ -160,33 +132,13 @@ export const useStore = create<StoreState>((set, get) => {
     console.log("[BOOT] auth initialization completed");
 
     if (fbUser) {
-      console.log(`[BOOT] authenticated user: ${fbUser.uid} ${fbUser.email ? `(${fbUser.email})` : ""}`);
+      console.log(`[AUTH] authenticated user: ${fbUser.uid} ${fbUser.email ? `(${fbUser.email})` : ""}`);
       console.log("[BOOT] session available: true");
-      try {
-        const token = await fbUser.getIdToken();
-        if (token) {
-          localStorage.setItem("oneday_firebase_token", token);
-        }
-        localStorage.setItem("oneday_session_active", "true");
-        localStorage.setItem("oneday_firebase_uid", fbUser.uid);
-        localStorage.setItem("oneday_firebase_email", fbUser.email || "");
-      } catch (tokenErr) {
-        console.warn("[AUTH] Failed to acquire ID token on auth change:", tokenErr);
-      }
       set({ firebaseUser: fbUser, initialized: true });
       await get().refreshFromBackend();
     } else {
-      console.log("[BOOT] authenticated user: none");
+      console.log("[AUTH] authenticated user: none");
       console.log("[BOOT] session available: false");
-      localStorage.removeItem("oneday_session_active");
-      localStorage.removeItem("oneday_firebase_uid");
-      localStorage.removeItem("oneday_firebase_email");
-      localStorage.removeItem("oneday_firebase_token");
-      localStorage.removeItem("oneday_cached_user");
-      localStorage.removeItem("oneday_cached_habits");
-      localStorage.removeItem("oneday_onboarded");
-      localStorage.removeItem("oneday_onboarding_step");
-      localStorage.removeItem("oneday_onboarding_data");
       set({
         firebaseUser: null,
         user: null,
@@ -204,8 +156,8 @@ export const useStore = create<StoreState>((set, get) => {
 
   return {
     firebaseUser: null,
-    user: initialUser,
-    habits: initialHabits,
+    user: null,
+    habits: [],
     quote: "One day broke. Don't let two.",
     initialized: false,
     loading: false,
@@ -226,16 +178,6 @@ export const useStore = create<StoreState>((set, get) => {
 
     setFirebaseUser: (fbUser) => {
       console.log("[AUTH] setFirebaseUser called:", fbUser ? `authenticated (UID: ${fbUser.uid})` : "unauthenticated");
-      if (fbUser) {
-        localStorage.setItem("oneday_session_active", "true");
-        localStorage.setItem("oneday_firebase_uid", fbUser.uid);
-        localStorage.setItem("oneday_firebase_email", fbUser.email || "");
-        fbUser.getIdToken().then(token => {
-          localStorage.setItem("oneday_firebase_token", token);
-        }).catch(err => {
-          console.warn("Failed to update token on setFirebaseUser:", err);
-        });
-      }
       set({ firebaseUser: fbUser, initialized: true });
     },
 
@@ -404,10 +346,6 @@ export const useStore = create<StoreState>((set, get) => {
             }
           : null;
 
-        if (updatedUser) {
-          localStorage.setItem("oneday_cached_user", JSON.stringify(updatedUser));
-        }
-
         return {
           pendingHabitIds: nextPending,
           user: updatedUser,
@@ -507,10 +445,6 @@ export const useStore = create<StoreState>((set, get) => {
               }
             : normalizedUser;
 
-          if (finalUser) {
-            localStorage.setItem("oneday_cached_user", JSON.stringify(finalUser));
-          }
-
           return {
             user: finalUser,
             pendingHabitIds: nextPending,
@@ -536,9 +470,6 @@ export const useStore = create<StoreState>((set, get) => {
         set((state) => {
           const nextPending = new Set(state.pendingHabitIds);
           nextPending.delete(habitId);
-          if (originalUser) {
-            localStorage.setItem("oneday_cached_user", JSON.stringify(originalUser));
-          }
           return {
             habits: originalHabits,
             user: originalUser,
@@ -612,10 +543,6 @@ export const useStore = create<StoreState>((set, get) => {
             }
           : null;
 
-        if (updatedUser) {
-          localStorage.setItem("oneday_cached_user", JSON.stringify(updatedUser));
-        }
-
         return {
           pendingHabitIds: nextPending,
           user: updatedUser,
@@ -664,10 +591,6 @@ export const useStore = create<StoreState>((set, get) => {
               }
             : normalizedUser;
 
-          if (finalUser) {
-            localStorage.setItem("oneday_cached_user", JSON.stringify(finalUser));
-          }
-
           return {
             user: finalUser,
             pendingHabitIds: nextPending,
@@ -693,9 +616,6 @@ export const useStore = create<StoreState>((set, get) => {
         set((state) => {
           const nextPending = new Set(state.pendingHabitIds);
           nextPending.delete(habitId);
-          if (originalUser) {
-            localStorage.setItem("oneday_cached_user", JSON.stringify(originalUser));
-          }
           return {
             habits: originalHabits,
             user: originalUser,
