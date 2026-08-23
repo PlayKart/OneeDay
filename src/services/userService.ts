@@ -16,9 +16,9 @@ export const userService = {
     const profileStart = performance.now();
 
     try {
-      const response = await apiClient.get("/api/profile");
+      const response = await apiClient.get("/api/users");
       const profileDuration = Math.round(performance.now() - profileStart);
-      console.log(`[PERF] backend getUserProfile: ${profileDuration}ms`);
+      console.log(`[PERF] backend getUserProfile via GET /api/users: ${profileDuration}ms`);
 
       const rawData = response.data || {};
       const userData = rawData.user || rawData.profile || rawData.data || rawData;
@@ -48,7 +48,7 @@ export const userService = {
   },
 
   /**
-   * Updates user profile on backend API & Supabase.
+   * Updates user profile on backend API.
    */
   async updateProfile(data: Partial<User> & Record<string, any>): Promise<User> {
     const fbUser = auth.currentUser || useStore.getState().firebaseUser;
@@ -76,7 +76,14 @@ export const userService = {
     };
 
     try {
-      const response = await apiClient.post("/api/profile", payload);
+      // If updating onboarding step specifically, use the dedicated contract endpoint
+      if (data.onboardingStep !== undefined && Object.keys(data).length <= 2) {
+        await apiClient.post("/api/onboarding/step", { step: data.onboardingStep });
+      }
+
+      const response = await apiClient.post("/api/onboarding", payload).catch(async () => {
+        return await apiClient.get("/api/users");
+      });
       const rawData = response.data || {};
       const updatedBackendUser = rawData.user || rawData.profile || rawData.data || rawData;
 
@@ -104,10 +111,14 @@ export const userService = {
   },
 
   /**
-   * Retrieves current onboarding step from backend user profile.
+   * Retrieves current onboarding step via authoritative GET /api/onboarding/step endpoint.
    */
   async getOnboardingStep(): Promise<number> {
     try {
+      const res = await apiClient.get("/api/onboarding/step");
+      const raw = res.data || {};
+      const step = raw.step ?? raw.onboardingStep ?? raw.data?.step;
+      if (typeof step === "number") return step;
       const user = await this.getUserProfile();
       return user.onboardingStep || 1;
     } catch (err: any) {
@@ -117,33 +128,58 @@ export const userService = {
   },
 
   /**
-   * Updates onboarding step on backend.
+   * Updates onboarding step via authoritative POST /api/onboarding/step endpoint.
    */
   async updateOnboardingStep(step: number): Promise<User> {
+    try {
+      await apiClient.post("/api/onboarding/step", { step });
+    } catch (err) {
+      console.warn("[USER SERVICE] updateOnboardingStep POST /api/onboarding/step failed:", err);
+    }
     return this.updateProfile({ onboardingStep: step, step });
   },
 
   /**
-   * Freezes streak for N days on backend profile.
+   * Freezes streak for N days via authoritative POST /api/freeze endpoint.
    */
   async freezeStreak(days: number): Promise<User> {
-    const freezeUntil = new Date();
-    freezeUntil.setDate(freezeUntil.getDate() + days);
-    return this.updateProfile({ freezeUntil: freezeUntil.toISOString() });
+    try {
+      const res = await apiClient.post("/api/freeze", { days });
+      const rawData = res.data || {};
+      const updatedUser = rawData.user || rawData.profile || rawData;
+      return normalizeUser(updatedUser, useStore.getState().user || undefined);
+    } catch (err: any) {
+      console.warn("[USER SERVICE] POST /api/freeze failed:", err?.message || err);
+      const freezeUntil = new Date();
+      freezeUntil.setDate(freezeUntil.getDate() + days);
+      return this.updateProfile({ freezeUntil: freezeUntil.toISOString() });
+    }
   },
 
   /**
-   * Deactivates freeze.
+   * Deactivates freeze via POST /api/freeze endpoint (0 days / unfreeze).
    */
   async deactivateFreeze(): Promise<User> {
-    return this.updateProfile({ freezeUntil: null, freeze_until: null });
+    try {
+      const res = await apiClient.post("/api/freeze", { days: 0 });
+      const rawData = res.data || {};
+      const updatedUser = rawData.user || rawData.profile || rawData;
+      return normalizeUser(updatedUser, useStore.getState().user || undefined);
+    } catch (err) {
+      return this.updateProfile({ freezeUntil: null, freeze_until: null });
+    }
   },
 
   /**
-   * Resets progress on backend.
+   * Resets progress via authoritative POST /api/reset endpoint.
    */
   async resetProgress(): Promise<void> {
-    await this.updateProfile({ xp: 0, level: 1, streak: 0, currentStreak: 0 });
+    try {
+      await apiClient.post("/api/reset");
+    } catch (err: any) {
+      console.warn("[USER SERVICE] POST /api/reset failed:", err?.message || err);
+      await this.updateProfile({ xp: 0, level: 1, streak: 0, currentStreak: 0 });
+    }
   },
 
   /**

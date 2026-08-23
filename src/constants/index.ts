@@ -2,13 +2,11 @@
 
 const getBackendUrl = (): string => {
   const envUrl =
-    (typeof import.meta !== "undefined" && (import.meta.env?.VITE_BACKEND_URL as string)) ||
-    (typeof process !== "undefined" && (process.env as any)?.VITE_BACKEND_URL) ||
-    "";
-  if (envUrl && envUrl.includes("onrender.com")) {
-    return ""; // Route to localExpress server in server.ts
-  }
-  return (envUrl || "").trim().replace(/\/+$/, "");
+    (typeof import.meta !== "undefined" && ((import.meta.env?.VITE_BACKEND_URL as string) || (import.meta.env?.RENDER_BACKEND_URL as string))) ||
+    (typeof process !== "undefined" && ((process.env as any)?.VITE_BACKEND_URL || (process.env as any)?.RENDER_BACKEND_URL)) ||
+    "https://oneday-backend-xocv.onrender.com";
+
+  return (envUrl || "https://oneday-backend-xocv.onrender.com").trim().replace(/\/+$/, "");
 };
 
 export const BACKEND_URL = getBackendUrl();
@@ -29,4 +27,5 @@ export const DEFAULT_HABIT_COLORS = [
 ];
 
 export const APP_NAME = "OneDay";
-console.log('Constants loaded');
+console.log('[CONFIG] Production Backend URL initialized:', BACKEND_URL);
+

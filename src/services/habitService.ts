@@ -81,9 +81,20 @@ export const habitService = {
       reminderTime: habitData.reminderTime || "",
     };
 
-    console.log(`[HABIT SERVICE] Creating habit via backend API...`);
+    const targetUrl = "/api/habit";
+    const method = "POST";
+
+    console.log("[HABIT CREATE] Starting");
+    console.log("[HABIT CREATE] URL:", targetUrl);
+    console.log("[HABIT CREATE] METHOD:", method);
+    console.log("[HABIT CREATE] PAYLOAD:", payload);
+
     try {
-      const response = await apiClient.post("/api/habit", payload);
+      const response = await apiClient.post(targetUrl, payload);
+
+      console.log("[HABIT CREATE] RESPONSE STATUS:", response.status);
+      console.log("[HABIT CREATE] RESPONSE:", response.data);
+
       const rawData = response.data || {};
       const created = rawData.data || rawData.habit || rawData;
 
@@ -101,19 +112,19 @@ export const habitService = {
         reminderTime: created.reminderTime || created.reminder_time || payload.reminderTime,
       };
     } catch (err: any) {
-      console.warn(`[HABIT SERVICE] Backend createHabit failed:`, err?.message || err);
+      console.error("[HABIT CREATE] ERROR:", err?.message || err);
       throw err;
     }
   },
 
   /**
-   * Updates a habit via backend API & Supabase.
+   * Updates a habit via authoritative PUT /api/habit endpoint.
    */
   async updateHabit(habitId: string, habitData: Partial<Habit>): Promise<Habit> {
     const fbUser = auth.currentUser || useStore.getState().firebaseUser;
     if (!fbUser) throw new Error("Not authenticated");
 
-    const payload: any = {};
+    const payload: any = { id: habitId, habitId };
     if (habitData.name) { payload.name = habitData.name; payload.title = habitData.name; }
     if (habitData.repeatType) payload.repeatType = habitData.repeatType;
     if (habitData.customDays) payload.customDays = habitData.customDays;
@@ -123,11 +134,9 @@ export const habitService = {
     if (habitData.category) { payload.category = habitData.category; payload.color = habitData.category; }
     if (habitData.reminderTime !== undefined) payload.reminderTime = habitData.reminderTime;
 
-    console.log(`[HABIT SERVICE] Updating habit ${habitId} via backend API...`);
+    console.log(`[HABIT SERVICE] Updating habit ${habitId} via PUT /api/habit...`);
     try {
-      const response = await apiClient.put(`/api/habit/${habitId}`, payload).catch(() =>
-        apiClient.post(`/api/habit`, { id: habitId, ...payload })
-      );
+      const response = await apiClient.put(`/api/habit`, payload);
       const rawData = response.data || {};
       const updated = rawData.data || rawData.habit || rawData;
 
@@ -151,10 +160,10 @@ export const habitService = {
   },
 
   /**
-   * Deletes a habit via backend API & Supabase.
+   * Deletes a habit via authoritative DELETE /api/habit/:habitId endpoint.
    */
   async deleteHabit(habitId: string): Promise<void> {
-    console.log(`[HABIT SERVICE] Deleting habit ${habitId} via backend API...`);
+    console.log(`[HABIT SERVICE] Deleting habit ${habitId} via DELETE /api/habit/${habitId}...`);
     try {
       await apiClient.delete(`/api/habit/${habitId}`);
       console.log(`[HABIT SERVICE] Delete habit ${habitId} successful.`);
@@ -164,16 +173,16 @@ export const habitService = {
   },
 
   /**
-   * Completes a habit via backend API & Supabase.
-   * Returns authoritative updated state (streak, XP, level, levelProgress) from backend.
+   * Completes a habit via authoritative POST /api/complete endpoint.
    */
-  async completeHabit(habitId: string): Promise<any> {
+  async completeHabit(habitId: string, dateStr?: string): Promise<any> {
     const fbUser = auth.currentUser || useStore.getState().firebaseUser;
     if (!fbUser) throw new Error("Not authenticated");
 
-    console.log(`[HABIT SERVICE] Completing habit ${habitId} via backend API...`);
+    const date = dateStr || getLocalCalendarDate();
+    console.log(`[HABIT SERVICE] Completing habit ${habitId} via POST /api/complete...`);
     try {
-      const response = await apiClient.post(`/api/habits/${habitId}/complete`);
+      const response = await apiClient.post(`/api/complete`, { habitId, date });
       const rawData = response.data || {};
 
       const streak = rawData.streak ?? rawData.currentStreak ?? rawData.user?.streak ?? rawData.user?.currentStreak;
@@ -198,24 +207,22 @@ export const habitService = {
   },
 
   /**
-   * Undoes a habit completion via backend API & Supabase.
+   * Undoes a habit completion via authoritative POST /api/undo endpoint.
    */
-  async undoHabit(habitId: string): Promise<any> {
+  async undoHabit(habitId: string, dateStr?: string): Promise<any> {
     const fbUser = auth.currentUser || useStore.getState().firebaseUser;
     if (!fbUser) throw new Error("Not authenticated");
 
-    console.log(`[HABIT SERVICE] Undoing habit ${habitId} completion via backend API...`);
+    const date = dateStr || getLocalCalendarDate();
+    console.log(`[HABIT SERVICE] Undoing habit ${habitId} completion via POST /api/undo...`);
     try {
-      const response = await apiClient.post(`/api/habits/${habitId}/undo`).catch(() =>
-        apiClient.delete(`/api/habits/${habitId}/complete`).catch(() =>
-          apiClient.post(`/api/habits/${habitId}/complete`, { undo: true })
-        )
-      );
+      const response = await apiClient.post(`/api/undo`, { habitId, date });
       const rawData = response.data || {};
 
       const streak = rawData.streak ?? rawData.currentStreak ?? rawData.user?.streak;
       const xp = rawData.xp ?? rawData.user?.xp;
       const level = rawData.level ?? rawData.user?.level;
+      const levelProgress = rawData.levelProgress ?? rawData.user?.levelProgress;
 
       return {
         success: true,
@@ -223,6 +230,7 @@ export const habitService = {
         currentStreak: streak,
         xp,
         level,
+        levelProgress,
         user: rawData.user || rawData.profile || null,
         data: rawData,
       };
