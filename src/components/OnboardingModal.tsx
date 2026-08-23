@@ -8,6 +8,7 @@ import { useStore } from '../store/useStore';
 import { User } from '../types';
 import { toast } from 'react-hot-toast';
 import { VALID_GENDERS, normalizeGenderValue, countWords, getOnboardingStatus } from '../utils';
+import { OnboardingTransition, TransitionVariant } from './OnboardingTransition';
 
 const HOBBIES_LIST = [
   "Reading", "Coding", "Fitness", "Writing", "Meditation", 
@@ -43,6 +44,7 @@ interface OnboardingModalProps {
   onComplete: () => void;
   initialData?: any;
   isEditing?: boolean;
+  transitionVariant?: TransitionVariant;
 }
 
 function parseStepNumber(val: any): number | null {
@@ -102,8 +104,9 @@ function getSavedDraftData(isEditing: boolean) {
   return null;
 }
 
-export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = false }: OnboardingModalProps) {
+export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = false, transitionVariant = "calibrating" }: OnboardingModalProps) {
   const { user, updateProfile, refreshFromBackend } = useStore();
+  const [activeVariant, setActiveVariant] = useState<TransitionVariant>(transitionVariant);
 
   const draftData = useMemo(() => getSavedDraftData(isEditing), [isEditing]);
 
@@ -512,32 +515,60 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
 
         {/* Success Screen */}
         {isCompletedState ? (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="flex-1 flex flex-col items-center justify-center text-center py-12"
-          >
-            <div className="w-20 h-20 rounded-3xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-6 shadow-[0_0_50px_rgba(16,185,129,0.3)]">
-              <Trophy size={40} className="animate-bounce" />
-            </div>
-            <h2 className="text-3xl font-black text-white tracking-tight mb-2">
-              {isEditing ? "Profile Updated Successfully" : "You Are Ready, Champion."}
-            </h2>
-            <p className="text-slate-400 text-sm max-w-sm mb-8 leading-relaxed">
-              {isEditing 
-                ? "Your changes have been saved instantly." 
-                : "Your discipline profile is calibrated. Welcome to the ultimate sanctuary for relentless growth."}
-            </p>
-            <button
-              onClick={() => {
-                onComplete();
-                refreshFromBackend();
-              }}
-              className="w-full max-w-xs bg-white text-black font-extrabold py-4 rounded-2xl hover:bg-slate-200 transition-all shadow-[0_4px_30px_rgba(255,255,255,0.2)] active:scale-95 cursor-pointer text-sm uppercase tracking-wider"
+          isEditing ? (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex-1 flex flex-col items-center justify-center text-center py-12"
             >
-              {isEditing ? "Done" : "Ready"}
-            </button>
-          </motion.div>
+              <div className="w-20 h-20 rounded-3xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-6 shadow-[0_0_50px_rgba(16,185,129,0.3)]">
+                <Trophy size={40} className="animate-bounce" />
+              </div>
+              <h2 className="text-3xl font-black text-white tracking-tight mb-2">
+                Profile Updated Successfully
+              </h2>
+              <p className="text-slate-400 text-sm max-w-sm mb-8 leading-relaxed">
+                Your changes have been saved instantly.
+              </p>
+              <button
+                onClick={() => {
+                  onComplete();
+                  refreshFromBackend();
+                }}
+                className="w-full max-w-xs bg-white text-black font-extrabold py-4 rounded-2xl hover:bg-slate-200 transition-all shadow-[0_4px_30px_rgba(255,255,255,0.2)] active:scale-95 cursor-pointer text-sm uppercase tracking-wider"
+              >
+                Done
+              </button>
+            </motion.div>
+          ) : (
+            <div className="absolute inset-0 z-50 bg-[#050505] flex flex-col items-center justify-center p-4">
+              {/* Variant Selector Bar for testing all 5 variants */}
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[310] flex items-center gap-1.5 bg-black/80 border border-white/10 rounded-full p-1.5 backdrop-blur-md overflow-x-auto max-w-[95vw]">
+                {(["calibrating", "building", "protocol", "one-day", "ready"] as TransitionVariant[]).map((v) => (
+                  <button
+                    key={v}
+                    onClick={() => setActiveVariant(v)}
+                    className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer ${
+                      activeVariant === v 
+                        ? "bg-white text-black shadow-md" 
+                        : "text-slate-400 hover:text-white bg-white/5"
+                    }`}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
+
+              <OnboardingTransition
+                variant={activeVariant}
+                userName={name || "Champion"}
+                onComplete={() => {
+                  onComplete();
+                  refreshFromBackend();
+                }}
+              />
+            </div>
+          )
         ) : (
           <div className="flex-1 flex flex-col justify-between">
             <AnimatePresence mode="wait">
