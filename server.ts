@@ -66,6 +66,23 @@ function saveDB() {
   }
 }
 
+function getXpForDifficulty(difficulty?: string): number {
+  if (!difficulty) return 40;
+  const d = String(difficulty).trim().toLowerCase();
+  switch (d) {
+    case "easy":
+      return 20;
+    case "medium":
+      return 40;
+    case "hard":
+      return 60;
+    case "elite":
+      return 80;
+    default:
+      return 40;
+  }
+}
+
 // Helper: Calculate streak from completed dates
 function calculateStreak(completedDates: string[]): number {
   if (!Array.isArray(completedDates) || completedDates.length === 0) return 0;
@@ -374,7 +391,7 @@ app.post("/api/habits/:id/complete", requireAuth, (req, res) => {
     habit.completedDates.push(today);
 
     // Calculate XP
-    const difficultyXP = habit.difficulty === "Easy" ? 10 : habit.difficulty === "Hard" ? 30 : 20;
+    const difficultyXP = getXpForDifficulty(habit.difficulty);
     user.xp = (user.xp || 0) + difficultyXP;
     user.level = Math.floor(user.xp / 100) + 1;
     user.levelProgress = user.xp % 100;
@@ -404,6 +421,7 @@ app.post("/api/habits/:id/complete", requireAuth, (req, res) => {
     streak: user.streak,
     currentStreak: user.streak,
     xp: user.xp,
+    xpAwarded: getXpForDifficulty(habit.difficulty),
     level: user.level,
     levelProgress: user.levelProgress,
     user,
@@ -427,7 +445,7 @@ app.all(["/api/habits/:id/undo", "/api/habits/:id/uncomplete"], requireAuth, (re
   if (Array.isArray(habit.completedDates) && habit.completedDates.includes(today)) {
     habit.completedDates = habit.completedDates.filter((d: string) => d !== today);
 
-    const difficultyXP = habit.difficulty === "Easy" ? 10 : habit.difficulty === "Hard" ? 30 : 20;
+    const difficultyXP = getXpForDifficulty(habit.difficulty);
     user.xp = Math.max(0, (user.xp || 0) - difficultyXP);
     user.level = Math.max(1, Math.floor(user.xp / 100) + 1);
     user.levelProgress = user.xp % 100;
@@ -455,6 +473,7 @@ app.all(["/api/habits/:id/undo", "/api/habits/:id/uncomplete"], requireAuth, (re
     streak: user.streak,
     currentStreak: user.streak,
     xp: user.xp,
+    xpAwarded: getXpForDifficulty(habit.difficulty),
     level: user.level,
     levelProgress: user.levelProgress,
     user,
