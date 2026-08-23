@@ -79,8 +79,13 @@ export function getAppState({
   }
 
   // 5. If profile is still syncing / loading and onboarding status is not yet known
-  if (onboardingStatus === "unknown") {
+  if (loading && onboardingStatus === "unknown") {
     return "AUTHENTICATED_LOADING";
+  }
+
+  // 6. If onboarding status is unknown and loading has finished, treat as incomplete so user can onboard instead of hanging in loading
+  if (onboardingStatus === "unknown") {
+    return "AUTHENTICATED_ONBOARDING_INCOMPLETE";
   }
 
   // 6. Explicitly incomplete onboarding (ONLY when status is confirmed incomplete)
@@ -148,6 +153,9 @@ export default function App() {
         : appState === "AUTHENTICATED_INTRO"
         ? "render app intro"
         : "render dashboard";
+
+    console.log(`[ONBOARDING STATUS] resolved = ${onboardingLogical}`);
+    console.log(`[APP STATE] ${appState}`);
 
     console.log("[ROUTE STATE]", {
       authStatus,
@@ -244,8 +252,9 @@ export default function App() {
     return (
       <OnboardingTransition
         variant="calibrating"
+        status="syncing"
         persistent={true}
-        buttonText="Initializing Sanctuary..."
+        buttonText="Initializing..."
         onAction={() => {}}
       />
     );
@@ -297,8 +306,15 @@ export default function App() {
     return (
       <OnboardingTransition
         variant="protocol"
+        status={backendError ? "error" : "syncing"}
+        errorMessage={backendError}
         persistent={true}
         buttonText="Retry Sync"
+        onRetry={async () => {
+          console.log("[SYNC] Retrying sync from loading screen...");
+          useStore.setState({ backendError: null, loading: false });
+          await refreshFromBackend();
+        }}
         onAction={async () => {
           console.log("[AUTH] Manual retry invoked from loading screen");
           useStore.setState({ backendError: null, loading: false });

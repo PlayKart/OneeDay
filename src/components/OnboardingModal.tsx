@@ -7,8 +7,8 @@ import {
 import { useStore } from '../store/useStore';
 import { User } from '../types';
 import { toast } from 'react-hot-toast';
-import { VALID_GENDERS, normalizeGenderValue, countWords, getOnboardingStatus } from '../utils';
-import { OnboardingTransition, TransitionVariant } from './OnboardingTransition';
+import { VALID_GENDERS, normalizeGenderValue, countWords, getOnboardingStatus, resolveOnboardingStatus } from '../utils';
+import { OnboardingTransition, TransitionVariant, TransitionStatus } from './OnboardingTransition';
 
 const HOBBIES_LIST = [
   "Reading", "Coding", "Fitness", "Writing", "Meditation", 
@@ -160,6 +160,8 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
     );
   });
   const [isCompletedState, setIsCompletedState] = useState(false);
+  const [transitionStatus, setTransitionStatus] = useState<TransitionStatus>("syncing");
+  const [transitionError, setTransitionError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   // Real-time character count for Why OneDay question
@@ -365,40 +367,14 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
     }
   };
 
-  const handleFinish = async () => {
+  const executeOnboardingPersistence = async (cleanWhyOneday: string, finalGender: string) => {
     try {
       setSaving(true);
-      const finalGender = normalizeGenderValue(gender);
-      if (!VALID_GENDERS.includes(finalGender as any)) {
-        toast.error("Valid gender is required (Male, Female, Prefer not to say, Other).");
-        setSaving(false);
-        return;
-      }
+      setTransitionStatus("syncing");
+      setTransitionError(null);
+      setIsCompletedState(true);
 
-      const cleanWhyOneday = (whyOneday || "").trim();
-      const nonSpaceCount = cleanWhyOneday.replace(/\s/g, '').length;
-      const totalCount = cleanWhyOneday.length;
-      const isValid = nonSpaceCount >= 5 && totalCount <= 500;
-
-      // Log Step 6 submission info
-      console.log("[ONBOARDING SUBMIT]", {
-        why_oneday: cleanWhyOneday,
-        nonSpaceCount,
-        totalCount,
-        isValid,
-      });
-
-      if (nonSpaceCount < 5) {
-        toast.error("Please enter at least 5 characters.");
-        setSaving(false);
-        return;
-      }
-
-      if (totalCount > 500) {
-        toast.error("Please keep your response under 500 characters.");
-        setSaving(false);
-        return;
-      }
+      console.log("[ONBOARDING] submission success");
 
       const payload = {
         name: name.trim(),
@@ -423,41 +399,68 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
         onboardingStep: totalSteps,
       };
 
-      console.log("[ONBOARDING] Payload:", payload);
-
+      // 1. Persist user profile
       if (updateProfile) {
-        // 1. Save onboarding through the backend, wait for successful response.
         await updateProfile(payload);
       }
-      console.log("[ONBOARDING] backend confirmed complete, refreshing...");
+      console.log("[PROFILE] persistence success");
 
-      // 2. Refresh the authenticated user/profile.
+      // 2. Perform synchronization
+      console.log("[SYNC] started");
       if (refreshFromBackend) {
         await refreshFromBackend();
       }
+      console.log("[SYNC] completed");
 
-      // 3. Confirm onboarded = true strictly from refreshed backend profile
+      // 3. Confirm authoritative status strictly from refreshed backend profile
       const refreshedUser = useStore.getState().user;
-      const isConfirmedOnboarded = getOnboardingStatus(refreshedUser) === true;
+      const resolvedStatus = resolveOnboardingStatus(refreshedUser);
+      console.log(`[ONBOARDING STATUS] resolved = ${resolvedStatus}`);
 
-      console.log("[ONBOARDING] Confirmed onboarded status from backend refresh:", isConfirmedOnboarded);
-
-      if (!isConfirmedOnboarded) {
-        throw new Error("Backend did not confirm onboarding completion. Please try again.");
+      if (resolvedStatus !== "complete") {
+        throw new Error("Backend did not confirm onboarding completion. Please tap retry.");
       }
 
       if (!isEditing) {
         localStorage.removeItem("oneday_onboarding_step");
         localStorage.removeItem("oneday_onboarding_data");
       }
-      setIsCompletedState(true);
+
+      // 4. Mark success in transition
+      setTransitionStatus("success");
     } catch (e: any) {
-      console.error("[Onboarding] Finish error:", e);
-      const errorMessage = e?.response?.data?.error || e?.message || "Failed to save onboarding. Please try again.";
+      console.error("[ONBOARDING] Finish error:", e);
+      const errorMessage = e?.response?.data?.error || e?.message || "Failed to finalize setup. Please tap retry.";
+      setTransitionError(errorMessage);
+      setTransitionStatus("error");
       toast.error(errorMessage);
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleFinish = async () => {
+    const finalGender = normalizeGenderValue(gender);
+    if (!VALID_GENDERS.includes(finalGender as any)) {
+      toast.error("Valid gender is required (Male, Female, Prefer not to say, Other).");
+      return;
+    }
+
+    const cleanWhyOneday = (whyOneday || "").trim();
+    const nonSpaceCount = cleanWhyOneday.replace(/\s/g, '').length;
+    const totalCount = cleanWhyOneday.length;
+
+    if (nonSpaceCount < 5) {
+      toast.error("Please enter at least 5 characters.");
+      return;
+    }
+
+    if (totalCount > 500) {
+      toast.error("Please keep your response under 500 characters.");
+      return;
+    }
+
+    await executeOnboardingPersistence(cleanWhyOneday, finalGender);
   };
 
   const toggleHobby = (hobby: string) => {
@@ -561,8 +564,15 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
 
               <OnboardingTransition
                 variant={activeVariant}
+                status={transitionStatus}
+                errorMessage={transitionError}
                 userName={name || "Champion"}
+                onRetry={() => {
+                  const cleanWhy = (whyOneday || "").trim();
+                  executeOnboardingPersistence(cleanWhy, gender);
+                }}
                 onComplete={() => {
+                  console.log("[NAVIGATION] dashboard");
                   onComplete();
                   refreshFromBackend();
                 }}

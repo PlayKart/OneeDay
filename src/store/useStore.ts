@@ -648,13 +648,17 @@ export const useStore = create<StoreState>((set, get) => {
     updateProfile: async (data) => {
       try {
         const currentUser = get().user;
-        if (!currentUser) return;
+        const currentAuthUser = get().firebaseUser || auth.currentUser;
+        if (!currentUser && !currentAuthUser) return;
         
         // Use step API if only updating step
         if (Object.keys(data).length === 1 && data.onboardingStep !== undefined) {
           await userService.updateOnboardingStep(data.onboardingStep);
         } else {
-          await syncService.saveProfile(data);
+          const savedUser = await syncService.saveProfile(data);
+          if (savedUser) {
+            set({ user: savedUser });
+          }
         }
         
         const isCompletingOnboarding = Boolean(data.onboarded || data.hasCompletedOnboarding);
