@@ -20,20 +20,34 @@ export type TransitionVariant = "calibrating" | "building" | "protocol" | "one-d
 
 interface OnboardingTransitionProps {
   variant?: TransitionVariant;
-  onComplete: () => void;
+  onComplete?: () => void;
   userName?: string;
+  persistent?: boolean;
+  buttonText?: string;
+  onAction?: () => void;
 }
 
 export function OnboardingTransition({
   variant = "calibrating",
   onComplete,
   userName = "Champion",
+  persistent = false,
+  buttonText,
+  onAction,
 }: OnboardingTransitionProps) {
   const [progress, setProgress] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
 
   // Auto-progress timer for smooth transition (approx 2.4 seconds)
   useEffect(() => {
+    if (persistent) {
+      // Indeterminate pulsing progress for persistent loading states
+      const interval = setInterval(() => {
+        setProgress(prev => (prev >= 92 ? 92 : prev + 4));
+      }, 100);
+      return () => clearInterval(interval);
+    }
+
     const startTime = Date.now();
     const duration = 2400; // 2.4s
 
@@ -45,20 +59,26 @@ export function OnboardingTransition({
       if (current >= 100) {
         clearInterval(interval);
         setIsFinished(true);
-        const timer = setTimeout(() => {
-          onComplete();
-        }, 300);
-        return () => clearTimeout(timer);
+        if (onComplete) {
+          const timer = setTimeout(() => {
+            onComplete();
+          }, 300);
+          return () => clearTimeout(timer);
+        }
       }
     }, 30);
 
     return () => clearInterval(interval);
-  }, [onComplete]);
+  }, [onComplete, persistent]);
 
-  // Safety fallback: Never get stuck
-  const handleManualContinue = () => {
+  // Safety fallback / action handler
+  const handleAction = () => {
     setIsFinished(true);
-    onComplete();
+    if (onAction) {
+      onAction();
+    } else if (onComplete) {
+      onComplete();
+    }
   };
 
   return (
@@ -262,10 +282,10 @@ export function OnboardingTransition({
 
         {/* Manual Fallback / Enter Button (Ensures it never gets stuck) */}
         <button
-          onClick={handleManualContinue}
+          onClick={handleAction}
           className="w-full py-4 bg-white text-black font-extrabold rounded-2xl hover:bg-slate-200 transition-all shadow-[0_4px_30px_rgba(255,255,255,0.2)] active:scale-95 cursor-pointer text-xs uppercase tracking-widest flex items-center justify-center gap-2"
         >
-          <span>Enter Dashboard</span>
+          <span>{buttonText || "Enter Dashboard"}</span>
           <ArrowRight size={16} />
         </button>
       </motion.div>

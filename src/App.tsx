@@ -19,6 +19,7 @@ const SettingsScreen = lazyWithRetry(() => import('./components/screens/Settings
 const LandingScreen = lazyWithRetry(() => import('./components/screens/LandingScreen'), 'LandingScreen');
 
 import { MainLayout } from './components/MainLayout';
+import { OnboardingTransition } from './components/OnboardingTransition';
 const TitleUnlockModal = lazy(() => import('./components/TitleUnlockModal').then(m => ({ default: m.TitleUnlockModal })));
 const TitleLossModal = lazy(() => import('./components/TitleLossModal').then(m => ({ default: m.TitleLossModal })));
 const LevelUpModal = lazy(() => import('./components/LevelUpAnimation').then(m => ({ default: m.LevelUpModal })));
@@ -241,47 +242,12 @@ export default function App() {
   // ── BRANCH 1: INITIALIZING -> Splash Screen ──────────────────────────────
   if (appState === "INITIALIZING") {
     return (
-      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center relative overflow-hidden font-sans">
-        <div className="orb w-[400px] h-[400px] bg-blue-500/5 top-[-100px] left-[-100px] absolute mix-blend-screen animate-pulse" />
-        <div className="orb w-[300px] h-[300px] bg-purple-500/5 bottom-[-50px] right-[-50px] absolute mix-blend-screen animate-pulse" />
-        
-        <AnimatePresence>
-          <motion.div
-             initial={{ opacity: 0, scale: 0.9 }}
-             animate={{ opacity: 1, scale: 1 }}
-             exit={{ opacity: 0, scale: 1.1 }}
-             transition={{ duration: 0.8, ease: "easeOut" }}
-             className="flex flex-col items-center z-10 animate-pulse"
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-              className="mb-8"
-            >
-              <MonolithLogo size={96} />
-            </motion.div>
-            
-            <motion.h1
-               initial={{ opacity: 0, y: 20 }}
-               animate={{ opacity: 1, y: 0 }}
-               transition={{ delay: 0.6, duration: 0.8 }}
-               className="text-6xl font-black tracking-tighter mb-4 text-white"
-            >
-              ONEDAY
-            </motion.h1>
-            
-            <motion.p
-               initial={{ opacity: 0 }}
-               animate={{ opacity: 1 }}
-               transition={{ delay: 0.9, duration: 0.8 }}
-               className="text-xs uppercase tracking-[0.3em] text-slate-500 font-bold"
-            >
-              One Day Broke. Don't Let Two.
-            </motion.p>
-          </motion.div>
-        </AnimatePresence>
-      </div>
+      <OnboardingTransition
+        variant="calibrating"
+        persistent={true}
+        buttonText="Initializing Sanctuary..."
+        onAction={() => {}}
+      />
     );
   }
 
@@ -329,33 +295,16 @@ export default function App() {
   // ── BRANCH 4: AUTHENTICATED_LOADING -> Syncing / Resolving Profile Screen ─
   if (appState === "AUTHENTICATED_LOADING") {
     return (
-      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center font-sans p-6">
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="flex flex-col items-center gap-6 text-center max-w-sm"
-        >
-          <div className="animate-pulse">
-            <MonolithLogo size={64} />
-          </div>
-          <div className="flex flex-col items-center gap-2">
-            <h2 className="text-xl font-bold tracking-tight text-white">Syncing Discipline...</h2>
-            <p className="text-slate-500 text-xs uppercase tracking-widest font-black">Connecting Service</p>
-          </div>
-          <div className="pt-4 flex flex-col items-center gap-2">
-            <button
-              onClick={async () => {
-                console.log("[AUTH] Manual retry invoked from loading screen");
-                useStore.setState({ backendError: null, loading: false });
-                await refreshFromBackend();
-              }}
-              className="text-[11px] text-slate-500 hover:text-white transition-colors cursor-pointer uppercase tracking-wider font-semibold underline underline-offset-4"
-            >
-              Taking too long? Retry Sync
-            </button>
-          </div>
-        </motion.div>
-      </div>
+      <OnboardingTransition
+        variant="protocol"
+        persistent={true}
+        buttonText="Retry Sync"
+        onAction={async () => {
+          console.log("[AUTH] Manual retry invoked from loading screen");
+          useStore.setState({ backendError: null, loading: false });
+          await refreshFromBackend();
+        }}
+      />
     );
   }
 
