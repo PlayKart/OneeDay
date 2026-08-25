@@ -204,7 +204,7 @@ class SyncService {
         const store = useStore.getState();
         const currentLocalUser = store.user;
 
-        const fetchedUser = normalizeUser(data, currentLocalUser);
+        const fetchedUser = normalizeUser(data.user || data, currentLocalUser);
         const finalXp = typeof fetchedUser?.xp === "number" && !isNaN(fetchedUser.xp) ? fetchedUser.xp : 0;
         const finalLevel = typeof fetchedUser?.level === "number" && !isNaN(fetchedUser.level) && fetchedUser.level >= 1
           ? fetchedUser.level

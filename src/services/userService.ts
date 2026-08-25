@@ -21,7 +21,14 @@ export const userService = {
       console.log(`[PERF] backend getUserProfile via GET /api/users: ${profileDuration}ms`);
 
       const rawData = response.data || {};
-      const userData = rawData.user || rawData.profile || rawData.data || rawData;
+      const userData =
+        rawData.user ||
+        rawData.profile ||
+        rawData.data?.user ||
+        rawData.data?.profile ||
+        rawData.data ||
+        rawData.result ||
+        rawData;
 
       const normalized = normalizeUser(
         {

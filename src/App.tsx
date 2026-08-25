@@ -78,14 +78,9 @@ export function getAppState({
     return "AUTHENTICATED_SYNC_ERROR";
   }
 
-  // 5. If profile is still syncing / loading and onboarding status is not yet known
-  if (loading && onboardingStatus === "unknown") {
+  // 5. If profile is still syncing / loading OR profile is not yet synced, and onboarding status is unknown
+  if ((loading || !profileSynced) && onboardingStatus === "unknown") {
     return "AUTHENTICATED_LOADING";
-  }
-
-  // 6. If onboarding status is unknown and loading has finished, treat as incomplete so user can onboard instead of hanging in loading
-  if (onboardingStatus === "unknown") {
-    return "AUTHENTICATED_ONBOARDING_INCOMPLETE";
   }
 
   // 6. Explicitly incomplete onboarding (ONLY when status is confirmed incomplete)
@@ -101,6 +96,11 @@ export function getAppState({
       return "AUTHENTICATED_INTRO";
     }
     return "AUTHENTICATED_READY";
+  }
+
+  // 8. If onboarding status is unknown and sync has finished without resolving
+  if (onboardingStatus === "unknown") {
+    return "AUTHENTICATED_ONBOARDING_INCOMPLETE";
   }
 
   // Fallback safe state: loading, NEVER onboarding

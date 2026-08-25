@@ -98,7 +98,7 @@ export const useStore = create<StoreState>((set, get) => {
     .then(async (result) => {
       if (result && result.user) {
         console.log("[AUTH] Successful redirect login. User UID:", result.user.uid);
-        set({ firebaseUser: result.user, initialized: true });
+        set({ firebaseUser: result.user, initialized: true, loading: true });
         await get().refreshFromBackend();
       }
     })
@@ -134,7 +134,7 @@ export const useStore = create<StoreState>((set, get) => {
     if (fbUser) {
       console.log(`[AUTH] authenticated user: ${fbUser.uid} ${fbUser.email ? `(${fbUser.email})` : ""}`);
       console.log("[BOOT] session available: true");
-      set({ firebaseUser: fbUser, initialized: true });
+      set({ firebaseUser: fbUser, initialized: true, loading: true });
       await get().refreshFromBackend();
     } else {
       console.log("[AUTH] authenticated user: none");

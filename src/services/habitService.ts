@@ -26,6 +26,14 @@ export const habitService = {
         ? rawData.data
         : Array.isArray(rawData.habits)
         ? rawData.habits
+        : Array.isArray(rawData.data?.habits)
+        ? rawData.data.habits
+        : Array.isArray(rawData.data?.data)
+        ? rawData.data.data
+        : Array.isArray(rawData.result)
+        ? rawData.result
+        : Array.isArray(rawData.data?.result)
+        ? rawData.data.result
         : [];
 
       const today = getLocalCalendarDate();
