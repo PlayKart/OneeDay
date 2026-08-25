@@ -2,23 +2,58 @@ import { useState, useEffect } from "react";
 import { useStore } from "../../store/useStore";
 import { auth } from "../../lib/firebase";
 import { signOut } from "firebase/auth";
-import { LogOut, User as UserIcon, Shield, Trash2, ShieldCheck, ChevronRight, X, Sparkles, AlertTriangle, ArrowLeft } from "lucide-react";
+import {
+  User as UserIcon,
+  Shield,
+  ShieldCheck,
+  Trophy,
+  Sliders,
+  LogOut,
+  Download,
+  FileText,
+  RotateCcw,
+  Trash2,
+  ChevronRight,
+  ArrowRight,
+  ArrowLeft,
+  X,
+  Sparkles,
+  AlertTriangle,
+} from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "react-hot-toast";
 import { PrivacyPage } from "../PrivacyPage";
 import { TermsPage } from "../TermsPage";
 import { ProfileScreen } from "./ProfileScreen";
+import { getEquippedTitle } from "../../utils/titleUtils";
 
 export function SettingsScreen() {
-  const { user, firebaseUser, freezeStreak, deactivateFreeze, resetProgress, deleteAccount } = useStore();
+  const {
+    user,
+    firebaseUser,
+    freezeStreak,
+    deactivateFreeze,
+    resetProgress,
+    deleteAccount,
+    setActiveTab,
+  } = useStore();
+
+  // Navigation view within Settings
+  const [settingsView, setSettingsView] = useState<"main" | "privacy" | "terms" | "profile">("main");
+
+  // Streak freeze modal & states
   const [showFreezeConfirm, setShowFreezeConfirm] = useState(false);
   const [freezeDays, setFreezeDays] = useState(7);
   const [activating, setActivating] = useState(false);
   const [confirmDeactivate, setConfirmDeactivate] = useState(false);
   const [deactivating, setDeactivating] = useState(false);
 
-  // In-app navigation view for Privacy Policy, Terms, and Profile
-  const [settingsView, setSettingsView] = useState<"main" | "privacy" | "terms" | "profile">("main");
+  // Destructive confirmation modals
+  const [confirmSignOut, setConfirmSignOut] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Sync internal view navigation with browser history for natural back gesture
   const handleViewChange = (view: "main" | "privacy" | "terms" | "profile") => {
@@ -40,14 +75,7 @@ export function SettingsScreen() {
     };
   }, []);
 
-  // Confirmation dialogs state
-  const [confirmSignOut, setConfirmSignOut] = useState(false);
-  const [confirmReset, setConfirmReset] = useState(false);
-  const [resetting, setResetting] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-
-  // Reset the "Confirm" timer for settings shield deactivation after 3 seconds
+  // Auto reset the "Confirm" unfreeze timer after 3 seconds
   useEffect(() => {
     if (!confirmDeactivate) return;
     const timer = setTimeout(() => {
@@ -58,14 +86,20 @@ export function SettingsScreen() {
 
   if (!user && settingsView === "main") return null;
 
-  const isFrozen = user?.freeze_until && new Date(user.freeze_until) > new Date();
+  const isFrozen = Boolean((user?.freezeUntil || user?.freeze_until) && new Date(user.freezeUntil || user.freeze_until || "") > new Date());
+  const equippedTitle = getEquippedTitle(user);
+  const userDisplayName = user?.name || firebaseUser?.displayName || "User";
+  const userEmail = firebaseUser?.email || user?.email || "Signed in account";
+  const userLevel = user?.level || 1;
+  const userStreak = user?.currentStreak ?? user?.streak ?? 0;
 
+  // Streak Shield Handlers
   const handleActivateShield = async () => {
     try {
       setActivating(true);
       await freezeStreak(freezeDays);
       setShowFreezeConfirm(false);
-      toast.success(`Streak frozen for ${freezeDays} days!`);
+      toast.success(`Streak frozen for ${freezeDays} days.`);
     } catch (e: any) {
       console.error("Streak freeze activation failed", e);
       toast.error(e?.message || "Failed to activate streak shield.");
@@ -74,6 +108,24 @@ export function SettingsScreen() {
     }
   };
 
+  const handleDeactivateShield = async () => {
+    if (!confirmDeactivate) {
+      setConfirmDeactivate(true);
+      return;
+    }
+    try {
+      setDeactivating(true);
+      await deactivateFreeze();
+      toast.success("Streak Shield deactivated. Progression resumed.");
+      setConfirmDeactivate(false);
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to deactivate streak shield.");
+    } finally {
+      setDeactivating(false);
+    }
+  };
+
+  // Auth & Account Handlers
   const handleSignOutConfirm = async () => {
     try {
       await signOut(auth);
@@ -113,16 +165,58 @@ export function SettingsScreen() {
     }
   };
 
-  const previewEndDate = new Date(Date.now() + freezeDays * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric'
+  // Data Export Handler
+  const handleExportData = () => {
+    try {
+      const currentState = useStore.getState();
+      const exportPayload = {
+        app: "OneDay",
+        version: "1.0",
+        exportedAt: new Date().toISOString(),
+        user: {
+          id: user?.id || user?.userId || firebaseUser?.uid,
+          name: userDisplayName,
+          email: userEmail,
+          level: userLevel,
+          xp: user?.xp || 0,
+          currentStreak: userStreak,
+          equippedTitle: equippedTitle || null,
+          hobbies: user?.hobbies || [],
+          favouriteSports: user?.favouriteSports || (user as any)?.favorite_sports || [],
+          reasonForJoining: user?.reasonForJoining || user?.whyOneday || user?.why_oneday || "",
+        },
+        habits: currentState.habits || [],
+        settings: {
+          freezeUntil: user?.freezeUntil || user?.freeze_until || null,
+        },
+      };
+
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportPayload, null, 2));
+      const downloadAnchor = document.createElement("a");
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `oneday-data-export-${new Date().toISOString().split("T")[0]}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+
+      toast.success("Data exported successfully.");
+    } catch (err: any) {
+      console.error("Export data failed:", err);
+      toast.error("Failed to export data.");
+    }
+  };
+
+  const previewEndDate = new Date(Date.now() + freezeDays * 24 * 60 * 60 * 1000).toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
   });
 
+  // SUBVIEWS: Privacy Policy
   if (settingsView === "privacy") {
     return (
-      <div className="p-6 md:p-8 max-w-3xl mx-auto space-y-8">
+      <div className="p-4 sm:p-6 md:p-8 max-w-2xl mx-auto space-y-6">
         <button
           onClick={() => {
             setSettingsView("main");
@@ -130,24 +224,27 @@ export function SettingsScreen() {
               window.history.back();
             }
           }}
-          className="group flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm font-bold tracking-tight cursor-pointer"
+          className="group inline-flex items-center gap-2 text-neutral-400 hover:text-white transition-colors text-xs font-bold tracking-wider uppercase cursor-pointer"
         >
-          <ArrowLeft size={16} className="transform group-hover:-translate-x-1 transition-transform" />
-          Back to Settings
+          <ArrowLeft size={14} className="transform group-hover:-translate-x-0.5 transition-transform" />
+          Settings
         </button>
-        <PrivacyPage onBack={() => {
-          setSettingsView("main");
-          if (window.history.state?.settingsView === "privacy") {
-            window.history.back();
-          }
-        }} />
+        <PrivacyPage
+          onBack={() => {
+            setSettingsView("main");
+            if (window.history.state?.settingsView === "privacy") {
+              window.history.back();
+            }
+          }}
+        />
       </div>
     );
   }
 
+  // SUBVIEWS: Terms of Service
   if (settingsView === "terms") {
     return (
-      <div className="p-6 md:p-8 max-w-3xl mx-auto space-y-8">
+      <div className="p-4 sm:p-6 md:p-8 max-w-2xl mx-auto space-y-6">
         <button
           onClick={() => {
             setSettingsView("main");
@@ -155,21 +252,24 @@ export function SettingsScreen() {
               window.history.back();
             }
           }}
-          className="group flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm font-bold tracking-tight cursor-pointer"
+          className="group inline-flex items-center gap-2 text-neutral-400 hover:text-white transition-colors text-xs font-bold tracking-wider uppercase cursor-pointer"
         >
-          <ArrowLeft size={16} className="transform group-hover:-translate-x-1 transition-transform" />
-          Back to Settings
+          <ArrowLeft size={14} className="transform group-hover:-translate-x-0.5 transition-transform" />
+          Settings
         </button>
-        <TermsPage onBack={() => {
-          setSettingsView("main");
-          if (window.history.state?.settingsView === "terms") {
-            window.history.back();
-          }
-        }} />
+        <TermsPage
+          onBack={() => {
+            setSettingsView("main");
+            if (window.history.state?.settingsView === "terms") {
+              window.history.back();
+            }
+          }}
+        />
       </div>
     );
   }
 
+  // SUBVIEWS: Profile Screen
   if (settingsView === "profile") {
     return (
       <ProfileScreen
@@ -183,130 +283,134 @@ export function SettingsScreen() {
     );
   }
 
+  // MAIN SETTINGS VIEW
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 10 }}
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0 }}
-      className="p-6 md:p-8 max-w-2xl mx-auto space-y-10 relative"
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.2 }}
+      className="w-full max-w-xl mx-auto px-4 sm:px-6 pt-3 pb-28 space-y-7 sm:space-y-8 select-none"
     >
-      <header className="pt-4">
-        <h1 className="text-3xl font-extrabold tracking-tighter">Settings</h1>
-        <p className="text-slate-500 text-[10px] tracking-widest uppercase font-bold mt-1">
-          System Preferences
+      {/* HEADER */}
+      <header className="pt-2 sm:pt-4 space-y-1">
+        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+          SETTINGS
+        </h1>
+        <p className="text-xs font-medium text-neutral-400 tracking-normal">
+          System preferences
         </p>
       </header>
 
-      {/* PROFILE CARD */}
-      <section className="space-y-4">
-        <h2 className="text-[10px] font-black tracking-widest uppercase text-slate-500 ml-2">Identity</h2>
-        <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6 space-y-4 shadow-xl relative overflow-hidden">
-          <div className="absolute inset-0 bg-purple-500/5 blur-3xl rounded-full -top-12 -right-12 w-48 h-48" />
+      {/* 1. PROFILE — HERO CARD */}
+      <section>
+        <motion.div
+          whileTap={{ scale: 0.99 }}
+          onClick={() => handleViewChange("profile")}
+          className="group relative overflow-hidden rounded-2xl bg-[#0D0D0D] border border-white/[0.08] p-5 sm:p-6 transition-all duration-200 hover:border-white/[0.16] cursor-pointer"
+        >
           <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 shrink-0">
-              <UserIcon size={22} />
+            {/* Avatar */}
+            <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-neutral-900 border border-white/10 flex items-center justify-center overflow-hidden shrink-0">
+              {firebaseUser?.photoURL ? (
+                <img
+                  src={firebaseUser.photoURL}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-lg sm:text-xl font-extrabold text-white tracking-tight">
+                  {userDisplayName.charAt(0).toUpperCase()}
+                </span>
+              )}
             </div>
-            <div className="min-w-0 flex-1">
-              <h3 className="text-base font-black text-white">Your Profile</h3>
-              <p className="text-slate-400 text-xs leading-relaxed mt-1">
-                Manage your personal information, hobbies, favorite sports, and discipline goals.
+
+            {/* User Meta */}
+            <div className="min-w-0 flex-1 space-y-1">
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="text-base sm:text-lg font-bold text-white tracking-tight truncate">
+                  {userDisplayName}
+                </h2>
+                {equippedTitle && (
+                  <span className="hidden sm:inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-white/[0.06] text-neutral-300 border border-white/[0.08] truncate max-w-[140px]">
+                    {equippedTitle}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs sm:text-sm text-neutral-400 truncate">
+                {userEmail}
               </p>
+              
+              {/* Level & Streak Stats */}
+              <div className="pt-2 flex flex-wrap items-center gap-2 text-[11px] font-bold text-neutral-300 uppercase tracking-wider">
+                <span className="inline-flex items-center px-2 py-0.5 rounded bg-white/[0.05] border border-white/[0.06]">
+                  LEVEL {userLevel}
+                </span>
+                <span className="text-neutral-600">·</span>
+                <span className="inline-flex items-center px-2 py-0.5 rounded bg-white/[0.05] border border-white/[0.06]">
+                  {userStreak} {userStreak === 1 ? "DAY STREAK" : "DAYS STREAK"}
+                </span>
+              </div>
             </div>
           </div>
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={() => handleViewChange("profile")}
-            className="w-full py-4 bg-white hover:bg-slate-200 text-black font-black uppercase tracking-widest text-xs rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 h-12"
-          >
-            <span>View Profile</span>
-            <ChevronRight size={14} strokeWidth={3} />
-          </motion.button>
-        </div>
+
+          {/* Action Link */}
+          <div className="mt-4 pt-3.5 border-t border-white/[0.06] flex items-center justify-between">
+            <span className="text-xs font-semibold text-neutral-300 group-hover:text-white transition-colors flex items-center gap-1.5">
+              View Profile
+              <ArrowRight
+                size={13}
+                className="transform group-hover:translate-x-0.5 transition-transform"
+              />
+            </span>
+            <ChevronRight size={14} className="text-neutral-600 group-hover:text-neutral-400 transition-colors" />
+          </div>
+        </motion.div>
       </section>
 
-      {/* Account Section */}
-      <section className="space-y-4">
-        <h2 className="text-[10px] font-black tracking-widest uppercase text-slate-500 ml-2">Account</h2>
-        <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden divide-y divide-white/5">
-          <div className="p-4 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-               <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-tr from-slate-800 to-slate-700">
-                  {firebaseUser?.photoURL ? (
-                     <img src={firebaseUser.photoURL} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                     <UserIcon className="w-full h-full p-3 text-white/50" />
+      {/* 2. ONE DAY SYSTEM */}
+      <section className="space-y-2.5">
+        <h2 className="text-[11px] font-bold tracking-widest text-neutral-400 uppercase px-1">
+          ONE DAY SYSTEM
+        </h2>
+        <div className="rounded-2xl bg-[#0D0D0D] border border-white/[0.08] divide-y divide-white/[0.06] overflow-hidden">
+          {/* A. Streak Protection */}
+          <div className="p-4 sm:p-4.5 flex items-center justify-between gap-3 hover:bg-white/[0.02] transition-colors">
+            <div className="flex items-start gap-3.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center text-neutral-300 shrink-0 mt-0.5">
+                <Shield size={16} />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-white tracking-tight">
+                    Streak Protection
+                  </h3>
+                  {isFrozen && (
+                    <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-white/[0.08] text-neutral-200 border border-white/[0.1]">
+                      Active
+                    </span>
                   )}
-               </div>
-               <div>
-                 <div className="font-bold text-sm">{user?.name || "Guest"}</div>
-                 <div className="text-[10px] text-slate-500">{firebaseUser?.email || "Anonymous Account"}</div>
-               </div>
+                </div>
+                <p className="text-xs text-neutral-400 leading-relaxed mt-0.5">
+                  {isFrozen
+                    ? `Protected until ${new Date(user?.freeze_until || "").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
+                    : "Protect your current streak when life gets in the way."}
+                </p>
+              </div>
             </div>
-            <div className="text-[10px] font-bold uppercase tracking-wider bg-white/10 px-3 py-1 rounded-full text-slate-300">
-               Level {user?.level || 1}
-            </div>
-          </div>
-          <button 
-             onClick={() => setConfirmSignOut(true)}
-             className="w-full p-4 flex items-center justify-between text-slate-300 hover:bg-white/5 transition-colors group cursor-pointer"
-          >
-             <div className="flex items-center gap-3">
-               <LogOut size={16} className="text-red-400 group-hover:text-red-300" />
-               <span className="text-sm font-bold text-red-400 group-hover:text-red-300 transition-colors">Sign Out</span>
-             </div>
-             <ChevronRight size={16} className="text-white/20" />
-          </button>
-        </div>
-      </section>
 
-      {/* Protection Section */}
-      <section className="space-y-4">
-        <h2 className="text-[10px] font-black tracking-widest uppercase text-slate-500 ml-2">Protection</h2>
-        <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden divide-y divide-white/5">
-          <div className="p-4 flex items-center justify-between group">
-             <div className="flex items-center gap-3">
-               <Shield size={16} className={isFrozen ? "text-cyan-400 animate-pulse" : "text-slate-400"} />
-               <div>
-                 <div className="text-sm font-bold text-slate-300 flex items-center gap-2">
-                   Streak Shield
-                   {isFrozen && (
-                     <span className="text-[9px] font-black uppercase text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded-full tracking-wider">
-                       Active
-                     </span>
-                   )}
-                 </div>
-                 <div className="text-xs text-slate-500 mt-1">
-                   {isFrozen 
-                     ? `Protected until ${new Date(user?.freeze_until || "").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
-                     : "Temporarily pause your activity with a flexible freeze (1 to 10 days) without losing your streak."}
-                 </div>
-               </div>
-             </div>
-             {isFrozen ? (
-               <button
-                  onClick={async () => {
-                    if (!confirmDeactivate) {
-                      setConfirmDeactivate(true);
-                      return;
-                    }
-                    try {
-                      setDeactivating(true);
-                      await deactivateFreeze();
-                      toast.success("Streak Shield deactivated! Progression resumed.");
-                      setConfirmDeactivate(false);
-                    } catch (e: any) {
-                      toast.error(e?.message || "Failed to deactivate streak shield.");
-                    } finally {
-                      setDeactivating(false);
-                    }
-                  }}
+            <div className="shrink-0 flex items-center">
+              {isFrozen ? (
+                <button
+                  type="button"
+                  onClick={handleDeactivateShield}
                   disabled={deactivating}
-                  className={`ml-4 shrink-0 font-bold px-4 py-2.5 rounded-lg text-xs uppercase tracking-widest transition-all duration-300 transform active:scale-[0.98] cursor-pointer flex items-center justify-center gap-1.5 ${
+                  className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all cursor-pointer ${
                     confirmDeactivate
-                      ? "bg-red-500/20 text-red-500 border border-red-500/40 font-black animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.2)]"
-                      : "bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20"
+                      ? "bg-red-500/20 text-red-400 border-red-500/30"
+                      : "bg-white/[0.05] text-neutral-300 border-white/[0.08] hover:bg-white/10 hover:text-white"
                   }`}
-               >
+                >
                   {deactivating ? (
                     <span className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin inline-block" />
                   ) : confirmDeactivate ? (
@@ -314,58 +418,269 @@ export function SettingsScreen() {
                   ) : (
                     "Unfreeze"
                   )}
-               </button>
-             ) : (
-               <button
+                </button>
+              ) : (
+                <button
+                  type="button"
                   onClick={() => setShowFreezeConfirm(true)}
-                  className="ml-4 shrink-0 bg-white text-black font-bold px-4 py-2 rounded-lg text-xs uppercase tracking-widest hover:bg-slate-200 transition-all transform active:scale-[0.98] cursor-pointer"
-               >
-                  Freeze
-               </button>
-             )}
+                  className="group inline-flex items-center gap-1 text-xs font-semibold text-neutral-300 hover:text-white bg-white/[0.05] hover:bg-white/10 border border-white/[0.08] px-3 py-1.5 rounded-lg transition-all cursor-pointer"
+                >
+                  <span>Manage</span>
+                  <ArrowRight size={12} className="transform group-hover:translate-x-0.5 transition-transform" />
+                </button>
+              )}
+            </div>
           </div>
-        </div>
-      </section>
 
-      {/* Data Section */}
-      <section className="space-y-4">
-        <h2 className="text-[10px] font-black tracking-widest uppercase text-slate-500 ml-2">Data & Privacy</h2>
-        <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden divide-y divide-white/5">
-          <SettingRow icon={Trash2} label="Reset Progress" danger onClick={() => setConfirmReset(true)} />
-          <SettingRow icon={Trash2} label="Delete Account" danger onClick={() => setConfirmDelete(true)} />
-        </div>
-      </section>
-
-      {/* About Section */}
-      <section className="space-y-4 opacity-75">
-        <h2 className="text-[10px] font-black tracking-widest uppercase text-slate-500 ml-2">About & Legal</h2>
-        <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden divide-y divide-white/5">
+          {/* B. Progress & Achievements */}
           <button
-            onClick={() => setSettingsView("privacy")}
-            className="w-full p-4 flex items-center justify-between text-slate-300 hover:bg-white/5 transition-colors group cursor-pointer"
+            type="button"
+            onClick={() => handleViewChange("profile")}
+            className="w-full p-4 sm:p-4.5 flex items-center justify-between gap-3 hover:bg-white/[0.02] transition-colors text-left group cursor-pointer"
           >
-            <div className="flex items-center gap-3">
-              <ShieldCheck size={16} className="text-slate-400 group-hover:text-white transition-colors" />
-              <span className="text-sm font-bold">Privacy Policy</span>
+            <div className="flex items-start gap-3.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center text-neutral-300 shrink-0 mt-0.5">
+                <Trophy size={16} />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold text-white tracking-tight">
+                  Progress & Achievements
+                </h3>
+                <p className="text-xs text-neutral-400 leading-relaxed mt-0.5">
+                  View your XP, levels and achievements.
+                </p>
+              </div>
             </div>
-            <ChevronRight size={16} className="text-white/20 group-hover:text-white/60 transition-colors" />
+
+            <div className="shrink-0 flex items-center gap-1 text-xs font-semibold text-neutral-300 group-hover:text-white transition-colors">
+              <span>View</span>
+              <ArrowRight size={12} className="transform group-hover:translate-x-0.5 transition-transform" />
+            </div>
           </button>
+
+          {/* C. Habit Preferences */}
           <button
-            onClick={() => setSettingsView("terms")}
-            className="w-full p-4 flex items-center justify-between text-slate-300 hover:bg-white/5 transition-colors group cursor-pointer"
+            type="button"
+            onClick={() => setActiveTab("habits")}
+            className="w-full p-4 sm:p-4.5 flex items-center justify-between gap-3 hover:bg-white/[0.02] transition-colors text-left group cursor-pointer"
           >
-            <div className="flex items-center gap-3">
-              <ShieldCheck size={16} className="text-slate-400 group-hover:text-white transition-colors" />
-              <span className="text-sm font-bold">Terms & Conditions</span>
+            <div className="flex items-start gap-3.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center text-neutral-300 shrink-0 mt-0.5">
+                <Sliders size={16} />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold text-white tracking-tight">
+                  Habit Preferences
+                </h3>
+                <p className="text-xs text-neutral-400 leading-relaxed mt-0.5">
+                  Manage your habit system.
+                </p>
+              </div>
             </div>
-            <ChevronRight size={16} className="text-white/20 group-hover:text-white/60 transition-colors" />
+
+            <div className="shrink-0 flex items-center gap-1 text-xs font-semibold text-neutral-300 group-hover:text-white transition-colors">
+              <span>Manage</span>
+              <ArrowRight size={12} className="transform group-hover:translate-x-0.5 transition-transform" />
+            </div>
           </button>
         </div>
       </section>
-      
-      <div className="h-12" /> {/* Spacer for scroll padding */}
 
-      {/* 1. SIGN OUT CONFIRMATION MODAL */}
+      {/* 3. ACCOUNT */}
+      <section className="space-y-2.5">
+        <h2 className="text-[11px] font-bold tracking-widest text-neutral-400 uppercase px-1">
+          ACCOUNT
+        </h2>
+        <div className="rounded-2xl bg-[#0D0D0D] border border-white/[0.08] divide-y divide-white/[0.06] overflow-hidden">
+          {/* Account */}
+          <button
+            type="button"
+            onClick={() => handleViewChange("profile")}
+            className="w-full p-4 sm:p-4.5 flex items-center justify-between gap-3 hover:bg-white/[0.02] transition-colors text-left group cursor-pointer"
+          >
+            <div className="flex items-start gap-3.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center text-neutral-300 shrink-0 mt-0.5">
+                <UserIcon size={16} />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold text-white tracking-tight">
+                  Account
+                </h3>
+                <p className="text-xs text-neutral-400 leading-relaxed mt-0.5">
+                  Manage your account details.
+                </p>
+              </div>
+            </div>
+            <ChevronRight size={16} className="text-neutral-600 group-hover:text-neutral-300 group-hover:translate-x-0.5 transition-all shrink-0" />
+          </button>
+
+          {/* Sign Out (Restrained, NOT bright red) */}
+          <button
+            type="button"
+            onClick={() => setConfirmSignOut(true)}
+            className="w-full p-4 sm:p-4.5 flex items-center justify-between gap-3 hover:bg-white/[0.02] transition-colors text-left group cursor-pointer"
+          >
+            <div className="flex items-start gap-3.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center text-neutral-400 group-hover:text-neutral-200 transition-colors shrink-0 mt-0.5">
+                <LogOut size={16} />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold text-neutral-300 group-hover:text-white transition-colors tracking-tight">
+                  Sign Out
+                </h3>
+                <p className="text-xs text-neutral-400 leading-relaxed mt-0.5">
+                  Sign out of this device.
+                </p>
+              </div>
+            </div>
+            <ChevronRight size={16} className="text-neutral-600 group-hover:text-neutral-300 group-hover:translate-x-0.5 transition-all shrink-0" />
+          </button>
+        </div>
+      </section>
+
+      {/* 4. DATA & PRIVACY */}
+      <section className="space-y-2.5">
+        <h2 className="text-[11px] font-bold tracking-widest text-neutral-400 uppercase px-1">
+          DATA & PRIVACY
+        </h2>
+        <div className="rounded-2xl bg-[#0D0D0D] border border-white/[0.08] divide-y divide-white/[0.06] overflow-hidden">
+          {/* Export My Data */}
+          <button
+            type="button"
+            onClick={handleExportData}
+            className="w-full p-4 sm:p-4.5 flex items-center justify-between gap-3 hover:bg-white/[0.02] transition-colors text-left group cursor-pointer"
+          >
+            <div className="flex items-start gap-3.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center text-neutral-300 shrink-0 mt-0.5">
+                <Download size={16} />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold text-white tracking-tight">
+                  Export My Data
+                </h3>
+                <p className="text-xs text-neutral-400 leading-relaxed mt-0.5">
+                  Download a copy of your OneDay data.
+                </p>
+              </div>
+            </div>
+            <ChevronRight size={16} className="text-neutral-600 group-hover:text-neutral-300 group-hover:translate-x-0.5 transition-all shrink-0" />
+          </button>
+
+          {/* Privacy Policy */}
+          <button
+            type="button"
+            onClick={() => handleViewChange("privacy")}
+            className="w-full p-4 sm:p-4.5 flex items-center justify-between gap-3 hover:bg-white/[0.02] transition-colors text-left group cursor-pointer"
+          >
+            <div className="flex items-start gap-3.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center text-neutral-300 shrink-0 mt-0.5">
+                <ShieldCheck size={16} />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold text-white tracking-tight">
+                  Privacy Policy
+                </h3>
+                <p className="text-xs text-neutral-400 leading-relaxed mt-0.5">
+                  How OneDay handles your information.
+                </p>
+              </div>
+            </div>
+            <ChevronRight size={16} className="text-neutral-600 group-hover:text-neutral-300 group-hover:translate-x-0.5 transition-all shrink-0" />
+          </button>
+
+          {/* Terms & Conditions */}
+          <button
+            type="button"
+            onClick={() => handleViewChange("terms")}
+            className="w-full p-4 sm:p-4.5 flex items-center justify-between gap-3 hover:bg-white/[0.02] transition-colors text-left group cursor-pointer"
+          >
+            <div className="flex items-start gap-3.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center text-neutral-300 shrink-0 mt-0.5">
+                <FileText size={16} />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold text-white tracking-tight">
+                  Terms & Conditions
+                </h3>
+                <p className="text-xs text-neutral-400 leading-relaxed mt-0.5">
+                  Rules and conditions for using OneDay.
+                </p>
+              </div>
+            </div>
+            <ChevronRight size={16} className="text-neutral-600 group-hover:text-neutral-300 group-hover:translate-x-0.5 transition-all shrink-0" />
+          </button>
+        </div>
+      </section>
+
+      {/* 5. DANGER ZONE */}
+      <section className="space-y-2.5">
+        <h2 className="text-[11px] font-bold tracking-widest text-red-400/90 uppercase px-1">
+          DANGER ZONE
+        </h2>
+        <div className="rounded-2xl bg-[#0D0D0D] border border-red-500/20 divide-y divide-red-500/10 overflow-hidden">
+          {/* Reset Progress */}
+          <button
+            type="button"
+            onClick={() => setConfirmReset(true)}
+            className="w-full p-4 sm:p-4.5 flex items-center justify-between gap-3 hover:bg-red-500/[0.04] transition-colors text-left group cursor-pointer"
+          >
+            <div className="flex items-start gap-3.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400 shrink-0 mt-0.5">
+                <RotateCcw size={16} />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold text-red-400 tracking-tight">
+                  Reset Progress
+                </h3>
+                <p className="text-xs text-neutral-400 leading-relaxed mt-0.5">
+                  Reset your XP, level, streak and progress.
+                </p>
+              </div>
+            </div>
+            <span className="shrink-0 text-xs font-semibold text-red-400/80 group-hover:text-red-400 transition-colors flex items-center gap-1">
+              Reset
+              <ArrowRight size={12} className="transform group-hover:translate-x-0.5 transition-transform" />
+            </span>
+          </button>
+
+          {/* Delete Account */}
+          <button
+            type="button"
+            onClick={() => setConfirmDelete(true)}
+            className="w-full p-4 sm:p-4.5 flex items-center justify-between gap-3 hover:bg-red-500/[0.04] transition-colors text-left group cursor-pointer"
+          >
+            <div className="flex items-start gap-3.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400 shrink-0 mt-0.5">
+                <Trash2 size={16} />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold text-red-400 tracking-tight">
+                  Delete Account
+                </h3>
+                <p className="text-xs text-neutral-400 leading-relaxed mt-0.5">
+                  Permanently delete your OneDay account and associated data.
+                </p>
+              </div>
+            </div>
+            <span className="shrink-0 text-xs font-semibold text-red-400/80 group-hover:text-red-400 transition-colors flex items-center gap-1">
+              Delete
+              <ArrowRight size={12} className="transform group-hover:translate-x-0.5 transition-transform" />
+            </span>
+          </button>
+        </div>
+      </section>
+
+      {/* 6. FOOTER */}
+      <footer className="pt-6 pb-2 text-center space-y-1">
+        <p className="text-xs font-bold tracking-widest text-neutral-400 uppercase">
+          OneDay
+        </p>
+        <p className="text-xs text-neutral-400 font-medium">
+          One day at a time.
+        </p>
+      </footer>
+
+      {/* MODAL 1: SIGN OUT CONFIRMATION */}
       <AnimatePresence>
         {confirmSignOut && (
           <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4">
@@ -380,31 +695,36 @@ export function SettingsScreen() {
               initial={{ opacity: 0, y: "100%" }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="relative bg-[#0c0c0c] border border-white/10 rounded-t-[2rem] sm:rounded-[2rem] p-8 max-w-sm w-full shadow-2xl space-y-6 z-10 text-center pb-[calc(2rem+env(safe-area-inset-bottom))] sm:pb-8"
+              transition={{ type: "spring", damping: 26, stiffness: 320 }}
+              className="relative bg-[#0D0D0D] border border-white/10 rounded-t-[2rem] sm:rounded-2xl p-6 sm:p-7 max-w-sm w-full shadow-2xl space-y-5 z-10 text-center pb-[calc(2.5rem+env(safe-area-inset-bottom))] sm:pb-7"
             >
-              <div className="w-12 h-1bg-white/20 rounded-full mx-auto mb-2 block sm:hidden" />
-              <div className="w-12 h-12 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center mx-auto text-white">
-                <LogOut size={22} />
+              <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-1 block sm:hidden" />
+              
+              <div className="w-12 h-12 bg-white/[0.05] border border-white/10 rounded-2xl flex items-center justify-center mx-auto text-neutral-200">
+                <LogOut size={20} />
               </div>
-              <div className="space-y-2">
-                <h3 className="text-xl font-black tracking-tight text-white">Sign Out?</h3>
-                <p className="text-slate-400 text-xs leading-relaxed">
+              
+              <div className="space-y-1.5">
+                <h3 className="text-lg font-bold tracking-tight text-white">
+                  Sign Out?
+                </h3>
+                <p className="text-neutral-400 text-xs leading-relaxed">
                   Are you sure you want to sign out of OneDay?
                 </p>
               </div>
+
               <div className="flex flex-col gap-2 pt-2">
                 <button
                   type="button"
                   onClick={handleSignOutConfirm}
-                  className="w-full bg-white text-black font-extrabold py-3.5 rounded-xl text-xs uppercase tracking-wider hover:bg-slate-200 transition-all cursor-pointer h-12 flex items-center justify-center"
+                  className="w-full bg-white text-black font-bold py-3.5 rounded-xl text-xs uppercase tracking-wider hover:bg-neutral-200 transition-all cursor-pointer h-11 flex items-center justify-center"
                 >
                   Sign Out
                 </button>
                 <button
                   type="button"
                   onClick={() => setConfirmSignOut(false)}
-                  className="w-full bg-white/5 text-slate-400 border border-white/5 font-extrabold py-3 rounded-xl text-xs uppercase tracking-wider hover:bg-white/10 hover:text-white transition-all cursor-pointer h-12 flex items-center justify-center"
+                  className="w-full bg-white/[0.05] text-neutral-400 border border-white/[0.08] font-bold py-3 rounded-xl text-xs uppercase tracking-wider hover:bg-white/10 hover:text-white transition-all cursor-pointer h-11 flex items-center justify-center"
                 >
                   Cancel
                 </button>
@@ -414,7 +734,7 @@ export function SettingsScreen() {
         )}
       </AnimatePresence>
 
-      {/* 2. RESET PROGRESS CONFIRMATION MODAL */}
+      {/* MODAL 2: RESET PROGRESS CONFIRMATION */}
       <AnimatePresence>
         {confirmReset && (
           <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4">
@@ -423,31 +743,38 @@ export function SettingsScreen() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="absolute inset-0 bg-black/80 backdrop-blur-md"
-              onClick={() => { if (!resetting) setConfirmReset(false); }}
+              onClick={() => {
+                if (!resetting) setConfirmReset(false);
+              }}
             />
             <motion.div
               initial={{ opacity: 0, y: "100%" }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="relative bg-[#0c0c0c] border border-red-500/25 rounded-t-[2rem] sm:rounded-[2rem] p-8 max-w-sm w-full shadow-[0_0_50px_rgba(239,68,68,0.15)] space-y-6 z-10 text-center pb-[calc(2rem+env(safe-area-inset-bottom))] sm:pb-8"
+              transition={{ type: "spring", damping: 26, stiffness: 320 }}
+              className="relative bg-[#0D0D0D] border border-red-500/25 rounded-t-[2rem] sm:rounded-2xl p-6 sm:p-7 max-w-sm w-full shadow-2xl space-y-5 z-10 text-center pb-[calc(2.5rem+env(safe-area-inset-bottom))] sm:pb-7"
             >
-              <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-2 block sm:hidden" />
+              <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-1 block sm:hidden" />
+              
               <div className="w-12 h-12 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-center mx-auto text-red-400">
-                <AlertTriangle size={22} />
+                <AlertTriangle size={20} />
               </div>
-              <div className="space-y-2">
-                <h3 className="text-xl font-black tracking-tight text-white">Reset All Progress?</h3>
-                <p className="text-slate-400 text-xs leading-relaxed">
-                  This will reset your XP, streaks, level, and statistics back to zero. This action cannot be undone.
+              
+              <div className="space-y-1.5">
+                <h3 className="text-lg font-bold tracking-tight text-white">
+                  Reset your progress?
+                </h3>
+                <p className="text-neutral-400 text-xs leading-relaxed">
+                  This will reset your XP, level, streaks, and progress back to zero. This action cannot be undone.
                 </p>
               </div>
+
               <div className="flex flex-col gap-2 pt-2">
                 <button
                   type="button"
                   disabled={resetting}
                   onClick={handleResetConfirm}
-                  className="w-full bg-red-500 text-white font-extrabold py-3.5 rounded-xl text-xs uppercase tracking-wider hover:bg-red-600 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 h-12"
+                  className="w-full bg-red-600 text-white font-bold py-3.5 rounded-xl text-xs uppercase tracking-wider hover:bg-red-700 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 h-11"
                 >
                   {resetting ? (
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -459,7 +786,7 @@ export function SettingsScreen() {
                   type="button"
                   disabled={resetting}
                   onClick={() => setConfirmReset(false)}
-                  className="w-full bg-white/5 text-slate-400 border border-white/5 font-extrabold py-3 rounded-xl text-xs uppercase tracking-wider hover:bg-white/10 hover:text-white transition-all cursor-pointer h-12 flex items-center justify-center"
+                  className="w-full bg-white/[0.05] text-neutral-400 border border-white/[0.08] font-bold py-3 rounded-xl text-xs uppercase tracking-wider hover:bg-white/10 hover:text-white transition-all cursor-pointer h-11 flex items-center justify-center"
                 >
                   Cancel
                 </button>
@@ -469,7 +796,7 @@ export function SettingsScreen() {
         )}
       </AnimatePresence>
 
-      {/* 3. DELETE ACCOUNT CONFIRMATION MODAL */}
+      {/* MODAL 3: DELETE ACCOUNT CONFIRMATION */}
       <AnimatePresence>
         {confirmDelete && (
           <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4">
@@ -478,31 +805,38 @@ export function SettingsScreen() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="absolute inset-0 bg-black/80 backdrop-blur-md"
-              onClick={() => { if (!deleting) setConfirmDelete(false); }}
+              onClick={() => {
+                if (!deleting) setConfirmDelete(false);
+              }}
             />
             <motion.div
               initial={{ opacity: 0, y: "100%" }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="relative bg-[#0c0c0c] border border-red-500/30 rounded-t-[2rem] sm:rounded-[2rem] p-8 max-w-sm w-full shadow-[0_0_50px_rgba(239,68,68,0.2)] space-y-6 z-10 text-center pb-[calc(2rem+env(safe-area-inset-bottom))] sm:pb-8"
+              transition={{ type: "spring", damping: 26, stiffness: 320 }}
+              className="relative bg-[#0D0D0D] border border-red-500/30 rounded-t-[2rem] sm:rounded-2xl p-6 sm:p-7 max-w-sm w-full shadow-2xl space-y-5 z-10 text-center pb-[calc(2.5rem+env(safe-area-inset-bottom))] sm:pb-7"
             >
-              <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-2 block sm:hidden" />
+              <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-1 block sm:hidden" />
+              
               <div className="w-12 h-12 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-center mx-auto text-red-400">
-                <Trash2 size={22} />
+                <Trash2 size={20} />
               </div>
-              <div className="space-y-2">
-                <h3 className="text-xl font-black tracking-tight text-white">Are you sure?</h3>
-                <p className="text-slate-400 text-xs leading-relaxed">
-                  This action cannot be undone.
+              
+              <div className="space-y-1.5">
+                <h3 className="text-lg font-bold tracking-tight text-white">
+                  Delete your account?
+                </h3>
+                <p className="text-neutral-400 text-xs leading-relaxed">
+                  This will permanently delete your OneDay account and associated data. This action cannot be undone.
                 </p>
               </div>
+
               <div className="flex flex-col gap-2 pt-2">
                 <button
                   type="button"
                   disabled={deleting}
                   onClick={handleDeleteAccountConfirm}
-                  className="w-full bg-red-600 text-white font-extrabold py-3.5 rounded-xl text-xs uppercase tracking-wider hover:bg-red-700 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 h-12"
+                  className="w-full bg-red-600 text-white font-bold py-3.5 rounded-xl text-xs uppercase tracking-wider hover:bg-red-700 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 h-11"
                 >
                   {deleting ? (
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -514,7 +848,7 @@ export function SettingsScreen() {
                   type="button"
                   disabled={deleting}
                   onClick={() => setConfirmDelete(false)}
-                  className="w-full bg-white/5 text-slate-400 border border-white/5 font-extrabold py-3 rounded-xl text-xs uppercase tracking-wider hover:bg-white/10 hover:text-white transition-all cursor-pointer h-12 flex items-center justify-center"
+                  className="w-full bg-white/[0.05] text-neutral-400 border border-white/[0.08] font-bold py-3 rounded-xl text-xs uppercase tracking-wider hover:bg-white/10 hover:text-white transition-all cursor-pointer h-11 flex items-center justify-center"
                 >
                   Cancel
                 </button>
@@ -524,56 +858,64 @@ export function SettingsScreen() {
         )}
       </AnimatePresence>
 
-      {/* Dynamic Confirmation Modal for Streak freezing */}
+      {/* MODAL 4: STREAK SHIELD CONFIGURATION */}
       <AnimatePresence>
         {showFreezeConfirm && (
           <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4">
-            {/* Backdrop overlay */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="absolute inset-0 bg-black/80 backdrop-blur-md"
-              onClick={() => { if (!activating) setShowFreezeConfirm(false); }}
+              onClick={() => {
+                if (!activating) setShowFreezeConfirm(false);
+              }}
             />
             
-            {/* Modal Body */}
             <motion.div
               initial={{ opacity: 0, y: "100%" }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="relative bg-[#0c0c0c] border border-cyan-500/25 rounded-t-[2rem] sm:rounded-[2rem] p-8 max-w-md w-full shadow-[0_0_50px_rgba(6,182,212,0.15)] space-y-6 z-10 pb-[calc(2.5rem+env(safe-area-inset-bottom))] sm:pb-8"
+              transition={{ type: "spring", damping: 26, stiffness: 320 }}
+              className="relative bg-[#0D0D0D] border border-white/15 rounded-t-[2rem] sm:rounded-2xl p-6 sm:p-7 max-w-md w-full shadow-2xl space-y-5 z-10 pb-[calc(2.5rem+env(safe-area-inset-bottom))] sm:pb-7 text-left"
             >
-              <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-2 block sm:hidden shrink-0" />
+              <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-1 block sm:hidden" />
+              
               {/* Header */}
               <div className="flex justify-between items-start">
-                <div className="flex items-center gap-2 text-cyan-400">
-                  <Shield size={20} className="animate-pulse" />
-                  <span className="text-xs font-black uppercase tracking-widest">Protocol Protection</span>
+                <div className="flex items-center gap-2 text-neutral-300">
+                  <Shield size={18} />
+                  <span className="text-xs font-bold uppercase tracking-wider">
+                    Streak Protection
+                  </span>
                 </div>
                 <button
+                  type="button"
                   disabled={activating}
                   onClick={() => setShowFreezeConfirm(false)}
-                  className="p-1 rounded-full text-slate-500 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+                  className="p-1 rounded-lg text-neutral-500 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
                 >
-                  <X size={18} />
+                  <X size={16} />
                 </button>
               </div>
 
-              {/* Title */}
-              <div className="space-y-2 text-left">
-                <h3 className="text-2xl font-black tracking-tight text-white">Activate Streak Shield</h3>
-                <p className="text-slate-400 text-xs leading-relaxed">
-                  Deep-freezes your Day Streak and protects it from decay. Choose a duration from <strong className="text-white">1 to 10 days</strong>.
+              {/* Title & Description */}
+              <div className="space-y-1">
+                <h3 className="text-xl font-bold tracking-tight text-white">
+                  Activate Streak Shield
+                </h3>
+                <p className="text-neutral-400 text-xs leading-relaxed">
+                  Protect your streak from breaking while taking a planned break. Select a duration between 1 and 10 days.
                 </p>
               </div>
 
-              {/* Slider Input */}
-              <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5 space-y-4 text-left">
+              {/* Slider Input & Presets */}
+              <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4 space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Freeze Duration</span>
-                  <span className="text-sm font-black text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-3 py-1 rounded-full">
+                  <span className="text-[11px] font-semibold uppercase text-neutral-400 tracking-wider">
+                    Freeze Duration
+                  </span>
+                  <span className="text-xs font-bold text-white bg-white/10 px-2.5 py-1 rounded-md border border-white/10">
                     {freezeDays} {freezeDays === 1 ? "Day" : "Days"}
                   </span>
                 </div>
@@ -589,17 +931,17 @@ export function SettingsScreen() {
                 />
 
                 {/* Quick Selection Presets */}
-                <div className="grid grid-cols-4 gap-2 pt-2">
+                <div className="grid grid-cols-4 gap-2 pt-1">
                   {[1, 3, 7, 10].map((d) => (
                     <button
                       key={d}
                       type="button"
                       disabled={activating}
                       onClick={() => setFreezeDays(d)}
-                      className={`py-1.5 text-[10px] font-extrabold rounded-lg border transition-all cursor-pointer ${
+                      className={`py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
                         freezeDays === d
                           ? "bg-white text-black border-white"
-                          : "bg-white/5 text-slate-400 border-white/5 hover:border-white/10"
+                          : "bg-white/[0.04] text-neutral-400 border-white/[0.06] hover:text-white hover:border-white/10"
                       }`}
                     >
                       {d} {d === 1 ? "Day" : "Days"}
@@ -609,24 +951,30 @@ export function SettingsScreen() {
               </div>
 
               {/* Date Preview */}
-              <div className="bg-cyan-500/[0.02] border border-cyan-500/10 rounded-2xl p-4 flex gap-4 items-center text-left">
-                <div className="text-2xl">❄️</div>
+              <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-3.5 flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-white/[0.05] flex items-center justify-center text-neutral-300 shrink-0">
+                  <ShieldCheck size={16} />
+                </div>
                 <div>
-                  <div className="text-[9px] font-black uppercase text-cyan-400 tracking-widest">Protected Until</div>
-                  <div className="text-xs font-bold text-slate-200 mt-0.5">{previewEndDate}</div>
+                  <div className="text-[10px] font-bold uppercase text-neutral-400 tracking-wider">
+                    Protected Until
+                  </div>
+                  <div className="text-xs font-semibold text-white mt-0.5">
+                    {previewEndDate}
+                  </div>
                 </div>
               </div>
 
               {/* Actions */}
-              <div className="flex flex-col gap-2 pt-2">
+              <div className="flex flex-col gap-2 pt-1">
                 <button
                   type="button"
                   disabled={activating}
                   onClick={handleActivateShield}
-                  className="w-full bg-white text-black font-extrabold py-3.5 rounded-xl text-sm uppercase tracking-wider hover:bg-slate-200 transition-all active:scale-[0.98] flex items-center justify-center gap-2 h-12 cursor-pointer"
+                  className="w-full bg-white text-black font-bold py-3.5 rounded-xl text-xs uppercase tracking-wider hover:bg-neutral-200 transition-all active:scale-[0.99] flex items-center justify-center gap-2 h-11 cursor-pointer"
                 >
                   {activating ? (
-                    <div className="w-5 h-5 border-2 border-black/35 border-t-black rounded-full animate-spin" />
+                    <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
                   ) : (
                     <>
                       <Sparkles size={14} />
@@ -638,7 +986,7 @@ export function SettingsScreen() {
                   type="button"
                   disabled={activating}
                   onClick={() => setShowFreezeConfirm(false)}
-                  className="w-full bg-white/5 text-slate-400 border border-white/5 font-extrabold py-3 rounded-xl text-xs uppercase tracking-wider hover:bg-white/10 hover:text-white transition-all h-12 cursor-pointer flex items-center justify-center"
+                  className="w-full bg-white/[0.05] text-neutral-400 border border-white/[0.08] font-bold py-3 rounded-xl text-xs uppercase tracking-wider hover:bg-white/10 hover:text-white transition-all h-11 cursor-pointer flex items-center justify-center"
                 >
                   Cancel
                 </button>
@@ -651,20 +999,4 @@ export function SettingsScreen() {
   );
 }
 
-function SettingRow({ icon: Icon, label, value, danger, onClick }: { icon: any, label: string, value?: string, danger?: boolean, onClick?: () => void }) {
-  return (
-    <button onClick={onClick} className={`w-full p-4 flex items-center justify-between transition-colors group cursor-pointer ${danger ? 'hover:bg-red-500/10' : 'hover:bg-white/5'}`}>
-       <div className="flex items-center gap-3">
-         <Icon size={16} className={danger ? 'text-red-400' : 'text-slate-400'} />
-         <span className={`text-sm font-bold ${danger ? 'text-red-400' : 'text-slate-300'}`}>{label}</span>
-       </div>
-       <div className="flex items-center gap-2">
-         {value && <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">{value}</span>}
-         <ChevronRight size={16} className="text-white/20" />
-       </div>
-    </button>
-  );
-}
-
 export default SettingsScreen;
-
