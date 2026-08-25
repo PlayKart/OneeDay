@@ -20,16 +20,18 @@ export const dashboardService = {
     // 1. Parallel loading of essential account state & habits
     const [userRes, habitsRes] = await Promise.all([
       userService.getUserProfile(),
-      habitService.getHabits().catch(() => []),
+      habitService.getHabits(),
     ]);
 
     // 2. Non-blocking quote fetch (uses cache/instant fallback)
     const quoteRes = await quoteService.getQuote().catch(() => "Discipline makes it all.");
 
     const completedTodayCount = habitsRes.filter((h) => h.completedToday).length;
-    const authoritativeStreak = typeof userRes.streak === "number"
+    const authoritativeStreak = typeof userRes.currentStreak === "number" && !isNaN(userRes.currentStreak)
+      ? userRes.currentStreak
+      : typeof userRes.streak === "number" && !isNaN(userRes.streak)
       ? userRes.streak
-      : (typeof userRes.currentStreak === "number" ? userRes.currentStreak : calculateStreak(habitsRes));
+      : calculateStreak(habitsRes);
 
     userRes.streak = authoritativeStreak;
     userRes.currentStreak = authoritativeStreak;

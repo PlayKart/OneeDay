@@ -60,7 +60,8 @@ export const habitService = {
       });
     } catch (err: any) {
       console.warn(`[HABIT SERVICE] Backend getHabits failed:`, err?.message || err);
-      return useStore.getState().habits || [];
+      // Do NOT fabricate or return an empty array [] if request failed - rethrow to protect state
+      throw err;
     }
   },
 
