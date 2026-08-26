@@ -79,6 +79,7 @@ interface StoreState {
   deleteSession: (id: string) => Promise<void>;
   renameSession: (id: string, title: string) => Promise<void>;
   pinSession: (id: string) => Promise<void>;
+  archiveSession: (id: string) => Promise<void>;
   sendChatMessage: (message: string) => Promise<void>;
   regenerateMessage: (messageId?: string) => Promise<void>;
   editPreviousMessage: (messageId: string, newContent: string) => Promise<void>;
@@ -823,6 +824,22 @@ export const useStore = create<StoreState>((set, get) => {
         await chatService.pinSession(id, newPinned);
       } catch (e) {
         console.warn("pinSession failed:", e);
+      }
+    },
+
+    archiveSession: async (id) => {
+      const session = get().chatSessions.find((s) => s.id === id);
+      if (!session) return;
+      const newArchived = !session.isArchived;
+
+      set((state) => ({
+        chatSessions: state.chatSessions.map((s) => (s.id === id ? { ...s, isArchived: newArchived } : s)),
+      }));
+
+      try {
+        await chatService.archiveSession(id, newArchived);
+      } catch (e) {
+        console.warn("archiveSession failed:", e);
       }
     },
 
