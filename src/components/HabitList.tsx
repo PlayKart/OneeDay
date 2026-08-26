@@ -9,21 +9,6 @@ import { getHabitIconComponent, getHabitColorTheme } from '../lib/habitIcons';
 import { getXpForDifficulty, extractXpAwarded, toDisplayDifficulty } from '../utils';
 import { perfLogger } from '../utils/perfLogger';
 
-
-const getBorderClass = (id: string) => {
-  const map: Record<string, string> = {
-    emerald: "border-l-emerald-500",
-    cyan: "border-l-cyan-500",
-    blue: "border-l-blue-500",
-    purple: "border-l-purple-500",
-    rose: "border-l-rose-500",
-    amber: "border-l-amber-500",
-    orange: "border-l-orange-500",
-    indigo: "border-l-indigo-500",
-  };
-  return map[id] || "border-l-slate-500";
-};
-
 export const HabitList = ({ previewMode = false, onCreateClick }: { previewMode?: boolean; onCreateClick?: () => void }) => {
   const { habits, completeHabit, undoHabit, deleteHabit, refreshFromBackend, loading, pendingHabitIds } = useStore();
   
@@ -141,33 +126,28 @@ export const HabitList = ({ previewMode = false, onCreateClick }: { previewMode?
           <motion.div 
             layout
             key={habit.id}
-            className={`p-4 rounded-3xl flex items-center justify-between group transition-all duration-300 border-y border-r ${
+            className={`p-3.5 sm:p-4 rounded-2xl flex items-center justify-between group transition-all duration-300 border ${
               habit.completedToday 
-                ? 'bg-white/5 border-white/10 opacity-60 border-l-4 border-l-white/20' 
-                : `bg-white/[0.03] border-white/5 hover:bg-white/[0.08] hover:border-white/20 hover:-translate-y-1 hover:shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5)] border-l-4 ${getBorderClass(colorTheme.id || 'emerald')}`
+                ? 'bg-white/[0.02] border-white/[0.04] opacity-50' 
+                : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.04] hover:border-white/[0.12] hover:-translate-y-0.5 shadow-[0_4px_16px_rgba(0,0,0,0.2)]'
             }`}
           >
             <div className="flex items-center gap-3.5 min-w-0 pr-2">
-              <div className={`w-11 h-11 rounded-2xl ${colorTheme.bg} border ${colorTheme.border} flex items-center justify-center ${colorTheme.text} shrink-0 transition-all duration-300 shadow-md ${habit.completedToday ? 'opacity-50 grayscale' : colorTheme.glow}`}>
-                <IconComp size={20} />
+              <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-zinc-300 shrink-0 transition-all duration-300 ${habit.completedToday ? 'opacity-50 grayscale' : ''}`}>
+                <IconComp size={18} />
               </div>
-              <div className="flex flex-col gap-1 min-w-0">
+              <div className="flex flex-col gap-0.5 min-w-0">
                 <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                  <h4 className={`font-bold transition-all text-sm truncate ${habit.completedToday ? 'text-slate-500 line-through' : 'text-white'}`}>
+                  <h4 className={`font-semibold transition-all text-xs sm:text-sm truncate ${habit.completedToday ? 'text-zinc-500 line-through' : 'text-zinc-100'}`}>
                     {habit.name}
                   </h4>
                   {habit.difficulty && (
-                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${
-                      habit.difficulty.toLowerCase() === 'easy' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' :
-                      habit.difficulty.toLowerCase() === 'hard' ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' :
-                      habit.difficulty.toLowerCase() === 'elite' ? 'bg-red-500/10 border-red-500/30 text-red-400' :
-                      'bg-blue-500/10 border-blue-500/30 text-blue-400'
-                    }`}>
+                    <span className="text-[9px] font-mono font-medium px-1.5 py-0.5 rounded border shrink-0 bg-white/[0.03] border-white/[0.06] text-zinc-400">
                       {toDisplayDifficulty(habit.difficulty)} (+{getXpForDifficulty(habit.difficulty)} XP)
                     </span>
                   )}
                 </div>
-                <p className={`text-[10px] font-bold uppercase tracking-widest truncate ${habit.completedToday ? 'text-green-500/50' : 'text-slate-500'}`}>
+                <p className={`text-[10px] font-mono uppercase tracking-wider truncate ${habit.completedToday ? 'text-zinc-500' : 'text-zinc-400'}`}>
                   {isPending ? 'Updating...' : (habit.completedToday ? 'Completed' : (isToday ? 'Scheduled Today' : getScheduledDaysMessage(habit)))}
                 </p>
               </div>

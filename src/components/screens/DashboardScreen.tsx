@@ -89,23 +89,24 @@ export function DashboardScreen() {
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative z-10 bg-cyan-950/20 border-l-4 border-l-cyan-500 border-y border-r border-white/5 rounded-3xl p-5 overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-lg backdrop-blur-md"
+          className="relative z-10 bg-[#0c0c11]/90 border border-cyan-500/30 rounded-2xl sm:rounded-3xl p-5 overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-[0_8px_24px_rgba(0,0,0,0.4)] backdrop-blur-xl"
         >
-          <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-[60px] pointer-events-none" />
+          <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 rounded-full blur-[60px] pointer-events-none" />
           <div className="flex items-center gap-4 relative z-10">
-            <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-xl animate-pulse shrink-0">
+            <div className="w-11 h-11 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-lg shrink-0">
               ❄️
             </div>
             <div className="text-left">
-              <h2 className="text-sm font-extrabold tracking-tight text-white flex items-center gap-2">
-                STREAK SHIELD ACTIVE <span className="text-[9px] font-black uppercase text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded-full tracking-wider">Protected</span>
+              <h2 className="text-xs font-mono font-bold tracking-wider text-white flex items-center gap-2 uppercase">
+                STREAK SHIELD ACTIVE <span className="text-[9px] font-mono uppercase text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded tracking-widest">Protected</span>
               </h2>
-              <p className="text-slate-400 text-[11px] mt-1">
-                Your progress is protected until <strong className="text-cyan-200">{freezeUntilDateStr}</strong>.
+              <p className="text-zinc-400 text-xs mt-0.5">
+                Your progress is protected until <strong className="text-zinc-200">{freezeUntilDateStr}</strong>.
               </p>
             </div>
           </div>
           <button
+            type="button"
             onClick={async () => {
               if (!confirmDeactivate) {
                 setConfirmDeactivate(true);
@@ -123,10 +124,10 @@ export function DashboardScreen() {
               }
             }}
             disabled={unfreezing}
-            className={`text-[10px] font-black uppercase tracking-widest px-5 py-3 rounded-2xl border transition-all duration-300 transform active:scale-95 cursor-pointer whitespace-nowrap z-10 ${
+            className={`text-[10px] font-mono font-bold uppercase tracking-widest px-4 py-2.5 rounded-xl border transition-all duration-300 transform active:scale-95 cursor-pointer whitespace-nowrap z-10 ${
               confirmDeactivate
-                ? "bg-red-500/20 text-red-400 border-red-500/40 animate-pulse"
-                : "bg-cyan-500/10 text-cyan-400 border-cyan-500/20 hover:bg-cyan-500/20 hover:border-cyan-500/40"
+                ? "bg-red-500/20 text-red-300 border-red-500/40"
+                : "bg-white/[0.04] text-zinc-300 border-white/[0.1] hover:bg-white/[0.08] hover:text-white"
             }`}
           >
             {unfreezing ? "Deactivating..." : confirmDeactivate ? "Confirm Unfreeze?" : "Deactivate Freeze"}
@@ -169,89 +170,145 @@ export function DashboardScreen() {
       </div>
 
       {/* BENTO GRID: STATS */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full relative z-10">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 sm:gap-4 w-full relative z-10">
         
         {/* Card 1: Today's Progress */}
         <motion.div 
-          whileHover={{ y: -4, boxShadow: "0 10px 40px -10px rgba(0,0,0,0.5)", borderColor: "rgba(255,255,255,0.15)" }}
-          className="bg-white/[0.03] backdrop-blur-xl border-l-4 border-l-emerald-500 border-y border-r border-white/5 p-6 rounded-3xl flex flex-col justify-between select-none relative overflow-hidden transition-all duration-300"
+          whileHover={{ y: -3, borderColor: "rgba(255,255,255,0.18)" }}
+          className="bg-[#0c0c11]/85 backdrop-blur-xl border border-white/[0.08] p-5 sm:p-6 rounded-2xl sm:rounded-3xl flex flex-col justify-between select-none relative overflow-hidden transition-all duration-300 shadow-[inset_0_1px_1px_rgba(255,255,255,0.06),0_8px_24px_rgba(0,0,0,0.4)] min-h-[160px]"
         >
-          <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-[40px] pointer-events-none" />
-          <div className="flex justify-between items-start mb-4 relative z-10">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20">
-              <CheckCircle2 size={20} />
+          {/* Top Row: Icon + Pill */}
+          <div className="flex justify-between items-center mb-4 relative z-10">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-zinc-300">
+              <CheckCircle2 size={18} className="text-zinc-300 stroke-[2]" />
             </div>
-            <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 bg-white/5 px-2 py-1 rounded-lg">Today</span>
+            <span className="text-[10px] font-mono font-medium uppercase tracking-widest text-zinc-400 bg-white/[0.04] border border-white/[0.06] px-2.5 py-1 rounded-md">
+              Today
+            </span>
           </div>
-          <div className="relative z-10">
-            <div className="text-3xl font-black text-white">{completionPercentage}%</div>
-            <div className="text-[10px] font-bold uppercase text-slate-500 tracking-wider mt-1">
-              {completedToday} of {totalHabits} Completed
+
+          {/* Bottom Content: Number + Subtitle + Thin Progress Bar */}
+          <div className="relative z-10 space-y-2.5">
+            <div>
+              <div className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight font-sans">
+                {completionPercentage}%
+              </div>
+              <div className="text-[11px] font-mono uppercase text-zinc-400 tracking-wider mt-1">
+                {completedToday} of {totalHabits} Completed
+              </div>
+            </div>
+            <div className="w-full h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-zinc-200 rounded-full transition-all duration-500"
+                style={{ width: `${Math.min(100, Math.max(0, completionPercentage))}%` }}
+              />
             </div>
           </div>
         </motion.div>
 
         {/* Card 2: Streak */}
         <motion.div 
-          whileHover={{ y: -4, boxShadow: "0 10px 40px -10px rgba(0,0,0,0.5)", borderColor: "rgba(255,255,255,0.15)" }}
-          className={`bg-white/[0.03] backdrop-blur-xl border-l-4 ${isFrozen ? 'border-l-cyan-500' : 'border-l-orange-500'} border-y border-r border-white/5 p-6 rounded-3xl flex flex-col justify-between select-none relative overflow-hidden transition-all duration-300`}
+          whileHover={{ y: -3, borderColor: "rgba(255,255,255,0.18)" }}
+          className="bg-[#0c0c11]/85 backdrop-blur-xl border border-white/[0.08] p-5 sm:p-6 rounded-2xl sm:rounded-3xl flex flex-col justify-between select-none relative overflow-hidden transition-all duration-300 shadow-[inset_0_1px_1px_rgba(255,255,255,0.06),0_8px_24px_rgba(0,0,0,0.4)] min-h-[160px]"
         >
-          <div className={`absolute -top-10 -right-10 w-32 h-32 ${isFrozen ? 'bg-cyan-500/10' : 'bg-orange-500/10'} rounded-full blur-[40px] pointer-events-none`} />
-          <div className="flex justify-between items-start mb-4 relative z-10">
-            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center border ${isFrozen ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' : 'bg-orange-500/10 text-orange-400 border-orange-500/20'}`}>
-              {isFrozen ? <Target size={20} /> : <Zap size={20} />}
+          {/* Top Row: Icon + Pill */}
+          <div className="flex justify-between items-center mb-4 relative z-10">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-zinc-300">
+              {isFrozen ? (
+                <Target size={18} className="text-cyan-300 stroke-[2]" />
+              ) : (
+                <Zap size={18} className="text-zinc-300 stroke-[2]" />
+              )}
             </div>
-            <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 bg-white/5 px-2 py-1 rounded-lg">Consistency</span>
+            <span className="text-[10px] font-mono font-medium uppercase tracking-widest text-zinc-400 bg-white/[0.04] border border-white/[0.06] px-2.5 py-1 rounded-md">
+              {isFrozen ? "Protected" : "Consistency"}
+            </span>
           </div>
-          <div className="relative z-10">
-            <div className="text-3xl font-black text-white">{activeStreak} <span className="text-lg text-slate-500 font-bold uppercase tracking-widest">Days</span></div>
-            <div className="text-[10px] font-bold uppercase text-slate-500 tracking-wider mt-1">
-              {isFrozen ? "Streak Frozen" : "Current Streak"}
+
+          {/* Bottom Content: Number + Subtitle + Thin Progress Bar */}
+          <div className="relative z-10 space-y-2.5">
+            <div>
+              <div className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight font-sans">
+                {activeStreak} <span className="text-base sm:text-lg text-zinc-400 font-bold uppercase tracking-wider font-mono">{activeStreak === 1 ? 'Day' : 'Days'}</span>
+              </div>
+              <div className="text-[11px] font-mono uppercase text-zinc-400 tracking-wider mt-1">
+                {isFrozen ? "Streak Shield Active" : "Current Momentum"}
+              </div>
+            </div>
+            <div className="w-full h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-zinc-200 rounded-full transition-all duration-500"
+                style={{ width: `${Math.min(100, Math.max(activeStreak > 0 ? 8 : 0, (activeStreak / 30) * 100))}%` }}
+              />
             </div>
           </div>
         </motion.div>
 
         {/* Card 3: Level & XP */}
         <motion.div 
-          whileHover={{ y: -4, boxShadow: "0 10px 40px -10px rgba(0,0,0,0.5)", borderColor: "rgba(255,255,255,0.15)" }}
-          animate={xpPop ? { scale: [1, 1.02, 1], borderColor: ["rgba(255,255,255,0.05)", "rgba(245,158,11,0.4)", "rgba(255,255,255,0.05)"] } : {}}
+          whileHover={{ y: -3, borderColor: "rgba(255,255,255,0.18)" }}
+          animate={xpPop ? { scale: [1, 1.015, 1], borderColor: ["rgba(255,255,255,0.08)", "rgba(255,255,255,0.3)", "rgba(255,255,255,0.08)"] } : {}}
           transition={{ duration: 0.4 }}
-          className="bg-white/[0.03] backdrop-blur-xl border-l-4 border-l-amber-500 border-y border-r border-white/5 p-6 rounded-3xl flex flex-col justify-between select-none relative overflow-hidden transition-all duration-300"
+          className="bg-[#0c0c11]/85 backdrop-blur-xl border border-white/[0.08] p-5 sm:p-6 rounded-2xl sm:rounded-3xl flex flex-col justify-between select-none relative overflow-hidden transition-all duration-300 shadow-[inset_0_1px_1px_rgba(255,255,255,0.06),0_8px_24px_rgba(0,0,0,0.4)] min-h-[160px]"
         >
-          {xpPop && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: [0, 0.15, 0] }}
-              transition={{ duration: 0.6 }}
-              className="absolute inset-0 bg-amber-500 pointer-events-none filter blur-2xl"
-            />
-          )}
-          <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/10 rounded-full blur-[40px] pointer-events-none" />
-          
-          <div className="flex justify-between items-start mb-4 relative z-10">
-            <div className="w-10 h-10 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-400 border border-amber-500/20">
-              <Trophy size={20} />
+          {/* Top Row: Icon + Pill */}
+          <div className="flex justify-between items-center mb-4 relative z-10">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-zinc-300">
+              <Trophy size={18} className="text-zinc-300 stroke-[2]" />
             </div>
-            <div className="text-right">
-              <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 bg-white/5 px-2 py-1 rounded-lg">Rank</span>
-              {xpPop && <motion.div initial={{ scale: 0.6, y: 10, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }} className="absolute -bottom-6 right-0 text-[10px] font-black text-amber-400">+{currentXP - prevXp} XP</motion.div>}
+            <div className="flex items-center gap-1.5">
+              {xpPop && (
+                <motion.span
+                  initial={{ scale: 0.7, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="text-[10px] font-mono font-bold text-zinc-200 bg-white/10 px-1.5 py-0.5 rounded"
+                >
+                  +{currentXP - prevXp} XP
+                </motion.span>
+              )}
+              <span className="text-[10px] font-mono font-medium uppercase tracking-widest text-zinc-400 bg-white/[0.04] border border-white/[0.06] px-2.5 py-1 rounded-md">
+                Rank
+              </span>
             </div>
           </div>
-          
-          <div className="relative z-10">
-            <div className="flex items-end justify-between">
+
+          {/* Bottom Content: Number & Subtitle + Circular Indicator */}
+          <div className="relative z-10 space-y-2.5">
+            <div className="flex items-end justify-between gap-2">
               <div>
-                <div className="text-3xl font-black text-white">Lvl {currentLevel}</div>
-                <div className="text-[10px] font-bold uppercase text-slate-500 tracking-wider mt-1">
+                <div className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight font-sans">
+                  Lvl {currentLevel}
+                </div>
+                <div className="text-[11px] font-mono uppercase text-zinc-400 tracking-wider mt-1">
                   {currentXP} XP Total
                 </div>
               </div>
-              <div className="relative w-12 h-12 flex items-center justify-center shrink-0">
-                <svg className="w-full h-full transform -rotate-90 drop-shadow-[0_0_8px_rgba(245,158,11,0.3)]">
-                  <circle cx="24" cy="24" r="20" className="stroke-white/10" strokeWidth="4" fill="none" />
-                  <circle cx="24" cy="24" r="20" className="stroke-amber-400" strokeWidth="4" fill="none" strokeDasharray="125.6" strokeDashoffset={125.6 - (125.6 * progressPercentage) / 100} strokeLinecap="round" />
+              <div className="relative w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center shrink-0 mb-0.5">
+                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 44 44">
+                  <circle cx="22" cy="22" r="18" className="stroke-white/[0.08]" strokeWidth="2.5" fill="none" />
+                  <circle
+                    cx="22"
+                    cy="22"
+                    r="18"
+                    className="stroke-zinc-200"
+                    strokeWidth="2.5"
+                    fill="none"
+                    strokeDasharray="113.1"
+                    strokeDashoffset={113.1 - (113.1 * Math.min(100, Math.max(0, progressPercentage))) / 100}
+                    strokeLinecap="round"
+                  />
                 </svg>
+                <span className="absolute text-[9px] font-mono font-bold text-zinc-300">
+                  {Math.round(progressPercentage)}%
+                </span>
               </div>
+            </div>
+            <div className="w-full h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-zinc-200 rounded-full transition-all duration-500"
+                style={{ width: `${Math.min(100, Math.max(0, progressPercentage))}%` }}
+              />
             </div>
           </div>
         </motion.div>
@@ -265,12 +322,12 @@ export function DashboardScreen() {
         <div className="md:col-span-2 space-y-6">
           <motion.div 
             whileHover={{ borderColor: "rgba(255,255,255,0.15)" }}
-            className="bg-white/[0.02] backdrop-blur-2xl border border-white/5 rounded-3xl p-6 md:p-8 transition-all duration-300"
+            className="bg-[#0c0c11]/85 backdrop-blur-xl border border-white/[0.08] rounded-2xl sm:rounded-3xl p-5 sm:p-7 transition-all duration-300 shadow-[inset_0_1px_1px_rgba(255,255,255,0.06),0_8px_24px_rgba(0,0,0,0.4)]"
           >
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-sm font-black uppercase tracking-widest text-white/90">Today's Protocol</h2>
+              <h2 className="text-xs font-mono font-bold uppercase tracking-widest text-zinc-200">Today's Protocol</h2>
               {totalHabits > 0 && (
-                <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-lg border border-emerald-500/20">
+                <span className="text-[10px] font-mono uppercase font-medium tracking-wider text-zinc-300 bg-white/[0.04] px-2.5 py-1 rounded-md border border-white/[0.06]">
                   {completedToday}/{totalHabits} Done
                 </span>
               )}
@@ -308,23 +365,22 @@ export function DashboardScreen() {
           
           {/* AI Coach Card */}
           <motion.div
-            whileHover={{ y: -4, boxShadow: "0 10px 40px -10px rgba(0,0,0,0.5)", borderColor: "rgba(168,85,247,0.3)" }}
+            whileHover={{ y: -3, borderColor: "rgba(255,255,255,0.18)" }}
             onClick={() => setActiveTab("coach")}
-            className="group w-full bg-gradient-to-br from-purple-900/10 to-[#111114] border-l-4 border-l-purple-500 border-y border-r border-white/5 rounded-3xl p-6 cursor-pointer select-none transition-all duration-300 shadow-md relative overflow-hidden"
+            className="group w-full bg-[#0c0c11]/85 backdrop-blur-xl border border-white/[0.08] rounded-2xl sm:rounded-3xl p-5 sm:p-6 cursor-pointer select-none transition-all duration-300 shadow-[inset_0_1px_1px_rgba(255,255,255,0.06),0_8px_24px_rgba(0,0,0,0.4)] relative overflow-hidden"
           >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-[40px] pointer-events-none transition-opacity duration-300 group-hover:bg-purple-500/20" />
             <div className="flex flex-col gap-4 relative z-10">
               <div className="flex items-center justify-between">
-                <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-white shrink-0 shadow-inner group-hover:scale-105 transition-transform">
-                  <AICoachIcon size={22} active />
+                <div className="w-10 h-10 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white shrink-0 group-hover:scale-105 transition-transform">
+                  <AICoachIcon size={20} active />
                 </div>
-                <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-slate-400 group-hover:bg-purple-500/20 group-hover:text-purple-300 transition-colors">
+                <div className="w-8 h-8 rounded-full bg-white/[0.04] border border-white/[0.06] flex items-center justify-center text-zinc-400 group-hover:text-white group-hover:bg-white/10 transition-colors">
                   <ArrowRight size={14} />
                 </div>
               </div>
               <div>
-                <h3 className="text-sm font-black text-white uppercase tracking-wide">AI Coach</h3>
-                <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono">AI Coach</h3>
+                <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
                   Personalized strategy, discipline checks & performance protocols.
                 </p>
               </div>
@@ -333,28 +389,28 @@ export function DashboardScreen() {
 
           {/* Recent Activity */}
           <motion.div 
-            whileHover={{ borderColor: "rgba(255,255,255,0.1)" }}
-            className="w-full bg-white/[0.02] backdrop-blur-md border border-white/5 rounded-3xl p-6 transition-all duration-300"
+            whileHover={{ borderColor: "rgba(255,255,255,0.15)" }}
+            className="w-full bg-[#0c0c11]/85 backdrop-blur-xl border border-white/[0.08] rounded-2xl sm:rounded-3xl p-5 sm:p-6 transition-all duration-300 shadow-[inset_0_1px_1px_rgba(255,255,255,0.06),0_8px_24px_rgba(0,0,0,0.4)]"
           >
-            <div className="flex items-center gap-2 mb-5">
-              <Activity size={16} className="text-slate-400" />
-              <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Recent Activity</h3>
+            <div className="flex items-center gap-2 mb-4">
+              <Activity size={15} className="text-zinc-400" />
+              <h3 className="text-[10px] font-mono font-bold uppercase tracking-widest text-zinc-400">Recent Activity</h3>
             </div>
             
             {safeHabits.length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {safeHabits.slice(0, 4).map(h => (
-                  <div key={h.id} className="flex items-center justify-between p-3 bg-white/[0.02] hover:bg-white/[0.04] rounded-2xl border border-white/[0.02] transition-colors">
-                    <span className="font-semibold text-slate-200 text-xs truncate max-w-[140px]">{h.name}</span>
-                    <span className={`text-[9px] px-2 py-1 rounded-lg font-black uppercase tracking-wider shrink-0 ${h.completedToday ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-white/5 text-slate-500 border border-white/10'}`}>
-                      {h.completedToday ? 'Completed' : 'Pending'}
+                  <div key={h.id} className="flex items-center justify-between p-2.5 sm:p-3 bg-white/[0.02] hover:bg-white/[0.04] rounded-xl border border-white/[0.04] transition-colors">
+                    <span className="font-medium text-zinc-200 text-xs truncate max-w-[140px] sm:max-w-[160px]">{h.name}</span>
+                    <span className={`text-[9px] px-2 py-0.5 rounded-md font-mono uppercase tracking-wider shrink-0 border ${h.completedToday ? 'bg-white/[0.06] text-zinc-200 border-white/[0.1]' : 'bg-white/[0.02] text-zinc-400 border-white/[0.05]'}`}>
+                      {h.completedToday ? 'Done' : 'Pending'}
                     </span>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="w-full py-8 text-center bg-white/[0.01] rounded-2xl border border-white/5 border-dashed">
-                <p className="text-slate-500 font-bold uppercase tracking-[0.2em] text-[9px]">
+              <div className="w-full py-6 text-center bg-white/[0.01] rounded-xl border border-white/5 border-dashed">
+                <p className="text-zinc-400 font-mono text-[10px] uppercase tracking-widest">
                   No Activity Yet
                 </p>
               </div>

@@ -84,6 +84,8 @@ export interface ChatMessage {
   createdAt?: string;
   created_at?: string;
   isStreaming?: boolean;
+  isRegenerating?: boolean;
+  error?: string | null;
 }
 
 export interface Quote {

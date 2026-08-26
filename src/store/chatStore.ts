@@ -267,22 +267,69 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const messages = get().chatMessages;
     if (messages.length === 0) return;
 
-    let lastUserMsg = "";
-    if (messageId) {
-      const idx = messages.findIndex((m) => m.id === messageId);
-      if (idx > 0 && messages[idx - 1].role === "user") {
-        lastUserMsg = messages[idx - 1].content;
+    const targetIdx = messageId
+      ? messages.findIndex((m) => m.id === messageId)
+      : messages.map((m, idx) => ({ m, idx })).filter(({ m }) => m.role === "assistant").pop()?.idx ?? -1;
+
+    if (targetIdx === -1) return;
+    const targetMsg = messages[targetIdx];
+    if (targetMsg.isRegenerating) return;
+
+    let userPrompt = "";
+    for (let i = targetIdx - 1; i >= 0; i--) {
+      if (messages[i].role === "user") {
+        userPrompt = messages[i].content;
+        break;
       }
     }
-    if (!lastUserMsg) {
+    if (!userPrompt) {
       const userMsgs = messages.filter((m) => m.role === "user");
       if (userMsgs.length > 0) {
-        lastUserMsg = userMsgs[userMsgs.length - 1].content;
+        userPrompt = userMsgs[userMsgs.length - 1].content;
       }
     }
 
-    if (lastUserMsg) {
-      await get().sendChatMessage(lastUserMsg);
+    if (!userPrompt) return;
+
+    const originalContent = targetMsg.content;
+    const activeId = targetMsg.sessionId || get().activeChatId;
+
+    set((state) => ({
+      chatMessages: state.chatMessages.map((m) =>
+        m.id === targetMsg.id ? { ...m, isRegenerating: true, error: null } : m
+      ),
+    }));
+
+    try {
+      const res = await chatService.sendMessage(activeId || null, userPrompt);
+      const reply = res.reply || "Build discipline daily. Never miss twice.";
+
+      set((state) => ({
+        chatMessages: state.chatMessages.map((m) =>
+          m.id === targetMsg.id
+            ? {
+                ...m,
+                content: reply,
+                isRegenerating: false,
+                error: null,
+              }
+            : m
+        ),
+      }));
+    } catch (err: any) {
+      console.error("[chatStore] Message regeneration failed:", err);
+      set((state) => ({
+        chatMessages: state.chatMessages.map((m) =>
+          m.id === targetMsg.id
+            ? {
+                ...m,
+                content: originalContent,
+                isRegenerating: false,
+                error: "Couldn't regenerate. Try again.",
+              }
+            : m
+        ),
+      }));
     }
   },
 

@@ -3,7 +3,6 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
   Search,
-  Plus,
   X,
   MessageSquare,
   Pin,
@@ -13,8 +12,6 @@ import {
   MoreHorizontal,
   Flame,
   User as UserIcon,
-  Shield,
-  Zap,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { ChatSession, User } from "../../types";
@@ -281,7 +278,7 @@ export const CoachHistoryDrawer: React.FC<CoachHistoryDrawerProps> = ({
   const drawerContent = (
     <div
       ref={menuContainerRef}
-      className="h-full flex flex-col justify-between bg-[#09090c] border-r border-white/[0.08] select-none w-full"
+      className="h-full flex flex-col justify-between bg-[#09090c] border-r border-white/[0.08] select-none w-full max-w-full overflow-x-hidden"
     >
       {/* Top Header */}
       <div className="px-3.5 py-3 flex items-center justify-between border-b border-white/[0.07] shrink-0 h-14 bg-[#0a0a0e]/95 backdrop-blur-md">
@@ -297,6 +294,7 @@ export const CoachHistoryDrawer: React.FC<CoachHistoryDrawerProps> = ({
 
         {/* Mobile Close Button */}
         <button
+          type="button"
           onClick={onCloseMobile}
           className="md:hidden w-8 h-8 rounded-xl text-slate-400 hover:text-white bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] flex items-center justify-center transition-all active:scale-95 cursor-pointer"
           aria-label="Close history"
@@ -321,6 +319,7 @@ export const CoachHistoryDrawer: React.FC<CoachHistoryDrawerProps> = ({
           />
           {searchQuery && (
             <button
+              type="button"
               onClick={() => setSearchQuery("")}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-md text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
               aria-label="Clear search"
@@ -334,27 +333,20 @@ export const CoachHistoryDrawer: React.FC<CoachHistoryDrawerProps> = ({
       {/* + NEW CHAT Button */}
       <div className="px-3 py-1.5 shrink-0">
         <motion.button
+          type="button"
           onClick={() => {
             onNewChat();
             onCloseMobile();
           }}
           whileTap={{ scale: 0.97 }}
-          className="w-full py-2.5 px-3.5 rounded-xl bg-white hover:bg-zinc-200 text-black text-xs font-bold tracking-tight transition-all shadow-[0_2px_12px_rgba(255,255,255,0.12)] cursor-pointer flex items-center justify-between group"
+          className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-zinc-200 text-black text-xs font-bold tracking-wider uppercase transition-all shadow-[0_2px_12px_rgba(255,255,255,0.12)] cursor-pointer flex items-center justify-center text-center font-mono"
         >
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-lg bg-black/10 flex items-center justify-center text-black group-hover:scale-105 transition-transform">
-              <Plus size={13} strokeWidth={3} />
-            </div>
-            <span className="font-bold text-black tracking-tight text-xs">+ NEW CHAT</span>
-          </div>
-          <span className="text-[10px] text-zinc-600 group-hover:text-black transition-colors flex items-center gap-1 font-semibold">
-            <AICoachIcon size={11} active />
-          </span>
+          + NEW CHAT
         </motion.button>
       </div>
 
       {/* Session History List */}
-      <div className="flex-1 overflow-y-auto px-2 py-1.5 space-y-1 scrollbar-thin scrollbar-thumb-white/10 min-h-0">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-1.5 space-y-1 scrollbar-thin scrollbar-thumb-white/10 min-h-0">
         {sessionsLoading ? (
           <div className="space-y-2 px-1 py-2">
             {[1, 2, 3].map((i) => (
@@ -447,7 +439,7 @@ export const CoachHistoryDrawer: React.FC<CoachHistoryDrawerProps> = ({
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", stiffness: 380, damping: 35 }}
-              className="relative z-50 w-[84vw] max-w-[320px] h-full shadow-[0_0_60px_rgba(0,0,0,0.95)]"
+              className="relative z-50 w-[84vw] max-w-[300px] sm:max-w-[320px] h-full shadow-[0_0_60px_rgba(0,0,0,0.95)] overflow-hidden"
             >
               {drawerContent}
             </motion.div>
