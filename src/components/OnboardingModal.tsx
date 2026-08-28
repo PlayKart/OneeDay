@@ -368,13 +368,15 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
   };
 
   const executeOnboardingPersistence = async (cleanWhyOneday: string, finalGender: string) => {
+    if (saving) return; // Prevent duplicate onboarding writes (Rule 12)
+
     try {
       setSaving(true);
       setTransitionStatus("syncing");
       setTransitionError(null);
       setIsCompletedState(true);
 
-      console.log("[ONBOARDING] submission success");
+      console.log("[ONBOARDING] Starting onboarding persistence flow...");
 
       const payload = {
         name: name.trim(),
@@ -399,38 +401,45 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
         onboardingStep: totalSteps,
       };
 
-      // 1. Persist user profile
+      // 1. Persist user profile to backend database (Rules 1, 3, 4, 6)
       if (updateProfile) {
         await updateProfile(payload);
       }
-      console.log("[PROFILE] persistence success");
+      console.log("[PROFILE] Backend updateProfile succeeded.");
 
-      // 2. Perform synchronization
-      console.log("[SYNC] started");
+      // 2. Perform authoritative synchronization re-fetch (Rules 7, 10)
+      console.log("[SYNC] Re-fetching profile from backend...");
       if (refreshFromBackend) {
         await refreshFromBackend();
       }
-      console.log("[SYNC] completed");
+      console.log("[SYNC] Re-fetch completed.");
 
-      // 3. Confirm authoritative status strictly from refreshed backend profile
+      // 3. Confirm authoritative status strictly from refreshed backend profile (Rules 1, 6, 7)
       const refreshedUser = useStore.getState().user;
       const resolvedStatus = resolveOnboardingStatus(refreshedUser);
-      console.log(`[ONBOARDING STATUS] resolved = ${resolvedStatus}`);
+      console.log(`[ONBOARDING STATUS] Authoritative backend status resolved = ${resolvedStatus}`);
 
       if (resolvedStatus !== "complete") {
         throw new Error("Backend did not confirm onboarding completion. Please tap retry.");
       }
 
+      // 4. On successful confirmation: remove local draft keys, mark transition success (Rule 8)
       if (!isEditing) {
         localStorage.removeItem("oneday_onboarding_step");
         localStorage.removeItem("oneday_onboarding_data");
       }
 
-      // 4. Mark success in transition
       setTransitionStatus("success");
+      setTransitionError(null);
     } catch (e: any) {
-      console.error("[ONBOARDING] Finish error:", e);
-      const errorMessage = e?.response?.data?.error || e?.message || "Failed to finalize setup. Please tap retry.";
+      console.error("[ONBOARDING] Persistence error:", e);
+      const errorMessage =
+        e?.response?.data?.error?.message ||
+        e?.response?.data?.error ||
+        e?.response?.data?.message ||
+        e?.message ||
+        "Backend did not confirm onboarding completion. Please tap retry.";
+
       setTransitionError(errorMessage);
       setTransitionStatus("error");
       toast.error(errorMessage);
@@ -545,23 +554,6 @@ export function OnboardingModal({ isOpen, onComplete, initialData, isEditing = f
             </motion.div>
           ) : (
             <div className="absolute inset-0 z-50 bg-[#050505] flex flex-col items-center justify-center p-4">
-              {/* Variant Selector Bar for testing all 5 variants */}
-              <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[310] flex items-center gap-1.5 bg-black/80 border border-white/10 rounded-full p-1.5 backdrop-blur-md overflow-x-auto max-w-[95vw]">
-                {(["calibrating", "building", "protocol", "one-day", "ready"] as TransitionVariant[]).map((v) => (
-                  <button
-                    key={v}
-                    onClick={() => setActiveVariant(v)}
-                    className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer ${
-                      activeVariant === v 
-                        ? "bg-white text-black shadow-md" 
-                        : "text-slate-400 hover:text-white bg-white/5"
-                    }`}
-                  >
-                    {v}
-                  </button>
-                ))}
-              </div>
-
               <OnboardingTransition
                 variant={activeVariant}
                 status={transitionStatus}

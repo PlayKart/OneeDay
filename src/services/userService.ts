@@ -82,39 +82,65 @@ export const userService = {
       updatedAt: new Date().toISOString(),
     };
 
+    // Perform real backend save request
+    let responseData: any = null;
+    let saveSuccess = false;
+
     try {
-      // If updating onboarding step specifically, use the dedicated contract endpoint
+      // If updating onboarding step specifically, use dedicated endpoint
       if (data.onboardingStep !== undefined && Object.keys(data).length <= 2) {
-        await apiClient.post("/api/onboarding/step", { step: data.onboardingStep });
+        try {
+          await apiClient.post("/api/onboarding/step", { step: data.onboardingStep });
+        } catch (e) {
+          console.warn("[USER SERVICE] updateOnboardingStep POST /api/onboarding/step failed:", e);
+        }
       }
 
-      const response = await apiClient.post("/api/onboarding", payload).catch(async () => {
-        return await apiClient.get("/api/users");
-      });
-      const rawData = response.data || {};
-      const updatedBackendUser = rawData.user || rawData.profile || rawData.data || rawData;
-
-      const mergedUser = normalizeUser(
-        {
-          ...currentUser,
-          ...payload,
-          ...updatedBackendUser,
-          id: fbUser.uid,
-          userId: fbUser.uid,
-        },
-        currentUser || undefined
-      );
-
-      return mergedUser;
-    } catch (err: any) {
-      console.warn(`[USER SERVICE] Backend updateProfile failed:`, err?.message || err);
-
-      const mergedUser = normalizeUser(
-        { ...currentUser, ...payload, id: fbUser.uid, userId: fbUser.uid },
-        currentUser || undefined
-      );
-      return mergedUser;
+      const response = await apiClient.post("/api/onboarding", payload);
+      responseData = response.data;
+      saveSuccess = true;
+    } catch (primaryErr: any) {
+      console.warn("[USER SERVICE] POST /api/onboarding failed, trying fallback profile endpoints...", primaryErr?.message || primaryErr);
+      try {
+        const fallbackRes = await apiClient.post("/api/users", payload);
+        responseData = fallbackRes.data;
+        saveSuccess = true;
+      } catch (fallbackErr: any) {
+        try {
+          const putRes = await apiClient.put("/api/users", payload);
+          responseData = putRes.data;
+          saveSuccess = true;
+        } catch (putErr: any) {
+          console.error("[USER SERVICE] All backend updateProfile endpoints failed:", primaryErr?.message || putErr?.message);
+          throw new Error(
+            primaryErr?.response?.data?.error?.message ||
+            primaryErr?.response?.data?.error ||
+            primaryErr?.response?.data?.message ||
+            primaryErr?.message ||
+            "Backend write failed. Please check network and retry."
+          );
+        }
+      }
     }
+
+    if (!saveSuccess || !responseData) {
+      throw new Error("Backend database did not confirm profile write.");
+    }
+
+    const rawData = responseData || {};
+    const updatedBackendUser = rawData.user || rawData.profile || rawData.data || rawData;
+
+    const mergedUser = normalizeUser(
+      {
+        ...currentUser,
+        ...updatedBackendUser,
+        id: fbUser.uid,
+        userId: fbUser.uid,
+      },
+      currentUser || undefined
+    );
+
+    return mergedUser;
   },
 
   /**

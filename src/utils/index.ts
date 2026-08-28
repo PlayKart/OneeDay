@@ -76,9 +76,14 @@ export function getOnboardingStatus(u: any): boolean | null {
 
   // If user has filled profile details (e.g. why_oneday, dob, gender, hobbies), they completed onboarding
   const hasWhy = Boolean(u.why_oneday || u.whyOneday || u.reasonForJoining || u.reason);
-  const hasProfileInfo = Boolean(u.dob || (u.gender && u.gender.length > 0 && u.gender !== "Prefer not to say") || (Array.isArray(u.hobbies) && u.hobbies.length > 0));
+  const hasProfileInfo = Boolean(u.dob || u.date_of_birth || u.dateOfBirth || (u.gender && u.gender.length > 0 && u.gender !== "Prefer not to say") || (Array.isArray(u.hobbies) && u.hobbies.length > 0));
   if (hasWhy || hasProfileInfo) {
     return true;
+  }
+
+  // If user object is loaded from backend (has id/userId/email) but has no completion flags or filled profile fields, onboarding is incomplete
+  if (typeof u === "object" && (u.id || u.userId || u.email)) {
+    return false;
   }
 
   // Return null when onboarding state is unknown/undefined/null

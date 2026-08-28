@@ -73,22 +73,7 @@ export function getAppState({
   // 3. Authenticated - Check onboarding status (3-state: complete, incomplete, unknown)
   const onboardingStatus: OnboardingLogicalStatus = user ? resolveOnboardingStatus(user) : "unknown";
 
-  // 4. If there is a backend/sync error and we have NO resolved user state or status is unknown
-  if (backendError && !profileSynced && onboardingStatus === "unknown") {
-    return "AUTHENTICATED_SYNC_ERROR";
-  }
-
-  // 5. If profile is still syncing / loading OR profile is not yet synced, and onboarding status is unknown
-  if ((loading || !profileSynced) && onboardingStatus === "unknown") {
-    return "AUTHENTICATED_LOADING";
-  }
-
-  // 6. Explicitly incomplete onboarding (ONLY when status is confirmed incomplete)
-  if (onboardingStatus === "incomplete") {
-    return "AUTHENTICATED_ONBOARDING_INCOMPLETE";
-  }
-
-  // 7. Explicitly completed onboarding
+  // 4. Explicitly completed onboarding (Rule 14: Never redirect an onboarded user away during background loading)
   if (onboardingStatus === "complete") {
     const uid = firebaseUser.uid || user?.id || "";
     const seenIntro = hasSeenAppIntro(uid, user);
@@ -98,9 +83,24 @@ export function getAppState({
     return "AUTHENTICATED_READY";
   }
 
-  // 8. If onboarding status is unknown and sync has finished without resolving
-  if (onboardingStatus === "unknown") {
+  // 5. If there is a backend/sync error and status is unknown
+  if (backendError && !profileSynced && onboardingStatus === "unknown") {
+    return "AUTHENTICATED_SYNC_ERROR";
+  }
+
+  // 6. If profile is still syncing / loading OR profile is not yet synced, and onboarding status is unknown
+  if ((loading || !profileSynced) && onboardingStatus === "unknown") {
+    return "AUTHENTICATED_LOADING";
+  }
+
+  // 7. Explicitly incomplete onboarding (ONLY when status is confirmed incomplete)
+  if (onboardingStatus === "incomplete") {
     return "AUTHENTICATED_ONBOARDING_INCOMPLETE";
+  }
+
+  // 8. If onboarding status is unknown after sync finished
+  if (onboardingStatus === "unknown") {
+    return "AUTHENTICATED_LOADING";
   }
 
   // Fallback safe state: loading, NEVER onboarding
